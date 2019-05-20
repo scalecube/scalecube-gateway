@@ -50,6 +50,8 @@
     <module>services-gateway-tests</module>
     <module>services-gateway-runner</module>
     <module>services-gateway-clientsdk</module>
+    <module>services-gateway-benchmarks</module>
+    <module>services-gateway-examples</module>
   </modules>
 
   <dependencyManagement>
