@@ -1,2 +1,2 @@
 # scalecube-gateway
-Scakecube Gateway
+ScaLecube Gateway
