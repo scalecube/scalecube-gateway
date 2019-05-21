@@ -23,7 +23,7 @@
 
   <properties>
     <jackson.version>2.9.8</jackson.version>
-    <scalecube-services.version>2.5.10</scalecube-services.version>
+    <scalecube-services.version>2.6.0</scalecube-services.version>
     <scalecube-cluster.version>2.2.6</scalecube-cluster.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.6</scalecube-config.version>
@@ -31,7 +31,7 @@
     <rsocket.version>0.12.2-RC2</rsocket.version>
     <metrics.version>3.1.2</metrics.version>
     <protostuff.version>1.6.0</protostuff.version>
-    <netty.version>4.1.34.Final</netty.version>
+    <netty.version>4.1.36.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>2.11.0</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
