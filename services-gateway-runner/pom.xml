@@ -17,6 +17,12 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-gateway-netty</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-rsocket</artifactId>
       <version>${scalecube-services.version}</version>
     </dependency>
@@ -25,31 +31,19 @@
       <artifactId>scalecube-services-transport-jackson</artifactId>
       <version>${scalecube-services.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-discovery</artifactId>
       <version>${scalecube-services.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-http</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-rsocket</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-websocket</artifactId>
-      <version>${project.version}</version>
-    </dependency>
+
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>config</artifactId>
       <version>${scalecube-config.version}</version>
     </dependency>
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>

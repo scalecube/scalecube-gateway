@@ -43,10 +43,7 @@
   </properties>
 
   <modules>
-    <module>services-gateway-common</module>
-    <module>services-gateway-websocket</module>
-    <module>services-gateway-http</module>
-    <module>services-gateway-rsocket</module>
+    <module>services-gateway-netty</module>
     <module>services-gateway-tests</module>
     <module>services-gateway-runner</module>
     <module>services-gateway-clientsdk</module>

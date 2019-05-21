@@ -28,12 +28,6 @@
 
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-bytebuf-codec</artifactId>
-      <version>${scalecube-services.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-rsocket</artifactId>
       <version>${scalecube-services.version}</version>
     </dependency>
@@ -65,17 +59,7 @@
 
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-http</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-websocket</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-rsocket</artifactId>
+      <artifactId>scalecube-services-gateway-netty</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
