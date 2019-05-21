@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <groupId>io.scalecube</groupId>
     <artifactId>scalecube-gateway-parent</artifactId>
+    <groupId>io.scalecube</groupId>
     <version>2.7.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>scalecube-services-gateway-clientsdk</artifactId>
+  <artifactId>scalecube-services-gateway-netty</artifactId>
 
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-api</artifactId>
+      <artifactId>scalecube-services</artifactId>
       <version>${scalecube-services.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.projectreactor.netty</groupId>
+      <artifactId>reactor-netty</artifactId>
+    </dependency>
 
+    <!-- RSocket -->
     <dependency>
       <groupId>io.rsocket</groupId>
       <artifactId>rsocket-core</artifactId>
@@ -25,6 +30,7 @@
       <artifactId>rsocket-transport-netty</artifactId>
     </dependency>
 
+    <!-- Jackson -->
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
@@ -38,14 +44,30 @@
       <artifactId>jackson-databind</artifactId>
     </dependency>
 
+    <!-- Tests -->
     <dependency>
-      <groupId>org.jctools</groupId>
-      <artifactId>jctools-core</artifactId>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-rsocket</artifactId>
+      <version>${scalecube-services.version}</version>
+      <scope>test</scope>
     </dependency>
-
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+      <version>${scalecube-services.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-jackson</artifactId>
+      <version>${scalecube-services.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-protostuff</artifactId>
+      <version>${scalecube-services.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

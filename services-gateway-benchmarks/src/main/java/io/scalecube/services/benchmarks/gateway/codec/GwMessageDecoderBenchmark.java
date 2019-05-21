@@ -4,9 +4,9 @@ import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
+import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.ws.GatewayMessage;
 import io.scalecube.services.gateway.ws.GatewayMessageCodec;
-import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
