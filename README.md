@@ -1,6 +1,8 @@
 # scalecube-gateway
 ScaLecube Gateway
 
+![image](https://user-images.githubusercontent.com/1706296/58700290-4c569d80-83a8-11e9-8322-7e9d757dfad2.png)
+
 
 ## API-Gateway:
 
