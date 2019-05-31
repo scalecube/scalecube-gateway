@@ -6,7 +6,7 @@ ScaLecube API Gateway allows service consumers interact with scalecube microserv
 
 Read about it here: 
  - [Api Gateway Pattern by Chris Richardson](https://microservices.io/patterns/apigateway.html)
- - [Api Gateway pattern by Ronen Nachmias](https://www.linkedin.com/pulse/api-gateway-pattern-ronen-hamias/)
+ - [Api Gateway Pattern by Ronen Nachmias](https://www.linkedin.com/pulse/api-gateway-pattern-ronen-hamias/)
 
 ## API-Gateway:
 
