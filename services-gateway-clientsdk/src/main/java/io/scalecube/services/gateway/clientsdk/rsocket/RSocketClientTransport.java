@@ -25,8 +25,8 @@ public final class RSocketClientTransport implements ClientTransport {
 
   private static final AtomicReferenceFieldUpdater<RSocketClientTransport, Mono>
       rSocketMonoUpdater =
-          AtomicReferenceFieldUpdater.newUpdater(
-              RSocketClientTransport.class, Mono.class, "rsocketMono");
+      AtomicReferenceFieldUpdater.newUpdater(
+          RSocketClientTransport.class, Mono.class, "rsocketMono");
 
   private final ClientSettings settings;
   private final ClientCodec<Payload> codec;
@@ -76,6 +76,23 @@ public final class RSocketClientTransport implements ClientTransport {
                   rsocket ->
                       rsocket
                           .requestStream(payload)
+                          .onErrorMap(
+                              ClosedChannelException.class,
+                              e -> new ConnectionClosedException("Connection closed")))
+              .map(this::toMessage);
+        });
+  }
+
+  @Override
+  public Flux<ClientMessage> requestChannel(Flux<ClientMessage> requests) {
+    return Flux.defer(
+        () -> {
+          Flux<Payload> reqPayloads = requests.map(this::toPayload);
+          return getOrConnect()
+              .flatMapMany(
+                  rsocket ->
+                      rsocket
+                          .requestChannel(reqPayloads)
                           .onErrorMap(
                               ClosedChannelException.class,
                               e -> new ConnectionClosedException("Connection closed")))

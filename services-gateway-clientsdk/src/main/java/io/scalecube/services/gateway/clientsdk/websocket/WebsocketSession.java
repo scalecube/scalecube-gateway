@@ -95,6 +95,19 @@ final class WebsocketSession {
                     }));
   }
 
+  public Mono<Void> send(Flux<ByteBuf> byteBuf, long sid) {
+    return Mono.defer(
+        () ->
+            outbound
+                .sendObject(byteBuf.map(TextWebSocketFrame::new))
+                .then()
+                .doOnSuccess(
+                    avoid -> {
+                      inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
+                      LOGGER.debug("Put sid={}, session={}", sid, id);
+                    }));
+  }
+
   public Flux<ClientMessage> receive(long sid) {
     return Flux.defer(
         () -> {

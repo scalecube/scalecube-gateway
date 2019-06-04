@@ -78,6 +78,11 @@ public final class HttpClientTransport implements ClientTransport {
   }
 
   @Override
+  public Flux<ClientMessage> requestChannel(Flux<ClientMessage> requests) {
+    return Flux.error(new UnsupportedOperationException("Request channel is not supported by HTTP/1.x"));
+  }
+
+  @Override
   public Mono<Void> close() {
     return connectionProvider
         .disposeLater()

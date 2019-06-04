@@ -22,6 +22,15 @@ public interface ClientTransport {
   Flux<ClientMessage> requestStream(ClientMessage request);
 
   /**
+   * Communication mode that gives stream of responses to stream of requests.
+   *
+   * @param requests request stream.
+   * @return Publisher that emits responses from remote server.
+   */
+  Flux<ClientMessage> requestChannel(Flux<ClientMessage> requests);
+
+
+  /**
    * Initiate cleaning of underlying resources (if any) like closing websocket connection or rSocket
    * session. Subsequent calls of requestOne() or requestMany() must issue new connection creation.
    * Note that close is not the end of client lifecycle.
