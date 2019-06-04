@@ -1,8 +1,8 @@
 package io.scalecube.services.gateway.clientsdk;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.gateway.clientsdk.exceptions.ClientErrorMapper;
 import io.scalecube.services.gateway.clientsdk.exceptions.DefaultClientErrorMapper;
-import io.scalecube.services.transport.api.Address;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.SslProvider;
 

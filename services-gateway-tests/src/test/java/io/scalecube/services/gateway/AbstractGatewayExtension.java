@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway;
 
-import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
-
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -10,7 +9,6 @@ import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
-import io.scalecube.services.transport.api.Address;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -89,7 +87,7 @@ public abstract class AbstractGatewayExtension
 
   private ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 
   /** Shutdown services. */
