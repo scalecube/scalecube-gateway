@@ -30,7 +30,6 @@ public class HttpGatewayExample implements Gateway {
 
   @Override
   public Mono<Gateway> start() {
-
     return Mono.defer(
         () -> {
           System.out.println("Starting HTTP gateway...");

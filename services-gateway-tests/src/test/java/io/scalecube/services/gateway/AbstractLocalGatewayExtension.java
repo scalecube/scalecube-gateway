@@ -27,7 +27,6 @@ public abstract class AbstractLocalGatewayExtension
 
   protected AbstractLocalGatewayExtension(
       Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
-
     gateway =
         Microservices.builder().services(serviceInstance).gateway(gatewayFactory).startAwait();
   }

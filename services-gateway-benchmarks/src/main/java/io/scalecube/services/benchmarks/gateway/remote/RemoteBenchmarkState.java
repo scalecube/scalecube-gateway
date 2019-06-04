@@ -17,9 +17,9 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
   private final Address gatewayAddress;
 
   /**
-   * Constructor for benchmarks state.
+   * Constructor for benchmark state.
    *
-   * @param settings benchmarks settings.
+   * @param settings benchmark settings.
    */
   public RemoteBenchmarkState(
       BenchmarkSettings settings,

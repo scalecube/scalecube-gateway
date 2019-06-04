@@ -32,7 +32,6 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
   @Override
   protected void beforeAll() throws Exception {
     super.beforeAll();
-
     microservices =
         Microservices.builder()
             .services(new BenchmarkServiceImpl())

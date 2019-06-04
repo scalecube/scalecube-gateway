@@ -74,7 +74,9 @@ public abstract class AbstractGatewayExtension
     return client;
   }
 
-  /** Start services. */
+  /**
+   * Start services.
+   */
   public void startServices() {
     services =
         Microservices.builder()
@@ -90,7 +92,9 @@ public abstract class AbstractGatewayExtension
         .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 
-  /** Shutdown services. */
+  /**
+   * Shutdown services.
+   */
   public void shutdownServices() {
     if (services != null) {
       try {

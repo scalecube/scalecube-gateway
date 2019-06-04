@@ -60,6 +60,12 @@
         <artifactId>config</artifactId>
         <version>${scalecube-config.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-services</artifactId>
+        <version>${scalecube-services.version}</version>
+      </dependency>
+
 
       <!-- Reactor -->
       <dependency>

@@ -10,6 +10,7 @@
   <artifactId>scalecube-services-gateway-benchmarks</artifactId>
 
   <properties>
+    <!--suppress UnresolvedMavenProperty -->
     <extratags>${env.TRAVIS_COMMIT}</extratags>
   </properties>
 
@@ -17,7 +18,6 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services</artifactId>
-      <version>${scalecube-services.version}</version>
     </dependency>
 
     <dependency>

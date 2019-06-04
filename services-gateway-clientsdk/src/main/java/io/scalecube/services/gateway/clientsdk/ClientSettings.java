@@ -75,6 +75,7 @@ public class ClientSettings {
   }
 
   public static class Builder {
+
     private String host = DEFAULT_HOST;
     private int port;
     private String contentType = DEFAULT_CONTENT_TYPE;
@@ -83,7 +84,8 @@ public class ClientSettings {
     private SslProvider sslProvider;
     private ClientErrorMapper errorMapper = DefaultClientErrorMapper.INSTANCE;
 
-    private Builder() {}
+    private Builder() {
+    }
 
     public Builder host(String host) {
       this.host = host;

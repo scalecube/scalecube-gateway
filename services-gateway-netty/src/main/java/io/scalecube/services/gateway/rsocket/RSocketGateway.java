@@ -28,6 +28,7 @@ public class RSocketGateway extends GatewayTemplate {
 
   @Override
   public Mono<Gateway> start() {
+
     return Mono.defer(
         () -> {
           ServiceCall serviceCall =

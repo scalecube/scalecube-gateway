@@ -19,7 +19,6 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services</artifactId>
-      <version>${scalecube-services.version}</version>
     </dependency>
 
     <dependency>
