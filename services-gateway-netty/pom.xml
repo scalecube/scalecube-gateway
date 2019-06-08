@@ -61,12 +61,6 @@
       <version>${scalecube-services.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-protostuff</artifactId>
-      <version>${scalecube-services.version}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
 </project>
