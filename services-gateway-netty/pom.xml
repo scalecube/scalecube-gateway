@@ -13,14 +13,13 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services</artifactId>
-      <version>${scalecube-services.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.projectreactor.netty</groupId>
       <artifactId>reactor-netty</artifactId>
     </dependency>
 
-    <!-- RSocket -->
     <dependency>
       <groupId>io.rsocket</groupId>
       <artifactId>rsocket-core</artifactId>
@@ -30,7 +29,6 @@
       <artifactId>rsocket-transport-netty</artifactId>
     </dependency>
 
-    <!-- Jackson -->
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
@@ -60,12 +58,6 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-jackson</artifactId>
-      <version>${scalecube-services.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-protostuff</artifactId>
       <version>${scalecube-services.version}</version>
       <scope>test</scope>
     </dependency>

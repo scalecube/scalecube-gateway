@@ -23,14 +23,12 @@
 
   <properties>
     <jackson.version>2.9.9</jackson.version>
-    <scalecube-services.version>2.6.2</scalecube-services.version>
-    <scalecube-cluster.version>2.2.7</scalecube-cluster.version>
+    <scalecube-services.version>2.7.0</scalecube-services.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.11</scalecube-config.version>
     <reactor.version>Californium-SR8</reactor.version>
     <rsocket.version>0.12.2-RC2</rsocket.version>
     <metrics.version>3.1.2</metrics.version>
-    <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.36.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>2.11.0</log4j.version>
@@ -52,13 +50,34 @@
   </modules>
 
   <dependencyManagement>
-
     <dependencies>
       <!-- Scalecube Config -->
       <dependency>
         <groupId>io.scalecube</groupId>
         <artifactId>config</artifactId>
         <version>${scalecube-config.version}</version>
+      </dependency>
+
+      <!-- Scalecube Services -->
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-services</artifactId>
+        <version>${scalecube-services.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-services-discovery</artifactId>
+        <version>${scalecube-services.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-services-transport-rsocket</artifactId>
+        <version>${scalecube-services.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-services-transport-jackson</artifactId>
+        <version>${scalecube-services.version}</version>
       </dependency>
 
       <!-- Reactor -->
@@ -86,6 +105,7 @@
         <artifactId>log4j-core</artifactId>
         <version>${log4j.version}</version>
       </dependency>
+
       <!-- Disruptor -->
       <dependency>
         <groupId>com.lmax</groupId>
@@ -122,68 +142,10 @@
         <version>${jackson.version}</version>
       </dependency>
 
-      <!-- Protostuff/Protobuf -->
-      <dependency>
-        <groupId>io.protostuff</groupId>
-        <artifactId>protostuff-api</artifactId>
-        <version>${protostuff.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.protostuff</groupId>
-        <artifactId>protostuff-core</artifactId>
-        <version>${protostuff.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.protostuff</groupId>
-        <artifactId>protostuff-collectionschema</artifactId>
-        <version>${protostuff.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.protostuff</groupId>
-        <artifactId>protostuff-runtime</artifactId>
-        <version>${protostuff.version}</version>
-      </dependency>
-
       <!-- Netty -->
       <dependency>
         <groupId>io.netty</groupId>
-        <artifactId>netty-common</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
         <artifactId>netty-buffer</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-codec</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-codec-http</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-handler</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-handler-proxy</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-transport</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-transport-native-epoll</artifactId>
-        <classifier>linux-x86_64</classifier>
         <version>${netty.version}</version>
       </dependency>
 
@@ -301,4 +263,3 @@
   </pluginRepositories>
 
 </project>
-

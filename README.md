@@ -1,6 +1,12 @@
 # scalecube-gateway
-ScaLecube Gateway
 
+ScaLecube API Gateway allows service consumers interact with scalecube microservices cluster.
+
+![image](https://user-images.githubusercontent.com/1706296/58700290-4c569d80-83a8-11e9-8322-7e9d757dfad2.png)
+
+Read about it here: 
+ - [Api Gateway Pattern by Chris Richardson](https://microservices.io/patterns/apigateway.html)
+ - [Api Gateway Pattern by Ronen Nachmias](https://www.linkedin.com/pulse/api-gateway-pattern-ronen-hamias/)
 
 ## API-Gateway:
 

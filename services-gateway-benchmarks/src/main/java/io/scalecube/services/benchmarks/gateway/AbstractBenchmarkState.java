@@ -2,11 +2,11 @@ package io.scalecube.services.benchmarks.gateway;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
-import io.scalecube.services.transport.api.Address;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;

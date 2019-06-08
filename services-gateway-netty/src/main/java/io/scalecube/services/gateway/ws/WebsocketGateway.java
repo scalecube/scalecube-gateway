@@ -1,13 +1,13 @@
 package io.scalecube.services.gateway.ws;
 
 import io.netty.channel.EventLoopGroup;
+import io.scalecube.net.Address;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.transport.api.Address;
 import java.net.InetSocketAddress;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
