@@ -84,8 +84,7 @@ public class ClientSettings {
     private SslProvider sslProvider;
     private ClientErrorMapper errorMapper = DefaultClientErrorMapper.INSTANCE;
 
-    private Builder() {
-    }
+    private Builder() {}
 
     public Builder host(String host) {
       this.host = host;
