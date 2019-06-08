@@ -1,8 +1,8 @@
 package io.scalecube.services.examples.gateway;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
-import io.scalecube.services.transport.api.Address;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
@@ -30,7 +30,6 @@ public class HttpGatewayExample implements Gateway {
 
   @Override
   public Mono<Gateway> start() {
-
     return Mono.defer(
         () -> {
           System.out.println("Starting HTTP gateway...");

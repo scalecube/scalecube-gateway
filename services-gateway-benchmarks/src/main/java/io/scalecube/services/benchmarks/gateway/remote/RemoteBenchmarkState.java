@@ -1,9 +1,9 @@
 package io.scalecube.services.benchmarks.gateway.remote;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.net.Address;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
 import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.transport.api.Address;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
@@ -17,9 +17,9 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
   private final Address gatewayAddress;
 
   /**
-   * Constructor for benchmarks state.
+   * Constructor for benchmark state.
    *
-   * @param settings benchmarks settings.
+   * @param settings benchmark settings.
    */
   public RemoteBenchmarkState(
       BenchmarkSettings settings,

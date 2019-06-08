@@ -1,11 +1,11 @@
 package io.scalecube.services.gateway;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
-import io.scalecube.services.transport.api.Address;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -27,7 +27,6 @@ public abstract class AbstractLocalGatewayExtension
 
   protected AbstractLocalGatewayExtension(
       Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
-
     gateway =
         Microservices.builder().services(serviceInstance).gateway(gatewayFactory).startAwait();
   }

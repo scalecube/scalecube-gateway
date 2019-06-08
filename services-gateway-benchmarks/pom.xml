@@ -10,53 +10,11 @@
   <artifactId>scalecube-services-gateway-benchmarks</artifactId>
 
   <properties>
+    <!--suppress UnresolvedMavenProperty -->
     <extratags>${env.TRAVIS_COMMIT}</extratags>
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services</artifactId>
-      <version>${scalecube-services.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-discovery</artifactId>
-      <version>${scalecube-services.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-rsocket</artifactId>
-      <version>${scalecube-services.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-jackson</artifactId>
-      <version>${scalecube-services.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-protostuff</artifactId>
-      <version>${scalecube-services.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-benchmarks-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-benchmarks-log4j2</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-core</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-gateway-netty</artifactId>
@@ -71,6 +29,41 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-examples</artifactId>
       <version>${scalecube-services.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-rsocket</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-protostuff</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-benchmarks-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-benchmarks-log4j2</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
     </dependency>
   </dependencies>
 

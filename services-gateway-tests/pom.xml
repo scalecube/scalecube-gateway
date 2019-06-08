@@ -15,13 +15,11 @@
       <artifactId>scalecube-services-examples</artifactId>
       <version>${scalecube-services.version}</version>
     </dependency>
-
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-gateway-netty</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-gateway-clientsdk</artifactId>
@@ -30,24 +28,23 @@
 
     <dependency>
       <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-rsocket</artifactId>
-      <version>${scalecube-services.version}</version>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-jackson</artifactId>
-      <version>${scalecube-services.version}</version>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-protostuff</artifactId>
-      <version>${scalecube-services.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-discovery</artifactId>
-      <version>${scalecube-services.version}</version>
     </dependency>
 
     <dependency>
