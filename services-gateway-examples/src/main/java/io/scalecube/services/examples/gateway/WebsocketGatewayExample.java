@@ -30,7 +30,6 @@ public class WebsocketGatewayExample implements Gateway {
 
   @Override
   public Mono<Gateway> start() {
-
     return Mono.defer(
         () -> {
           System.out.println("Starting WS gateway...");
@@ -43,7 +42,6 @@ public class WebsocketGatewayExample implements Gateway {
 
   @Override
   public Mono<Void> stop() {
-
     return Mono.defer(
         () -> {
           System.out.println("Stopping WS gateway...");
