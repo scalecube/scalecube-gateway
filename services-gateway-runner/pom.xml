@@ -37,10 +37,6 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-jackson</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-protostuff</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>io.scalecube</groupId>
