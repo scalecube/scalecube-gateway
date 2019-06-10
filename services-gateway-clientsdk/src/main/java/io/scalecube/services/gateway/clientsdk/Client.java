@@ -43,7 +43,7 @@ public final class Client {
    * @param codec client message codec
    * @param errorMapper error mapper
    */
-  public Client(ClientTransport transport, ClientCodec codec, ClientErrorMapper errorMapper) {
+  private Client(ClientTransport transport, ClientCodec codec, ClientErrorMapper errorMapper) {
     this.transport = transport;
     this.codec = codec;
     this.errorMapper = errorMapper;

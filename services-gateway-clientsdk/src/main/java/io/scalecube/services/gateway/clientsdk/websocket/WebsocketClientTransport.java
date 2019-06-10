@@ -24,8 +24,8 @@ public final class WebsocketClientTransport implements ClientTransport {
 
   private static final AtomicReferenceFieldUpdater<WebsocketClientTransport, Mono>
       websocketMonoUpdater =
-          AtomicReferenceFieldUpdater.newUpdater(
-              WebsocketClientTransport.class, Mono.class, "websocketMono");
+      AtomicReferenceFieldUpdater.newUpdater(
+          WebsocketClientTransport.class, Mono.class, "websocketMono");
 
   private final ClientCodec<ByteBuf> codec;
   private final ClientSettings settings;
@@ -103,7 +103,8 @@ public final class WebsocketClientTransport implements ClientTransport {
 
   @Override
   public Flux<ClientMessage> requestChannel(Flux<ClientMessage> requests) {
-    return Flux.error(new UnsupportedOperationException("Request channel is not supported by WebSocket transport implementation"));
+    return Flux.error(new UnsupportedOperationException(
+        "Request channel is not supported by WebSocket transport implementation"));
   }
 
   @Override
