@@ -25,6 +25,12 @@
       <artifactId>scalecube-services-gateway-clientsdk</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-gateway-clientTransport</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
 
     <dependency>
       <groupId>io.scalecube</groupId>

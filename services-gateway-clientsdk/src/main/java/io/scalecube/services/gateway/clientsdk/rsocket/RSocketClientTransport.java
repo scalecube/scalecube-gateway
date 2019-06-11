@@ -25,8 +25,8 @@ public final class RSocketClientTransport implements ClientTransport {
 
   private static final AtomicReferenceFieldUpdater<RSocketClientTransport, Mono>
       rSocketMonoUpdater =
-      AtomicReferenceFieldUpdater.newUpdater(
-          RSocketClientTransport.class, Mono.class, "rsocketMono");
+          AtomicReferenceFieldUpdater.newUpdater(
+              RSocketClientTransport.class, Mono.class, "rsocketMono");
 
   private final ClientSettings settings;
   private final ClientCodec<Payload> codec;

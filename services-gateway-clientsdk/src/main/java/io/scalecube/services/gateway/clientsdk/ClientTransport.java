@@ -29,7 +29,6 @@ public interface ClientTransport {
    */
   Flux<ClientMessage> requestChannel(Flux<ClientMessage> requests);
 
-
   /**
    * Initiate cleaning of underlying resources (if any) like closing websocket connection or rSocket
    * session. Subsequent calls of requestOne() or requestMany() must issue new connection creation.
