@@ -1,15 +1,15 @@
-package io.scalecube.services.gateway.clientsdk.rsocket;
+package io.scalecube.services.transport.gw.client.rsocket;
 
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientMessage;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
-import io.scalecube.services.gateway.clientsdk.exceptions.ConnectionClosedException;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.ConnectionClosedException;
+import io.scalecube.services.transport.gw.client.GatewayClient;
+import io.scalecube.services.transport.gw.client.GwClientCodec;
+import io.scalecube.services.transport.gw.client.GwClientSettings;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
@@ -19,17 +19,15 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
-public final class RSocketClientTransport implements ClientTransport {
+public final class RSocketGwClient implements GatewayClient {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGwClient.class);
 
-  private static final AtomicReferenceFieldUpdater<RSocketClientTransport, Mono>
-      rSocketMonoUpdater =
-          AtomicReferenceFieldUpdater.newUpdater(
-              RSocketClientTransport.class, Mono.class, "rsocketMono");
+  private static final AtomicReferenceFieldUpdater<RSocketGwClient, Mono> rSocketMonoUpdater =
+      AtomicReferenceFieldUpdater.newUpdater(RSocketGwClient.class, Mono.class, "rsocketMono");
 
-  private final ClientSettings settings;
-  private final ClientCodec<Payload> codec;
+  private final GwClientSettings settings;
+  private final GwClientCodec<Payload> codec;
   private final LoopResources loopResources;
 
   @SuppressWarnings("unused")
@@ -39,18 +37,16 @@ public final class RSocketClientTransport implements ClientTransport {
    * Constructor for client sdk rsocket transport.
    *
    * @param settings client settings.
-   * @param codec client message codec.
-   * @param loopResources loop resources.
+   * @param codec client codec.
    */
-  public RSocketClientTransport(
-      ClientSettings settings, ClientCodec<Payload> codec, LoopResources loopResources) {
+  public RSocketGwClient(GwClientSettings settings, GwClientCodec<Payload> codec) {
     this.settings = settings;
     this.codec = codec;
-    this.loopResources = loopResources;
+    this.loopResources = settings.loopResources();
   }
 
   @Override
-  public Mono<ClientMessage> requestResponse(ClientMessage request) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     return Mono.defer(
         () -> {
           Payload payload = toPayload(request);
@@ -67,7 +63,7 @@ public final class RSocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Flux<ClientMessage> requestStream(ClientMessage request) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage request) {
     return Flux.defer(
         () -> {
           Payload payload = toPayload(request);
@@ -84,7 +80,7 @@ public final class RSocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Flux<ClientMessage> requestChannel(Flux<ClientMessage> requests) {
+  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> requests) {
     return Flux.defer(
         () -> {
           Flux<Payload> reqPayloads = requests.map(this::toPayload);
@@ -109,6 +105,10 @@ public final class RSocketClientTransport implements ClientTransport {
           return (curr == null ? Mono.<Void>empty() : curr.flatMap(this::dispose))
               .doOnTerminate(() -> LOGGER.info("Closed rsocket client sdk transport"));
         });
+  }
+
+  public GwClientCodec<Payload> getCodec() {
+    return codec;
   }
 
   private Mono<? extends Void> dispose(RSocket rsocket) {
@@ -154,7 +154,7 @@ public final class RSocketClientTransport implements ClientTransport {
         .cache();
   }
 
-  private WebsocketClientTransport createRSocketTransport(ClientSettings settings) {
+  private WebsocketClientTransport createRSocketTransport(GwClientSettings settings) {
     String path = "/";
 
     HttpClient httpClient =
@@ -171,11 +171,11 @@ public final class RSocketClientTransport implements ClientTransport {
     return WebsocketClientTransport.create(httpClient, path);
   }
 
-  private Payload toPayload(ClientMessage message) {
+  private Payload toPayload(ServiceMessage message) {
     return codec.encode(message);
   }
 
-  private ClientMessage toMessage(Payload payload) {
+  private ServiceMessage toMessage(Payload payload) {
     return codec.decode(payload);
   }
 }

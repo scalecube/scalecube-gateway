@@ -28,7 +28,9 @@ class Reflect {
 
   static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(
-        serviceMethods(serviceInterface).values().stream()
+        serviceMethods(serviceInterface)
+            .values()
+            .stream()
             .collect(
                 Collectors.toMap(
                     method -> method,

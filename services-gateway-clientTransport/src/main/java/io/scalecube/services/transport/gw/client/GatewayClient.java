@@ -1,9 +1,10 @@
-package io.scalecube.services.gateway.clientsdk;
+package io.scalecube.services.transport.gw.client;
 
+import io.scalecube.services.api.ServiceMessage;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface ClientTransport {
+public interface GatewayClient {
 
   /**
    * Communication mode that gives single response to single request.
@@ -11,7 +12,7 @@ public interface ClientTransport {
    * @param request request message.
    * @return Publisher that emits single response form remote server as it's ready.
    */
-  Mono<ClientMessage> requestResponse(ClientMessage request);
+  Mono<ServiceMessage> requestResponse(ServiceMessage request);
 
   /**
    * Communication mode that gives stream of responses to single request.
@@ -19,7 +20,7 @@ public interface ClientTransport {
    * @param request request message.
    * @return Publisher that emits responses from remote server.
    */
-  Flux<ClientMessage> requestStream(ClientMessage request);
+  Flux<ServiceMessage> requestStream(ServiceMessage request);
 
   /**
    * Communication mode that gives stream of responses to stream of requests.
@@ -27,7 +28,7 @@ public interface ClientTransport {
    * @param requests request stream.
    * @return Publisher that emits responses from remote server.
    */
-  Flux<ClientMessage> requestChannel(Flux<ClientMessage> requests);
+  Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> requests);
 
   /**
    * Initiate cleaning of underlying resources (if any) like closing websocket connection or rSocket

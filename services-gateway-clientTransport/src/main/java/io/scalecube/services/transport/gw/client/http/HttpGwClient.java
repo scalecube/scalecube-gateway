@@ -1,45 +1,40 @@
-package io.scalecube.services.gateway.clientsdk.http;
+package io.scalecube.services.transport.gw.client.http;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.Qualifier;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientMessage;
-import io.scalecube.services.gateway.clientsdk.ClientMessage.Builder;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.api.ServiceMessage.Builder;
+import io.scalecube.services.transport.gw.client.GatewayClient;
+import io.scalecube.services.transport.gw.client.GwClientCodec;
+import io.scalecube.services.transport.gw.client.GwClientSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
 
-public final class HttpClientTransport implements ClientTransport {
+public final class HttpGwClient implements GatewayClient {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientTransport.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGwClient.class);
 
-  private final ClientCodec<ByteBuf> codec;
-  private final HttpClient httpClient;
+  private final GwClientCodec<ByteBuf> codec;
+  private final reactor.netty.http.client.HttpClient httpClient;
   private final ConnectionProvider connectionProvider;
 
   /**
    * Creates instance of http client transport.
    *
    * @param settings client settings
-   * @param codec client message codec
-   * @param loopResources loop resources
    */
-  public HttpClientTransport(
-      ClientSettings settings, ClientCodec<ByteBuf> codec, LoopResources loopResources) {
-
+  public HttpGwClient(GwClientSettings settings, GwClientCodec<ByteBuf> codec) {
     this.codec = codec;
-
+    LoopResources loopResources = settings.loopResources();
     connectionProvider = ConnectionProvider.elastic("http-client-sdk");
 
     httpClient =
-        HttpClient.create(connectionProvider)
+        reactor.netty.http.client.HttpClient.create(connectionProvider)
             .followRedirect(settings.followRedirect())
             .tcpConfiguration(
                 tcpClient -> {
@@ -51,7 +46,7 @@ public final class HttpClientTransport implements ClientTransport {
   }
 
   @Override
-  public Mono<ClientMessage> requestResponse(ClientMessage request) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     return Mono.defer(
         () -> {
           ByteBuf byteBuf = codec.encode(request);
@@ -72,13 +67,13 @@ public final class HttpClientTransport implements ClientTransport {
   }
 
   @Override
-  public Flux<ClientMessage> requestStream(ClientMessage request) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage request) {
     return Flux.error(
         new UnsupportedOperationException("Request stream is not supported by HTTP/1.x"));
   }
 
   @Override
-  public Flux<ClientMessage> requestChannel(Flux<ClientMessage> requests) {
+  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> requests) {
     return Flux.error(
         new UnsupportedOperationException("Request channel is not supported by HTTP/1.x"));
   }
@@ -90,17 +85,21 @@ public final class HttpClientTransport implements ClientTransport {
         .doOnTerminate(() -> LOGGER.info("Closed http-client-sdk transport"));
   }
 
-  private ClientMessage toMessage(HttpClientResponse httpResponse, ByteBuf content) {
+  public GwClientCodec<ByteBuf> getCodec() {
+    return codec;
+  }
+
+  private ServiceMessage toMessage(HttpClientResponse httpResponse, ByteBuf content) {
     int httpCode = httpResponse.status().code();
     String qualifier = isError(httpCode) ? Qualifier.asError(httpCode) : httpResponse.uri();
 
-    Builder builder = ClientMessage.builder().qualifier(qualifier).data(content);
+    Builder builder = ServiceMessage.builder().qualifier(qualifier).data(content);
     // prepare response headers
     httpResponse
         .responseHeaders()
         .entries()
         .forEach(entry -> builder.header(entry.getKey(), entry.getValue()));
-    ClientMessage message = builder.build();
+    ServiceMessage message = builder.build();
 
     LOGGER.debug("Received response {}", message);
     return message;

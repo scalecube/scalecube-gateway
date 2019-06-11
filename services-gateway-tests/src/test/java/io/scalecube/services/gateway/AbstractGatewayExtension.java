@@ -2,6 +2,7 @@ package io.scalecube.services.gateway;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -26,7 +27,7 @@ public abstract class AbstractGatewayExtension
   private final Microservices gateway;
   private final Object serviceInstance;
 
-  private Client client;
+  private ServiceCall serviceCall;
   private Address gatewayAddress;
   private Microservices services;
 
@@ -50,8 +51,8 @@ public abstract class AbstractGatewayExtension
 
   @Override
   public final void afterEach(ExtensionContext context) {
-    if (client != null) {
-      client.close();
+    if (serviceCall != null) {
+      serviceCall.close();
     }
   }
 
@@ -67,11 +68,11 @@ public abstract class AbstractGatewayExtension
     if (services == null) {
       startServices();
     }
-    client = new Client(transport(), clientMessageCodec());
+    serviceCall = new Client(transport(), clientMessageCodec());
   }
 
-  public Client client() {
-    return client;
+  public ServiceCall client() {
+    return serviceCall;
   }
 
   public void startServices() {

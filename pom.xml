@@ -44,6 +44,7 @@
     <module>services-gateway-netty</module>
     <module>services-gateway-tests</module>
     <module>services-gateway-runner</module>
+    <module>services-gateway-clientTransport</module>
     <module>services-gateway-clientsdk</module>
     <module>services-gateway-benchmarks</module>
     <module>services-gateway-examples</module>
@@ -77,6 +78,11 @@
       <dependency>
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-services-transport-jackson</artifactId>
+        <version>${scalecube-services.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-services-bytebuf-codec</artifactId>
         <version>${scalecube-services.version}</version>
       </dependency>
 

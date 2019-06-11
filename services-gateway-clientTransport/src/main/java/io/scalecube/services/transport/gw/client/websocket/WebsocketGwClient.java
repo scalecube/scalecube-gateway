@@ -1,10 +1,11 @@
-package io.scalecube.services.gateway.clientsdk.websocket;
+package io.scalecube.services.transport.gw.client.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientMessage;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
+import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.transport.gw.client.GatewayClient;
+import io.scalecube.services.transport.gw.client.GwClientCodec;
+import io.scalecube.services.transport.gw.client.GwClientSettings;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
@@ -15,20 +16,18 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
-public final class WebsocketClientTransport implements ClientTransport {
+public final class WebsocketGwClient implements GatewayClient {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketClientTransport.class);
 
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
 
-  private static final AtomicReferenceFieldUpdater<WebsocketClientTransport, Mono>
-      websocketMonoUpdater =
-          AtomicReferenceFieldUpdater.newUpdater(
-              WebsocketClientTransport.class, Mono.class, "websocketMono");
+  private static final AtomicReferenceFieldUpdater<WebsocketGwClient, Mono> websocketMonoUpdater =
+      AtomicReferenceFieldUpdater.newUpdater(WebsocketGwClient.class, Mono.class, "websocketMono");
 
-  private final ClientCodec<ByteBuf> codec;
-  private final ClientSettings settings;
+  private final GwClientCodec<ByteBuf> codec;
+  private final GwClientSettings settings;
   private final HttpClient httpClient;
   private final AtomicLong sidCounter = new AtomicLong();
 
@@ -39,14 +38,12 @@ public final class WebsocketClientTransport implements ClientTransport {
    * Creates instance of websocket client transport.
    *
    * @param settings client settings
-   * @param codec client message codec
-   * @param loopResources loop resources
+   * @param codec client codec.
    */
-  public WebsocketClientTransport(
-      ClientSettings settings, ClientCodec<ByteBuf> codec, LoopResources loopResources) {
-    this.codec = codec;
+  public WebsocketGwClient(GwClientSettings settings, GwClientCodec<ByteBuf> codec) {
     this.settings = settings;
-
+    this.codec = codec;
+    LoopResources loopResources = settings.loopResources();
     httpClient =
         HttpClient.newConnection()
             .followRedirect(settings.followRedirect())
@@ -60,7 +57,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Mono<ClientMessage> requestResponse(ClientMessage request) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     return Mono.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
@@ -71,7 +68,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                       session
                           .send(byteBuf, sid)
                           .then(
-                              Mono.<ClientMessage>create(
+                              Mono.<ServiceMessage>create(
                                   sink ->
                                       session
                                           .receive(sid)
@@ -81,7 +78,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Flux<ClientMessage> requestStream(ClientMessage request) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage request) {
     return Flux.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
@@ -92,7 +89,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                       session
                           .send(byteBuf, sid)
                           .thenMany(
-                              Flux.<ClientMessage>create(
+                              Flux.<ServiceMessage>create(
                                   sink ->
                                       session
                                           .receive(sid)
@@ -102,7 +99,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Flux<ClientMessage> requestChannel(Flux<ClientMessage> requests) {
+  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> requests) {
     return Flux.error(
         new UnsupportedOperationException(
             "Request channel is not supported by WebSocket transport implementation"));
@@ -117,6 +114,10 @@ public final class WebsocketClientTransport implements ClientTransport {
           return (curr == null ? Mono.<Void>empty() : curr.flatMap(WebsocketSession::close))
               .doOnTerminate(() -> LOGGER.info("Closed websocket client sdk transport"));
         });
+  }
+
+  public GwClientCodec<ByteBuf> getCodec() {
+    return codec;
   }
 
   private Mono<WebsocketSession> getOrConnect() {
@@ -162,7 +163,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   private Disposable handleCancel(long sid, WebsocketSession session) {
     ByteBuf byteBuf =
         codec.encode(
-            ClientMessage.builder()
+            ServiceMessage.builder()
                 .header(STREAM_ID, sid)
                 .header(SIGNAL, Signal.CANCEL.codeAsString())
                 .build());
@@ -175,7 +176,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                     "Exception on sending CANCEL signal for session={}", session.id(), th));
   }
 
-  private ByteBuf encodeRequest(ClientMessage message, long sid) {
-    return codec.encode(ClientMessage.from(message).header(STREAM_ID, sid).build());
+  private ByteBuf encodeRequest(ServiceMessage message, long sid) {
+    return codec.encode(ServiceMessage.from(message).header(STREAM_ID, sid).build());
   }
 }
