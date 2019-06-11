@@ -6,10 +6,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
+import io.scalecube.services.transport.gw.client.GwClientSettings;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -24,8 +21,12 @@ public abstract class AbstractGatewayExtension
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGatewayExtension.class);
 
-  private final Microservices gateway;
   private final Object serviceInstance;
+  private final Microservices gateway;
+  private Microservices client;
+
+  // TODO: [sergeyr] actually that could be useful in some circumstances. use a stub for now
+  private final GwClientSettings clientSettings = GwClientSettings.builder().build();
 
   private ServiceCall serviceCall;
   private Address gatewayAddress;
@@ -34,26 +35,12 @@ public abstract class AbstractGatewayExtension
   protected AbstractGatewayExtension(
       Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
     this.serviceInstance = serviceInstance;
-
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(ServiceTransports::rsocketServiceTransport)
             .gateway(gatewayFactory)
             .startAwait();
-  }
-
-  @Override
-  public final void afterAll(ExtensionContext context) {
-    shutdownServices();
-    shutdownGateway();
-  }
-
-  @Override
-  public final void afterEach(ExtensionContext context) {
-    if (serviceCall != null) {
-      serviceCall.close();
-    }
   }
 
   @Override
@@ -68,7 +55,25 @@ public abstract class AbstractGatewayExtension
     if (services == null) {
       startServices();
     }
+
+    client = Microservices.builder()
+        .transport(op -> op.)
+        .transport(opts -> ServiceTransports.rsocketGwTransport(clientSettings, opts))
+        .startAwait();
+
+
     serviceCall = new Client(transport(), clientMessageCodec());
+  }
+
+  @Override
+  public final void afterAll(ExtensionContext context) {
+    shutdownServices();
+    shutdownGateway();
+  }
+
+  @Override
+  public final void afterEach(ExtensionContext context) {
+    shutdownClient();
   }
 
   public ServiceCall client() {
@@ -105,6 +110,22 @@ public abstract class AbstractGatewayExtension
     }
   }
 
+  public void shutdownClient() {
+    if (client != null) {
+      try {
+        client.shutdown().block();
+      } catch (Throwable ignore) {
+        // ignore
+      }
+      LOGGER.info("Shutdown services {}", client);
+
+      // if this method is called in particular test need to indicate that services are stopped to
+      // start them again before another test
+      client = null;
+      serviceCall = null;
+    }
+  }
+
   private void shutdownGateway() {
     if (gateway != null) {
       try {
@@ -116,8 +137,8 @@ public abstract class AbstractGatewayExtension
     }
   }
 
-  protected final ClientSettings clientSettings() {
-    return ClientSettings.builder().host(gatewayAddress.host()).port(gatewayAddress.port()).build();
+  protected final GwClientSettings clientSettings() {
+    return GwClientSettings.from(clientSettings).build();
   }
 
   protected abstract ClientTransport transport();
