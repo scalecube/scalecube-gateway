@@ -1,14 +1,9 @@
 package io.scalecube.services.gateway.websocket;
 
-import io.netty.buffer.ByteBuf;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
-import io.scalecube.services.gateway.clientsdk.websocket.WebsocketClientCodec;
-import io.scalecube.services.gateway.clientsdk.websocket.WebsocketClientTransport;
+import io.scalecube.services.transport.gw.GwTransportBootstraps;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
-import io.scalecube.services.transport.api.DataCodec;
-import reactor.netty.resources.LoopResources;
 
 class WebsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
 
@@ -19,14 +14,8 @@ class WebsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
   }
 
   @Override
-  protected ClientTransport transport() {
-    return new WebsocketClientTransport(
-        clientSettings(), clientMessageCodec(), LoopResources.create(gatewayAliasName() + "-loop"));
-  }
-
-  @Override
-  protected ClientCodec<ByteBuf> clientMessageCodec() {
-    return new WebsocketClientCodec(DataCodec.getInstance(clientSettings().contentType()));
+  protected ServiceTransportBootstrap gwClientTransport(ServiceTransportBootstrap op) {
+    return GwTransportBootstraps.websocketGwTransport(clientSettings, op);
   }
 
   @Override

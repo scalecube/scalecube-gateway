@@ -2,10 +2,14 @@ package io.scalecube.services.gateway;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.routing.Router;
+import io.scalecube.services.transport.gw.GwTransportBootstraps;
+import io.scalecube.services.transport.gw.StaticAddressRouter;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -24,13 +28,12 @@ public abstract class AbstractGatewayExtension
   private final Object serviceInstance;
   private final Microservices gateway;
   private Microservices client;
-
   // TODO: [sergeyr] actually that could be useful in some circumstances. use a stub for now
-  private final GwClientSettings clientSettings = GwClientSettings.builder().build();
+  protected final GwClientSettings clientSettings = GwClientSettings.builder().build();
 
   private ServiceCall serviceCall;
-  private Address gatewayAddress;
   private Microservices services;
+  private Router clientRouter;
 
   protected AbstractGatewayExtension(
       Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
@@ -38,15 +41,17 @@ public abstract class AbstractGatewayExtension
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(GwTransportBootstraps::rsocketServiceTransport)
             .gateway(gatewayFactory)
             .startAwait();
   }
 
   @Override
   public final void beforeAll(ExtensionContext context) {
-    gatewayAddress = gateway.gateway(gatewayAliasName()).address();
+    Address gatewayAddress = gateway.gateway(gatewayAliasName()).address();
     startServices();
+    clientRouter = new StaticAddressRouter(gatewayAddress);
+    client = Microservices.builder().transport(this::gwClientTransport).startAwait();
   }
 
   @Override
@@ -55,14 +60,7 @@ public abstract class AbstractGatewayExtension
     if (services == null) {
       startServices();
     }
-
-    client = Microservices.builder()
-        .transport(op -> op.)
-        .transport(opts -> ServiceTransports.rsocketGwTransport(clientSettings, opts))
-        .startAwait();
-
-
-    serviceCall = new Client(transport(), clientMessageCodec());
+    serviceCall = client.call().router(clientRouter);
   }
 
   @Override
@@ -80,20 +78,9 @@ public abstract class AbstractGatewayExtension
     return serviceCall;
   }
 
-  public void startServices() {
-    services =
-        Microservices.builder()
-            .discovery(this::serviceDiscovery)
-            .transport(ServiceTransports::rsocketServiceTransport)
-            .services(serviceInstance)
-            .startAwait();
-    LOGGER.info("Started services {} on {}", services, services.serviceAddress());
-  }
+  protected abstract ServiceTransportBootstrap gwClientTransport(ServiceTransportBootstrap op);
 
-  private ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
-  }
+  protected abstract String gatewayAliasName();
 
   public void shutdownServices() {
     if (services != null) {
@@ -110,7 +97,17 @@ public abstract class AbstractGatewayExtension
     }
   }
 
-  public void shutdownClient() {
+  private void startServices() {
+    services =
+        Microservices.builder()
+            .discovery(this::serviceDiscovery)
+            .transport(GwTransportBootstraps::rsocketServiceTransport)
+            .services(serviceInstance)
+            .startAwait();
+    LOGGER.info("Started services {} on {}", services, services.serviceAddress());
+  }
+
+  private void shutdownClient() {
     if (client != null) {
       try {
         client.shutdown().block();
@@ -137,13 +134,8 @@ public abstract class AbstractGatewayExtension
     }
   }
 
-  protected final GwClientSettings clientSettings() {
-    return GwClientSettings.from(clientSettings).build();
+  private ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
-
-  protected abstract ClientTransport transport();
-
-  protected abstract ClientCodec clientMessageCodec();
-
-  protected abstract String gatewayAliasName();
 }

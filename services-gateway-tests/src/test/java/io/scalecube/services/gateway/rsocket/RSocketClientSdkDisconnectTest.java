@@ -4,26 +4,21 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
-import io.scalecube.services.gateway.ServiceTransports;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
-import io.scalecube.services.gateway.clientsdk.exceptions.ConnectionClosedException;
-import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientCodec;
-import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientTransport;
-import io.scalecube.services.transport.api.DataCodec;
-import io.scalecube.services.transport.api.HeadersCodec;
+import io.scalecube.services.exceptions.ConnectionClosedException;
+import io.scalecube.services.transport.gw.GwTransportBootstraps;
+import io.scalecube.services.transport.gw.StaticAddressRouter;
+import io.scalecube.services.transport.gw.client.GwClientSettings;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
-import reactor.netty.resources.LoopResources;
 import reactor.test.StepVerifier;
 
 class RSocketClientSdkDisconnectTest {
@@ -32,49 +27,42 @@ class RSocketClientSdkDisconnectTest {
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(3);
   private static final String JOHN = "John";
 
-  private LoopResources clientLoopResources;
-  private Microservices seed;
-
-  private Client rsocketClient;
+  private Microservices gwWithServices;
+  private Microservices client;
+  private ServiceCall serviceCall;
 
   @BeforeEach
   void startClient() {
-    seed =
+    gwWithServices =
         Microservices.builder()
             .services(new GreetingServiceImpl())
             .gateway(opts -> new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME)))
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(GwTransportBootstraps::rsocketServiceTransport)
+            .startAwait();
+    Address gwAddress = gwWithServices.gateway(GATEWAY_ALIAS_NAME).address();
+
+    GwClientSettings settings = GwClientSettings.builder().build();
+    client =
+        Microservices.builder()
+            .transport(op -> GwTransportBootstraps.rsocketGwTransport(settings, op))
             .startAwait();
 
-    clientLoopResources = LoopResources.create("eventLoop");
-
-    int gatewayPort = seed.gateway(GATEWAY_ALIAS_NAME).address().port();
-    ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
-
-    ClientCodec clientCodec =
-        new RSocketClientCodec(
-            HeadersCodec.getInstance(settings.contentType()),
-            DataCodec.getInstance(settings.contentType()));
-
-    //noinspection unchecked
-    ClientTransport clientTransport =
-        new RSocketClientTransport(settings, clientCodec, clientLoopResources);
-
-    rsocketClient = new Client(clientTransport, clientCodec);
+    serviceCall = client.call().router(new StaticAddressRouter(gwAddress));
   }
 
   @AfterEach
   void stopClient() {
-    if (rsocketClient != null) {
-      rsocketClient.close().block(SHUTDOWN_TIMEOUT);
-    }
-    if (clientLoopResources != null) {
-      clientLoopResources.disposeLater().block(SHUTDOWN_TIMEOUT);
-    }
-    if (seed != null) {
+    if (client != null) {
       try {
-        seed.shutdown().block(SHUTDOWN_TIMEOUT);
+        client.shutdown().block(SHUTDOWN_TIMEOUT);
+      } catch (Exception ignore) {
+        // no-op
+      }
+    }
+    if (gwWithServices != null) {
+      try {
+        gwWithServices.shutdown().block(SHUTDOWN_TIMEOUT);
       } catch (Exception ignore) {
         // no-op
       }
@@ -86,13 +74,13 @@ class RSocketClientSdkDisconnectTest {
     Duration shutdownAt = Duration.ofSeconds(1);
 
     StepVerifier.create(
-            rsocketClient
-                .forService(GreetingService.class)
+            serviceCall
+                .api(GreetingService.class)
                 .many(JOHN)
                 .doOnSubscribe(
                     subscription ->
                         Mono.delay(shutdownAt)
-                            .doOnSuccess(ignore -> seed.shutdown().subscribe())
+                            .doOnSuccess(ignore -> gwWithServices.shutdown().subscribe())
                             .subscribe()))
         .thenConsumeWhile(
             response -> {

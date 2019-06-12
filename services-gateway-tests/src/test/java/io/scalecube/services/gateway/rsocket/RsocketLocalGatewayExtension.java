@@ -1,14 +1,8 @@
 package io.scalecube.services.gateway.rsocket;
 
-import io.rsocket.Payload;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
-import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientCodec;
-import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientTransport;
-import io.scalecube.services.transport.api.DataCodec;
-import io.scalecube.services.transport.api.HeadersCodec;
-import reactor.netty.resources.LoopResources;
+import io.scalecube.services.transport.gw.GwTransportBootstraps;
 
 class RsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
 
@@ -19,18 +13,8 @@ class RsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
   }
 
   @Override
-  protected ClientTransport transport() {
-    return new RSocketClientTransport(
-        clientSettings(), clientMessageCodec(), LoopResources.create(gatewayAliasName() + "-loop"));
-  }
-
-  @Override
-  protected ClientCodec<Payload> clientMessageCodec() {
-    String contentType = clientSettings().contentType();
-    HeadersCodec headersCodec = HeadersCodec.getInstance(contentType);
-    DataCodec dataCodec = DataCodec.getInstance(contentType);
-
-    return new RSocketClientCodec(headersCodec, dataCodec);
+  protected ServiceTransportBootstrap gwClientTransport(ServiceTransportBootstrap op) {
+    return GwTransportBootstraps.rsocketGwTransport(clientSettings, op);
   }
 
   @Override

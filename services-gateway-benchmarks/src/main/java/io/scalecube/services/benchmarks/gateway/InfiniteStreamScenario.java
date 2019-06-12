@@ -4,7 +4,9 @@ import static io.scalecube.services.examples.BenchmarkService.CLIENT_RECV_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.benchmarks.LatencyHelper;
+import io.scalecube.services.gateway.ServiceMessageCodec;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.Optional;
@@ -60,8 +62,8 @@ public final class InfiniteStreamScenario {
 
           Integer rateLimit = rateLimit(settings);
 
-          ClientMessage request =
-              ClientMessage.builder().qualifier(QUALIFIER).rateLimit(rateLimit).build();
+          ServiceMessage request =
+              ServiceMessage.builder().qualifier(QUALIFIER).build();
 
           return client ->
               (executionTick, task) ->

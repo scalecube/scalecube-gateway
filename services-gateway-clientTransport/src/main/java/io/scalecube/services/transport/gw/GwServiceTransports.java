@@ -43,8 +43,14 @@ public class GwServiceTransports {
     // one instance;
   }
 
+  /**
+   * Service transport using Gateway over websocket as client transport and rSocket as server.
+   * transport
+   *
+   * @param cs client settings for gateway client transport
+   * @return service transport
+   */
   public ServiceTransport websocketGwServiceTransport(GwClientSettings cs) {
-
     return new ServiceTransport() {
       @Override
       public ClientTransport clientTransport(TransportResources transportResources) {
@@ -62,6 +68,12 @@ public class GwServiceTransports {
     };
   }
 
+  /**
+   * Service transport using Gateway over http as client transport and rSocket as server transport.
+   *
+   * @param cs client settings for gateway client transport
+   * @return service transport
+   */
   public ServiceTransport httpGwServiceTransport(GwClientSettings cs) {
     return new ServiceTransport() {
       @Override
@@ -79,6 +91,13 @@ public class GwServiceTransports {
     };
   }
 
+  /**
+   * Service transport using Gateway over rsocket as client transport and rSocket as server.
+   * transport
+   *
+   * @param cs client settings for gateway client transport
+   * @return service transport
+   */
   public ServiceTransport rsocketGwServiceTransport(GwClientSettings cs) {
 
     return new ServiceTransport() {

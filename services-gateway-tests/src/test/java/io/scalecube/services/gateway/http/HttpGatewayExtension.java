@@ -1,13 +1,8 @@
 package io.scalecube.services.gateway.http;
 
-import io.netty.buffer.ByteBuf;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.gateway.AbstractGatewayExtension;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
-import io.scalecube.services.gateway.clientsdk.http.HttpClientCodec;
-import io.scalecube.services.gateway.clientsdk.http.HttpClientTransport;
-import io.scalecube.services.transport.api.DataCodec;
-import reactor.netty.resources.LoopResources;
+import io.scalecube.services.transport.gw.GwTransportBootstraps;
 
 class HttpGatewayExtension extends AbstractGatewayExtension {
 
@@ -18,14 +13,8 @@ class HttpGatewayExtension extends AbstractGatewayExtension {
   }
 
   @Override
-  protected ClientTransport transport() {
-    return new HttpClientTransport(
-        clientSettings(), clientMessageCodec(), LoopResources.create(gatewayAliasName() + "-loop"));
-  }
-
-  @Override
-  protected ClientCodec<ByteBuf> clientMessageCodec() {
-    return new HttpClientCodec(DataCodec.getInstance(clientSettings().contentType()));
+  protected ServiceTransportBootstrap gwClientTransport(ServiceTransportBootstrap op) {
+    return GwTransportBootstraps.httpGwTransport(clientSettings, op);
   }
 
   @Override
