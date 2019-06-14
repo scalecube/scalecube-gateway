@@ -7,9 +7,9 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.gw.GwTransportBootstraps;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.netty.resources.LoopResources;
 
 public abstract class AbstractGatewayExtension
     implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
@@ -25,32 +26,38 @@ public abstract class AbstractGatewayExtension
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGatewayExtension.class);
 
   private final Object serviceInstance;
-  private final Microservices gateway;
-  private Microservices client;
-  // TODO: [sergeyr] actually that could be useful in some circumstances. use a stub for now
-  protected final GwClientSettings clientSettings = GwClientSettings.builder().build();
+  private final Function<GatewayOptions, Gateway> gatewaySupplier;
+  private final BiFunction<GwClientSettings, ServiceTransportBootstrap, ServiceTransportBootstrap> clientSupplier;
 
-  private ServiceCall serviceCall;
+  private Microservices gateway;
+  private String gatewayId;
   private Microservices services;
-  private Router clientRouter;
+  private Microservices client;
+  private LoopResources clientLoopResources;
+  private ServiceCall serviceCall;
 
   protected AbstractGatewayExtension(
-      Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
+      Object serviceInstance, Function<GatewayOptions, Gateway> gatewaySupplier,
+      BiFunction<GwClientSettings, ServiceTransportBootstrap, ServiceTransportBootstrap> clientSupplier) {
     this.serviceInstance = serviceInstance;
-    gateway =
-        Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
-            .transport(GwTransportBootstraps::rsocketServiceTransport)
-            .gateway(gatewayFactory)
-            .startAwait();
+    this.gatewaySupplier = gatewaySupplier;
+    this.clientSupplier = clientSupplier;
   }
 
   @Override
   public final void beforeAll(ExtensionContext context) {
-    Address gatewayAddress = gateway.gateway(gatewayAliasName()).address();
+    gateway =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(GwTransportBootstraps::rsocketServiceTransport)
+            .gateway(options -> {
+              Gateway gateway = gatewaySupplier.apply(options);
+              gatewayId = gateway.id();
+              return gateway;
+            })
+            .startAwait();
     startServices();
-    clientRouter = new StaticAddressRouter(gatewayAddress);
-    client = Microservices.builder().transport(this::gwClientTransport).startAwait();
+    clientLoopResources = LoopResources.create("gw-client-worker");
   }
 
   @Override
@@ -59,13 +66,15 @@ public abstract class AbstractGatewayExtension
     if (services == null) {
       startServices();
     }
-    serviceCall = client.call().router(clientRouter);
-  }
 
-  @Override
-  public final void afterAll(ExtensionContext context) {
-    shutdownServices();
-    shutdownGateway();
+    Address address = this.gateway.gateway(gatewayId).address();
+    client = Microservices.builder()
+        .transport(op -> clientSupplier.apply(
+            GwClientSettings.builder().address(address).loopResources(clientLoopResources).build(),
+            op))
+        .startAwait();
+
+    serviceCall = client.call().router(new StaticAddressRouter(address));
   }
 
   @Override
@@ -73,13 +82,16 @@ public abstract class AbstractGatewayExtension
     shutdownClient();
   }
 
+  @Override
+  public final void afterAll(ExtensionContext context) {
+    clientLoopResources.dispose();
+    shutdownServices();
+    shutdownGateway();
+  }
+
   public ServiceCall client() {
     return serviceCall;
   }
-
-  protected abstract ServiceTransportBootstrap gwClientTransport(ServiceTransportBootstrap op);
-
-  protected abstract String gatewayAliasName();
 
   public void shutdownServices() {
     if (services != null) {
