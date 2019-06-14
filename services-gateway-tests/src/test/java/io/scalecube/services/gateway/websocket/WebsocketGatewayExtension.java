@@ -15,7 +15,7 @@ class WebsocketGatewayExtension extends AbstractGatewayExtension {
 
   @Override
   protected ServiceTransportBootstrap gwClientTransport(ServiceTransportBootstrap op) {
-    return GwTransportBootstraps.rsocketGwTransport(clientSettings, op);
+    return GwTransportBootstraps.websocketGwTransport(clientSettings, op);
   }
 
   @Override
