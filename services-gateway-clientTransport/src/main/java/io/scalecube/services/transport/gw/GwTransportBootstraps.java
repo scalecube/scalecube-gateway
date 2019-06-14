@@ -18,26 +18,26 @@ public class GwTransportBootstraps {
 
   public static ServiceTransportBootstrap rsocketGwTransport(
       GwClientSettings cs, ServiceTransportBootstrap opts) {
-    ServiceTransport sTransport = GwServiceTransports.INSTANCE.rsocketGwServiceTransport(cs);
-    return serviceBootstrap(opts, sTransport);
+    ServiceTransport transport = GwServiceTransports.INSTANCE.rsocketGwServiceTransport(cs);
+    return serviceBootstrap(opts, transport);
   }
 
   public static ServiceTransportBootstrap websocketGwTransport(
       GwClientSettings cs, ServiceTransportBootstrap opts) {
-    ServiceTransport sTransport = GwServiceTransports.INSTANCE.websocketGwServiceTransport(cs);
-    return serviceBootstrap(opts, sTransport);
+    ServiceTransport transport = GwServiceTransports.INSTANCE.websocketGwServiceTransport(cs);
+    return serviceBootstrap(opts, transport);
   }
 
   public static ServiceTransportBootstrap httpGwTransport(
       GwClientSettings cs, ServiceTransportBootstrap opts) {
-    ServiceTransport sTransport = GwServiceTransports.INSTANCE.httpGwServiceTransport(cs);
-    return serviceBootstrap(opts, sTransport);
+    ServiceTransport transport = GwServiceTransports.INSTANCE.httpGwServiceTransport(cs);
+    return serviceBootstrap(opts, transport);
   }
 
   private static ServiceTransportBootstrap serviceBootstrap(
-      ServiceTransportBootstrap opts, ServiceTransport sTransport) {
+      ServiceTransportBootstrap opts, ServiceTransport transport) {
     return opts.resources(RSocketTransportResources::new)
-        .client(sTransport::clientTransport)
-        .server(sTransport::serverTransport);
+        .client(transport::clientTransport)
+        .server(transport::serverTransport);
   }
 }
