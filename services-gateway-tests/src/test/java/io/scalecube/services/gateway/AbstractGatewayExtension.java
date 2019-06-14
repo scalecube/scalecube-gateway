@@ -9,6 +9,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.gw.GwTransportBootstraps;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -84,7 +85,7 @@ public abstract class AbstractGatewayExtension
 
   @Override
   public final void afterAll(ExtensionContext context) {
-    clientLoopResources.dispose();
+    Optional.ofNullable(clientLoopResources).ifPresent(LoopResources::dispose);
     shutdownServices();
     shutdownGateway();
   }
