@@ -6,8 +6,6 @@ import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.benchmarks.LatencyHelper;
-import io.scalecube.services.gateway.ServiceMessageCodec;
-import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -90,7 +88,7 @@ public final class InfiniteStreamScenario {
         .orElse(DEFAULT_RATE_LIMIT);
   }
 
-  private static ClientMessage enichResponse(ClientMessage msg) {
-    return ClientMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
+  private static ServiceMessage enichResponse(ServiceMessage msg) {
+    return ServiceMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
   }
 }

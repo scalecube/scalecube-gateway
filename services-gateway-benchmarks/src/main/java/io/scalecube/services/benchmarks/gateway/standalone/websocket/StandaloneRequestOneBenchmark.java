@@ -1,9 +1,10 @@
 package io.scalecube.services.benchmarks.gateway.standalone.websocket;
 
+import io.scalecube.services.benchmarks.gateway.GwClientCodecs;
 import io.scalecube.services.benchmarks.gateway.RequestOneScenario;
 import io.scalecube.services.benchmarks.gateway.standalone.StandaloneBenchmarkState;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
+import io.scalecube.services.transport.gw.client.GwClientSettings;
+import io.scalecube.services.transport.gw.client.websocket.WebsocketGwClient;
 
 public class StandaloneRequestOneBenchmark {
 
@@ -19,11 +20,9 @@ public class StandaloneRequestOneBenchmark {
             new StandaloneBenchmarkState(
                 benchmarkSettings,
                 "ws",
-                (address, loopResources) ->
-                    Client.websocket(
-                        ClientSettings.builder()
-                            .address(address)
-                            .loopResources(loopResources)
-                            .build())));
+                (address, loopResources) -> new WebsocketGwClient(
+                    GwClientSettings.builder().address(address).loopResources(loopResources)
+                        .build(), GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
+
   }
 }

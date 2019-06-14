@@ -9,7 +9,6 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.gw.GwTransportBootstraps;
-import io.scalecube.services.transport.gw.StaticAddressRouter;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;

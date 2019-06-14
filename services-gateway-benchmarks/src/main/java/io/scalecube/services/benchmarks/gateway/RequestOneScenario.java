@@ -5,10 +5,10 @@ import static io.scalecube.services.examples.BenchmarkService.CLIENT_SEND_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.benchmarks.LatencyHelper;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientMessage;
+import io.scalecube.services.transport.gw.client.GatewayClient;
 import java.util.Optional;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -45,11 +45,11 @@ public final class RequestOneScenario {
           BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
           BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
 
-          ThreadLocal<Mono<Client>> clientHolder =
+          ThreadLocal<Mono<GatewayClient>> clientHolder =
               ThreadLocal.withInitial(() -> state.createClient().cache());
 
           return i -> {
-            Mono<Client> clientMono = clientHolder.get();
+            Mono<GatewayClient> clientMono = clientHolder.get();
             return clientMono.flatMap(
                 client -> {
                   clientToServiceMeter.mark();
@@ -69,12 +69,12 @@ public final class RequestOneScenario {
         });
   }
 
-  private static ClientMessage enrichResponse(ClientMessage msg) {
-    return ClientMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
+  private static ServiceMessage enrichResponse(ServiceMessage msg) {
+    return ServiceMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
   }
 
-  private static ClientMessage enrichRequest() {
-    return ClientMessage.builder()
+  private static ServiceMessage enrichRequest() {
+    return ServiceMessage.builder()
         .qualifier(QUALIFIER)
         .header(CLIENT_SEND_TIME, System.currentTimeMillis())
         .build();

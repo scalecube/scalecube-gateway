@@ -2,10 +2,11 @@ package io.scalecube.services.benchmarks.gateway.remote.http;
 
 import static io.scalecube.services.benchmarks.gateway.remote.RemoteBenchmarkState.HTTP_PORT;
 
+import io.scalecube.services.benchmarks.gateway.GwClientCodecs;
 import io.scalecube.services.benchmarks.gateway.RequestOneScenario;
 import io.scalecube.services.benchmarks.gateway.remote.RemoteBenchmarkState;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
+import io.scalecube.services.transport.gw.client.GwClientSettings;
+import io.scalecube.services.transport.gw.client.http.HttpGwClient;
 
 public class RemoteRequestOneBenchmark {
 
@@ -22,10 +23,8 @@ public class RemoteRequestOneBenchmark {
                 benchmarkSettings,
                 HTTP_PORT,
                 (address, loopResources) ->
-                    Client.http(
-                        ClientSettings.builder()
-                            .address(address)
-                            .loopResources(loopResources)
-                            .build())));
+                    new HttpGwClient(
+                        GwClientSettings.builder().address(address).loopResources(loopResources)
+                            .build(), GwClientCodecs.HTTP_CLIENT_CODEC)));
   }
 }

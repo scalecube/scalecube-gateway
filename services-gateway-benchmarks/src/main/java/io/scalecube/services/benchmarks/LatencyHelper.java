@@ -2,7 +2,7 @@ package io.scalecube.services.benchmarks;
 
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
-import io.scalecube.services.gateway.clientsdk.ClientMessage;
+import io.scalecube.services.api.ServiceMessage;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -18,7 +18,8 @@ public final class LatencyHelper {
   private final BenchmarkTimer serviceToClientTimer;
 
   /**
-   * Creates an instance which helps calculate gateway latency by the headers into received message.
+   * Creates an instance which helps calculate gateway latency by the headers into received
+   * message.
    *
    * @param state a benchmark state
    */
@@ -32,7 +33,7 @@ public final class LatencyHelper {
    *
    * @param message client message
    */
-  public void calculate(ClientMessage message) {
+  public void calculate(ServiceMessage message) {
     // client to service
     eval(
         message.header(SERVICE_RECV_TIME),

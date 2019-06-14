@@ -5,7 +5,6 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.transport.gw.StaticAddressRouter;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
