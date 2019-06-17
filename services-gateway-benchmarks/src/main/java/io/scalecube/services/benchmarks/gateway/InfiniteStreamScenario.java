@@ -69,7 +69,7 @@ public final class InfiniteStreamScenario {
                       () ->
                           client
                               .requestStream(request)
-                              .map(InfiniteStreamScenario::enichResponse)
+                              .map(InfiniteStreamScenario::enrichResponse)
                               .limitRate(rateLimit)
                               .doOnNext(
                                   message -> {
@@ -88,7 +88,7 @@ public final class InfiniteStreamScenario {
         .orElse(DEFAULT_RATE_LIMIT);
   }
 
-  private static ServiceMessage enichResponse(ServiceMessage msg) {
+  private static ServiceMessage enrichResponse(ServiceMessage msg) {
     return ServiceMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
   }
 }

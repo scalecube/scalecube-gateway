@@ -10,7 +10,7 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>scalecube-services-gateway-clientTransport</artifactId>
+  <artifactId>scalecube-services-gateway-client-transport</artifactId>
 
   <dependencies>
     <dependency>
