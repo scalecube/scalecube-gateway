@@ -117,6 +117,8 @@ public class HttpGateway extends GatewayTemplate {
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
+          } else {
+            loopResources = LoopResources.create("http-gateway");
           }
 
           return prepareHttpServer(loopResources, options.port(), null /*metrics*/)

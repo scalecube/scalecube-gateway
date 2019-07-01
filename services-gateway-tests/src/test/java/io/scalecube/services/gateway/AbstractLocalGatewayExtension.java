@@ -34,11 +34,7 @@ public abstract class AbstractLocalGatewayExtension
   @Override
   public final void afterAll(ExtensionContext context) {
     if (gateway != null) {
-      try {
-        gateway.shutdown().block();
-      } catch (Throwable ignore) {
-        // ignore
-      }
+      gateway.shutdown().block();
       LOGGER.info("Shutdown gateway {}", gateway);
     }
   }
@@ -46,7 +42,8 @@ public abstract class AbstractLocalGatewayExtension
   @Override
   public final void afterEach(ExtensionContext context) {
     if (client != null) {
-      client.close();
+      client.close().block();
+      LOGGER.info("Shutdown client {}", client);
     }
   }
 
