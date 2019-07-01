@@ -9,6 +9,7 @@ import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -37,7 +38,7 @@ public abstract class AbstractGatewayExtension
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .gateway(gatewayFactory)
             .startAwait();
   }
@@ -78,7 +79,7 @@ public abstract class AbstractGatewayExtension
     services =
         Microservices.builder()
             .discovery(this::serviceDiscovery)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(serviceInstance)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());

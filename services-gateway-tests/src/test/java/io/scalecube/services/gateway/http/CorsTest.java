@@ -11,7 +11,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
-import io.scalecube.services.gateway.ServiceTransports;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +32,7 @@ public class CorsTest {
   private final Microservices.Builder gatewayBuilder =
       Microservices.builder()
           .discovery(ScalecubeServiceDiscovery::new)
-          .transport(ServiceTransports::rsocketServiceTransport)
+          .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
           .services(new GreetingServiceImpl());
   private HttpClient client;
 

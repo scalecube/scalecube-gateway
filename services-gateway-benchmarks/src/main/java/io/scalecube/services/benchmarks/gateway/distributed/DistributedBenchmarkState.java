@@ -3,7 +3,6 @@ package io.scalecube.services.benchmarks.gateway.distributed;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.benchmarks.ServiceTransports;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.BenchmarkServiceImpl;
@@ -11,6 +10,8 @@ import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
+import io.scalecube.services.transport.api.HeadersCodec;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
@@ -40,7 +41,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .gateway(opts -> new WebsocketGateway(opts.id("ws")))
             .gateway(opts -> new HttpGateway(opts.id("http")))
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts1 -> opts1.serviceTransport(RSocketServiceTransport::new))
             .metrics(registry())
             .startAwait();
 
@@ -52,7 +53,12 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(seedAddress)))
-            .transport(opts -> ServiceTransports.rsocketServiceTransport(opts, numOfThreads))
+            .transport(
+                opts ->
+                    opts.serviceTransport(
+                        () ->
+                            new RSocketServiceTransport(
+                                numOfThreads, HeadersCodec.getInstance("application/json"))))
             .services(new BenchmarkServiceImpl())
             .startAwait();
   }
