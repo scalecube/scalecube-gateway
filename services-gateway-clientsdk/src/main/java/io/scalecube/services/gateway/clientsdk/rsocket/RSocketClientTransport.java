@@ -3,8 +3,8 @@ package io.scalecube.services.gateway.clientsdk.rsocket;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
-import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
@@ -112,7 +112,9 @@ public final class RSocketClientTransport implements ClientTransport {
 
     return RSocketFactory.connect()
         .metadataMimeType(settings.contentType())
-        .frameDecoder(PayloadDecoder.ZERO_COPY)
+        .frameDecoder(
+            frame ->
+                ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
         .transport(createRSocketTransport(settings))
         .start()
         .doOnSuccess(

@@ -8,7 +8,6 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
-import io.scalecube.services.gateway.ServiceTransports;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
@@ -18,6 +17,7 @@ import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientCodec;
 import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,10 +44,10 @@ class RSocketClientSdkDisconnectTest {
             .services(new GreetingServiceImpl())
             .gateway(opts -> new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME)))
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .startAwait();
 
-    clientLoopResources = LoopResources.create("eventLoop");
+    clientLoopResources = LoopResources.create("rsocket-clientsdk-eventloop");
 
     int gatewayPort = seed.gateway(GATEWAY_ALIAS_NAME).address().port();
     ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
