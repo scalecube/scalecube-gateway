@@ -47,7 +47,7 @@ class RSocketClientSdkDisconnectTest {
             .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .startAwait();
 
-    clientLoopResources = LoopResources.create("eventLoop");
+    clientLoopResources = LoopResources.create("rsocket-clientsdk-eventloop");
 
     int gatewayPort = seed.gateway(GATEWAY_ALIAS_NAME).address().port();
     ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();

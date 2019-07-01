@@ -36,6 +36,8 @@ public class RSocketGateway extends GatewayTemplate {
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
+          } else {
+            loopResources = LoopResources.create("rsocket-gateway");
           }
 
           WebsocketServerTransport rsocketTransport =

@@ -33,6 +33,8 @@ public class WebsocketGateway extends GatewayTemplate {
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
+          } else {
+            loopResources = LoopResources.create("ws-gateway");
           }
 
           return prepareHttpServer(loopResources, options.port(), gatewayMetrics)
