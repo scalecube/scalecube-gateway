@@ -33,9 +33,8 @@ public abstract class AbstractGatewayExtension
   private Microservices gateway;
   private String gatewayId;
   private Microservices services;
-  private Microservices client;
   private LoopResources clientLoopResources;
-  private ServiceCall serviceCall;
+  private ServiceCall clientServiceCall;
 
   protected AbstractGatewayExtension(
       Object serviceInstance, Function<GatewayOptions, Gateway> gatewaySupplier,
@@ -75,7 +74,7 @@ public abstract class AbstractGatewayExtension
             op))
         .startAwait();
 
-    serviceCall = client.call().router(new StaticAddressRouter(address));
+    clientServiceCall = new ServiceCall()
   }
 
   @Override
@@ -91,7 +90,7 @@ public abstract class AbstractGatewayExtension
   }
 
   public ServiceCall client() {
-    return serviceCall;
+    return clientServiceCall;
   }
 
   public void shutdownServices() {
@@ -131,7 +130,7 @@ public abstract class AbstractGatewayExtension
       // if this method is called in particular test need to indicate that services are stopped to
       // start them again before another test
       client = null;
-      serviceCall = null;
+      clientServiceCall = null;
     }
   }
 
