@@ -20,9 +20,9 @@ public class DistributedRequestOneBenchmark {
             new DistributedBenchmarkState(
                 benchmarkSettings,
                 "ws",
-                (address, loopResources) ->
+                address ->
                     new WebsocketGwClient(
-                        GwClientSettings.builder().address(address).loopResources(loopResources)
+                        GwClientSettings.builder().address(address)
                             .build(), GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
   }
 }

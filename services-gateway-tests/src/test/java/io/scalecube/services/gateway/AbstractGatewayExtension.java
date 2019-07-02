@@ -7,6 +7,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.gw.StaticAddressRouter;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.function.Function;
@@ -65,7 +66,8 @@ public abstract class AbstractGatewayExtension
     }
     Address gatewayAddress = gateway.gateway(gatewayId).address();
     GwClientSettings clintSettings = GwClientSettings.builder().address(gatewayAddress).build();
-    clientServiceCall = new ServiceCall(clientSupplier.apply(clintSettings), gatewayAddress);
+    clientServiceCall = new ServiceCall().transport(clientSupplier.apply(clintSettings))
+        .router(new StaticAddressRouter(gatewayAddress));
   }
 
   @Override

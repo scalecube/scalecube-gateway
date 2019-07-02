@@ -20,9 +20,9 @@ public class StandaloneRequestOneBenchmark {
             new StandaloneBenchmarkState(
                 benchmarkSettings,
                 "http",
-                (address, loopResources) ->
+                address ->
                     new HttpGwClient(
-                        GwClientSettings.builder().address(address).loopResources(loopResources)
+                        GwClientSettings.builder().address(address)
                             .build(), GwClientCodecs.HTTP_CLIENT_CODEC)));
   }
 }

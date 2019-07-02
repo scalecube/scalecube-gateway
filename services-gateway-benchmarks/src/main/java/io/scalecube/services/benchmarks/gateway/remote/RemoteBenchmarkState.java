@@ -5,6 +5,7 @@ import io.scalecube.net.Address;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
 import io.scalecube.services.transport.gw.client.GatewayClient;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
 
@@ -24,7 +25,7 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
   public RemoteBenchmarkState(
       BenchmarkSettings settings,
       int gatewayPort,
-      BiFunction<Address, LoopResources, GatewayClient> clientBuilder) {
+      Function<Address, GatewayClient> clientBuilder) {
     super(settings, clientBuilder);
     gatewayAddress = Address.create(settings.find("gatewayHost", "localhost"), gatewayPort);
   }

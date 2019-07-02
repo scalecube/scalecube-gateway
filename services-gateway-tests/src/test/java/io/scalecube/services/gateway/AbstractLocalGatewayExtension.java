@@ -4,11 +4,11 @@ import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.gw.StaticAddressRouter;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
 import java.util.Optional;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -58,8 +58,9 @@ public abstract class AbstractLocalGatewayExtension
   public final void beforeEach(ExtensionContext context) {
     Address gwAddress = this.gateway.gateway(gatewayId).address();
     GwClientSettings settings =
-        GwClientSettings.builder().address(gwAddress).loopResources(clientLoopResources).build();
-    clientServiceCall = new ServiceCall(clientSupplier.apply(settings), gwAddress);
+        GwClientSettings.builder().address(gwAddress).build();
+    clientServiceCall = new ServiceCall().transport(clientSupplier.apply(settings))
+        .router(new StaticAddressRouter(gwAddress));
   }
 
   @Override

@@ -20,8 +20,8 @@ public class StandaloneRequestOneBenchmark {
             new StandaloneBenchmarkState(
                 benchmarkSettings,
                 "ws",
-                (address, loopResources) -> new WebsocketGwClient(
-                    GwClientSettings.builder().address(address).loopResources(loopResources)
+                address -> new WebsocketGwClient(
+                    GwClientSettings.builder().address(address)
                         .build(), GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
 
   }

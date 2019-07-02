@@ -22,9 +22,9 @@ public class RemoteRequestOneBenchmark {
             new RemoteBenchmarkState(
                 benchmarkSettings,
                 RS_PORT,
-                (address, loopResources) ->
+                address ->
                     new RSocketGwClient(
-                        GwClientSettings.builder().address(address).loopResources(loopResources)
+                        GwClientSettings.builder().address(address)
                             .build(), GwClientCodecs.RSOCKET_CLIENT_CODEC)));
   }
 }

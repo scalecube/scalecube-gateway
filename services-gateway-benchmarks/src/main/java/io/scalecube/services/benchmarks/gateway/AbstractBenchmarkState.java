@@ -9,12 +9,12 @@ import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.transport.gw.client.GatewayClient;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
-import reactor.netty.resources.LoopResources;
 
 public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>>
     extends BenchmarkState<T> {
@@ -24,11 +24,10 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   public static final ServiceMessage FIRST_REQUEST =
       ServiceMessage.builder().qualifier("/benchmarks/one").build();
 
-  protected LoopResources loopResources;
-  protected BiFunction<Address, LoopResources, GatewayClient> clientBuilder;
+  protected Function<Address, GatewayClient> clientBuilder;
 
   public AbstractBenchmarkState(
-      BenchmarkSettings settings, BiFunction<Address, LoopResources, GatewayClient> clientBuilder) {
+      BenchmarkSettings settings, Function<Address, GatewayClient> clientBuilder) {
     super(settings);
     this.clientBuilder = clientBuilder;
   }
@@ -37,15 +36,6 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   protected void beforeAll() throws Exception {
     super.beforeAll();
     int workerCount = Runtime.getRuntime().availableProcessors();
-    loopResources = LoopResources.create("worker-client-sdk", workerCount, true);
-  }
-
-  @Override
-  protected void afterAll() throws Exception {
-    super.afterAll();
-    if (loopResources != null) {
-      loopResources.disposeLater().block();
-    }
   }
 
   public abstract Mono<GatewayClient> createClient();
@@ -53,15 +43,15 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   protected final Mono<GatewayClient> createClient(
       Microservices gateway,
       String gatewayName,
-      BiFunction<Address, LoopResources, GatewayClient> clientBuilder) {
+      Function<Address, GatewayClient> clientBuilder) {
     return Mono.defer(() -> createClient(gateway.gateway(gatewayName).address(), clientBuilder));
   }
 
   protected final Mono<GatewayClient> createClient(
-      Address gatewayAddress, BiFunction<Address, LoopResources, GatewayClient> clientBuilder) {
+      Address gatewayAddress, Function<Address, GatewayClient> clientBuilder) {
     return Mono.defer(
         () -> {
-          GatewayClient client = clientBuilder.apply(gatewayAddress, loopResources);
+          GatewayClient client = clientBuilder.apply(gatewayAddress);
           return client
               .requestResponse(FIRST_REQUEST)
               .log("benchmark-client-first-request", Level.INFO, false, SignalType.ON_NEXT)

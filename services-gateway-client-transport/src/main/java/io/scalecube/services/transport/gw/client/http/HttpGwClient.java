@@ -13,7 +13,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
-import reactor.netty.resources.LoopResources;
 
 public final class HttpGwClient implements GatewayClient {
 
@@ -30,7 +29,6 @@ public final class HttpGwClient implements GatewayClient {
    */
   public HttpGwClient(GwClientSettings settings, GwClientCodec<ByteBuf> codec) {
     this.codec = codec;
-    LoopResources loopResources = settings.loopResources();
     connectionProvider = ConnectionProvider.elastic("http-client-sdk");
 
     httpClient =
@@ -41,7 +39,7 @@ public final class HttpGwClient implements GatewayClient {
                   if (settings.sslProvider() != null) {
                     tcpClient = tcpClient.secure(settings.sslProvider());
                   }
-                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
+                  return tcpClient.host(settings.host()).port(settings.port());
                 });
   }
 

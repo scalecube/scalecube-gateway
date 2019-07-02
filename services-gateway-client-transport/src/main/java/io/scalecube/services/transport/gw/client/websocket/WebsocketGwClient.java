@@ -43,7 +43,6 @@ public final class WebsocketGwClient implements GatewayClient {
   public WebsocketGwClient(GwClientSettings settings, GwClientCodec<ByteBuf> codec) {
     this.settings = settings;
     this.codec = codec;
-    LoopResources loopResources = settings.loopResources();
     httpClient =
         HttpClient.newConnection()
             .followRedirect(settings.followRedirect())
@@ -52,7 +51,7 @@ public final class WebsocketGwClient implements GatewayClient {
                   if (settings.sslProvider() != null) {
                     tcpClient = tcpClient.secure(settings.sslProvider());
                   }
-                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
+                  return tcpClient.host(settings.host()).port(settings.port());
                 });
   }
 

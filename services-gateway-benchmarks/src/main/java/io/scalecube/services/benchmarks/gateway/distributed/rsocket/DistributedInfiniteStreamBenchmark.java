@@ -20,9 +20,9 @@ public class DistributedInfiniteStreamBenchmark {
             new DistributedBenchmarkState(
                 benchmarkSettings,
                 "rsws",
-                (address, loopResources) ->
+                address ->
                     new RSocketGwClient(
-                        GwClientSettings.builder().address(address).loopResources(loopResources)
+                        GwClientSettings.builder().address(address)
                             .build(), GwClientCodecs.RSOCKET_CLIENT_CODEC)));
   }
 }

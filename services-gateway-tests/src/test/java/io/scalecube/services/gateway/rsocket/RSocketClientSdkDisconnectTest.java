@@ -12,6 +12,7 @@ import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.transport.gw.GwClientTransports;
+import io.scalecube.services.transport.gw.StaticAddressRouter;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
@@ -41,7 +42,8 @@ class RSocketClientSdkDisconnectTest {
     Address gwAddress = gwWithServices.gateway(GATEWAY_ALIAS_NAME).address();
     GwClientSettings settings = GwClientSettings.builder().build();
     clientServiceCall =
-        new ServiceCall(GwClientTransports.rsocketGwClientTransport(settings), gwAddress);
+        new ServiceCall().transport(GwClientTransports.rsocketGwClientTransport(settings))
+            .router(new StaticAddressRouter(gwAddress));
   }
 
   @Test

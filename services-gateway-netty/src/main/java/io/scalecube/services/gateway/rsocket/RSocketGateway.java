@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.rsocket;
 
 import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocketFactory;
-import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.scalecube.net.Address;
@@ -43,7 +42,6 @@ public class RSocketGateway extends GatewayTemplate {
                   prepareHttpServer(loopResources, options.port(), gatewayMetrics));
 
           return RSocketFactory.receive()
-              .frameDecoder(PayloadDecoder.ZERO_COPY)
               .acceptor(acceptor)
               .transport(rsocketTransport)
               .start()

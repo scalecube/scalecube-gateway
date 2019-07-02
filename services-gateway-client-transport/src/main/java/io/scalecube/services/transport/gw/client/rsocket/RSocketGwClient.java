@@ -3,7 +3,6 @@ package io.scalecube.services.transport.gw.client.rsocket;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
-import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
@@ -17,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.resources.LoopResources;
 
 public final class RSocketGwClient implements GatewayClient {
 
@@ -28,7 +26,6 @@ public final class RSocketGwClient implements GatewayClient {
 
   private final GwClientSettings settings;
   private final GwClientCodec<Payload> codec;
-  private final LoopResources loopResources;
 
   @SuppressWarnings("unused")
   private volatile Mono<?> rsocketMono;
@@ -42,7 +39,6 @@ public final class RSocketGwClient implements GatewayClient {
   public RSocketGwClient(GwClientSettings settings, GwClientCodec<Payload> codec) {
     this.settings = settings;
     this.codec = codec;
-    this.loopResources = settings.loopResources();
   }
 
   @Override
@@ -129,7 +125,6 @@ public final class RSocketGwClient implements GatewayClient {
 
     return RSocketFactory.connect()
         .metadataMimeType(settings.contentType())
-        .frameDecoder(PayloadDecoder.ZERO_COPY)
         .transport(createRSocketTransport(settings))
         .start()
         .doOnSuccess(
@@ -165,7 +160,7 @@ public final class RSocketGwClient implements GatewayClient {
                   if (settings.sslProvider() != null) {
                     tcpClient = tcpClient.secure(settings.sslProvider());
                   }
-                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
+                  return tcpClient.host(settings.host()).port(settings.port());
                 });
 
     return WebsocketClientTransport.create(httpClient, path);

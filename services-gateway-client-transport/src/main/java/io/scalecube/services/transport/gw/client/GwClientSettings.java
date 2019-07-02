@@ -119,11 +119,6 @@ public class GwClientSettings {
       return this;
     }
 
-    public Builder loopResources(LoopResources loopResources) {
-      this.loopResources = loopResources;
-      return this;
-    }
-
     /**
      * Specifies is auto-redirect enabled for HTTP 301/302 status codes. Enabled by default.
      *
