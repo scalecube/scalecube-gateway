@@ -32,7 +32,7 @@ public class CorsTest {
   private final Microservices.Builder gatewayBuilder =
       Microservices.builder()
           .discovery(ScalecubeServiceDiscovery::new)
-          .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+          .transport(RSocketServiceTransport::new)
           .services(new GreetingServiceImpl());
   private HttpClient client;
 

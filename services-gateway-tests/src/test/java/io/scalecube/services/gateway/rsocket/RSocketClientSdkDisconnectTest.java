@@ -44,7 +44,7 @@ class RSocketClientSdkDisconnectTest {
             .services(new GreetingServiceImpl())
             .gateway(opts -> new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME)))
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .startAwait();
 
     clientLoopResources = LoopResources.create("rsocket-clientsdk-eventloop");
