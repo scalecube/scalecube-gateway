@@ -2,15 +2,13 @@ package io.scalecube.services.gateway;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.transport.gw.GwTransportBootstraps;
+import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
-import java.util.Optional;
-import java.util.function.BiFunction;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -19,7 +17,6 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.netty.resources.LoopResources;
 
 public abstract class AbstractGatewayExtension
     implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
@@ -28,17 +25,17 @@ public abstract class AbstractGatewayExtension
 
   private final Object serviceInstance;
   private final Function<GatewayOptions, Gateway> gatewaySupplier;
-  private final BiFunction<GwClientSettings, ServiceTransportBootstrap, ServiceTransportBootstrap> clientSupplier;
+  private final Function<GwClientSettings, ClientTransport> clientSupplier;
 
-  private Microservices gateway;
   private String gatewayId;
+  private Microservices gateway;
   private Microservices services;
-  private LoopResources clientLoopResources;
   private ServiceCall clientServiceCall;
 
   protected AbstractGatewayExtension(
-      Object serviceInstance, Function<GatewayOptions, Gateway> gatewaySupplier,
-      BiFunction<GwClientSettings, ServiceTransportBootstrap, ServiceTransportBootstrap> clientSupplier) {
+      Object serviceInstance,
+      Function<GatewayOptions, Gateway> gatewaySupplier,
+      Function<GwClientSettings, ClientTransport> clientSupplier) {
     this.serviceInstance = serviceInstance;
     this.gatewaySupplier = gatewaySupplier;
     this.clientSupplier = clientSupplier;
@@ -49,15 +46,15 @@ public abstract class AbstractGatewayExtension
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(GwTransportBootstraps::rsocketServiceTransport)
-            .gateway(options -> {
-              Gateway gateway = gatewaySupplier.apply(options);
-              gatewayId = gateway.id();
-              return gateway;
-            })
+            .transport(RSocketServiceTransport::new)
+            .gateway(
+                options -> {
+                  Gateway gateway = gatewaySupplier.apply(options);
+                  gatewayId = gateway.id();
+                  return gateway;
+                })
             .startAwait();
     startServices();
-    clientLoopResources = LoopResources.create("gw-client-worker");
   }
 
   @Override
@@ -66,25 +63,18 @@ public abstract class AbstractGatewayExtension
     if (services == null) {
       startServices();
     }
-
-    Address address = this.gateway.gateway(gatewayId).address();
-    client = Microservices.builder()
-        .transport(op -> clientSupplier.apply(
-            GwClientSettings.builder().address(address).loopResources(clientLoopResources).build(),
-            op))
-        .startAwait();
-
-    clientServiceCall = new ServiceCall()
+    Address gatewayAddress = gateway.gateway(gatewayId).address();
+    GwClientSettings clintSettings = GwClientSettings.builder().address(gatewayAddress).build();
+    clientServiceCall = new ServiceCall(clientSupplier.apply(clintSettings), gatewayAddress);
   }
 
   @Override
   public final void afterEach(ExtensionContext context) {
-    shutdownClient();
+    // no-op
   }
 
   @Override
   public final void afterAll(ExtensionContext context) {
-    Optional.ofNullable(clientLoopResources).ifPresent(LoopResources::dispose);
     shutdownServices();
     shutdownGateway();
   }
@@ -112,26 +102,10 @@ public abstract class AbstractGatewayExtension
     services =
         Microservices.builder()
             .discovery(this::serviceDiscovery)
-            .transport(GwTransportBootstraps::rsocketServiceTransport)
+            .transport(RSocketServiceTransport::new)
             .services(serviceInstance)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
-  }
-
-  private void shutdownClient() {
-    if (client != null) {
-      try {
-        client.shutdown().block();
-      } catch (Throwable ignore) {
-        // ignore
-      }
-      LOGGER.info("Shutdown services {}", client);
-
-      // if this method is called in particular test need to indicate that services are stopped to
-      // start them again before another test
-      client = null;
-      clientServiceCall = null;
-    }
   }
 
   private void shutdownGateway() {

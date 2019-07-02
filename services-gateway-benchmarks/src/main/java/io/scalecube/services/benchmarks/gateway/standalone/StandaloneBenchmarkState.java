@@ -3,7 +3,6 @@ package io.scalecube.services.benchmarks.gateway.standalone;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.benchmarks.ServiceTransports;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.BenchmarkServiceImpl;
@@ -11,6 +10,7 @@ import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.gw.client.GatewayClient;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
@@ -39,7 +39,7 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
             .gateway(opts -> new WebsocketGateway(opts.id("ws")))
             .gateway(opts -> new HttpGateway(opts.id("http")))
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(RSocketServiceTransport::new)
             .metrics(registry())
             .startAwait();
   }

@@ -10,13 +10,13 @@ import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
+import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.File;
 import java.nio.file.Path;
@@ -27,6 +27,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.netty.tcp.TcpServer;
 
 public class GatewayRunner {
 
@@ -59,7 +60,7 @@ public class GatewayRunner {
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(opts -> serviceTransport(opts, config))
+        .transport(() -> serviceTransport(config))
         .gateway(opts -> new WebsocketGateway(opts.id("ws").port(7070)))
         .gateway(
             opts ->
@@ -73,12 +74,15 @@ public class GatewayRunner {
         .block();
   }
 
-  private static ServiceTransportBootstrap serviceTransport(
-      ServiceTransportBootstrap opts, Config config) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport)
-        .port(config.servicePort());
+  private static ServiceTransport serviceTransport(Config config) {
+    return new RSocketServiceTransport()
+        .tcpServer(
+            loopResources ->
+                TcpServer.create()
+                    .wiretap(false)
+                    .port(config.servicePort())
+                    .runOn(loopResources)
+                    .noSSL());
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {

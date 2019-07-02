@@ -11,11 +11,10 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.ConnectionClosedException;
-import io.scalecube.services.gateway.StaticAddressRouter;
-import io.scalecube.services.transport.gw.GwTransportBootstraps;
+import io.scalecube.services.transport.gw.GwClientTransports;
 import io.scalecube.services.transport.gw.client.GwClientSettings;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -28,8 +27,7 @@ class RSocketClientSdkDisconnectTest {
   private static final String JOHN = "John";
 
   private Microservices gwWithServices;
-  private Microservices client;
-  private ServiceCall serviceCall;
+  private ServiceCall clientServiceCall;
 
   @BeforeEach
   void startClient() {
@@ -38,35 +36,12 @@ class RSocketClientSdkDisconnectTest {
             .services(new GreetingServiceImpl())
             .gateway(opts -> new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME)))
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(GwTransportBootstraps::rsocketServiceTransport)
+            .transport(RSocketServiceTransport::new)
             .startAwait();
     Address gwAddress = gwWithServices.gateway(GATEWAY_ALIAS_NAME).address();
-
     GwClientSettings settings = GwClientSettings.builder().build();
-    client =
-        Microservices.builder()
-            .transport(op -> GwTransportBootstraps.rsocketGwTransport(settings, op))
-            .startAwait();
-
-    serviceCall = client.call().router(new StaticAddressRouter(gwAddress));
-  }
-
-  @AfterEach
-  void stopClient() {
-    if (client != null) {
-      try {
-        client.shutdown().block(SHUTDOWN_TIMEOUT);
-      } catch (Exception ignore) {
-        // no-op
-      }
-    }
-    if (gwWithServices != null) {
-      try {
-        gwWithServices.shutdown().block(SHUTDOWN_TIMEOUT);
-      } catch (Exception ignore) {
-        // no-op
-      }
-    }
+    clientServiceCall =
+        new ServiceCall(GwClientTransports.rsocketGwClientTransport(settings), gwAddress);
   }
 
   @Test
@@ -74,7 +49,7 @@ class RSocketClientSdkDisconnectTest {
     Duration shutdownAt = Duration.ofSeconds(1);
 
     StepVerifier.create(
-            serviceCall
+            clientServiceCall
                 .api(GreetingService.class)
                 .many(JOHN)
                 .doOnSubscribe(
