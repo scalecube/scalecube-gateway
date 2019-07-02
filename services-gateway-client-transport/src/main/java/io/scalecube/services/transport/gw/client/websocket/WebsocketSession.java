@@ -177,7 +177,7 @@ final class WebsocketSession {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("client-sdk.WebsocketSession{");
+    final StringBuilder sb = new StringBuilder("gw-client.WebsocketSession{");
     sb.append("id='").append(id).append('\'');
     sb.append('}');
     return sb.toString();

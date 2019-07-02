@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class RSocketClientSdkDisconnectTest {
+class RSocketGwClientDisconnectTest {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(3);

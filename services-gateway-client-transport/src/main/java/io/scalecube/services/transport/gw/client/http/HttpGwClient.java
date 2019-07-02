@@ -29,7 +29,7 @@ public final class HttpGwClient implements GatewayClient {
    */
   public HttpGwClient(GwClientSettings settings, GwClientCodec<ByteBuf> codec) {
     this.codec = codec;
-    connectionProvider = ConnectionProvider.elastic("http-client-sdk");
+    connectionProvider = ConnectionProvider.elastic("http-client-transport");
 
     httpClient =
         reactor.netty.http.client.HttpClient.create(connectionProvider)
@@ -80,7 +80,7 @@ public final class HttpGwClient implements GatewayClient {
   public Mono<Void> close() {
     return connectionProvider
         .disposeLater()
-        .doOnTerminate(() -> LOGGER.info("Closed http-client-sdk transport"));
+        .doOnTerminate(() -> LOGGER.info("Closed http gw client transport"));
   }
 
   public GwClientCodec<ByteBuf> getCodec() {

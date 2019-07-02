@@ -31,7 +31,7 @@ public final class RSocketGwClient implements GatewayClient {
   private volatile Mono<?> rsocketMono;
 
   /**
-   * Constructor for client sdk rsocket transport.
+   * Constructor for gw over rsocket client transport.
    *
    * @param settings client settings.
    * @param codec client codec.
@@ -99,7 +99,7 @@ public final class RSocketGwClient implements GatewayClient {
           // noinspection unchecked
           Mono<RSocket> curr = rSocketMonoUpdater.get(this);
           return (curr == null ? Mono.<Void>empty() : curr.flatMap(this::dispose))
-              .doOnTerminate(() -> LOGGER.info("Closed rsocket client sdk transport"));
+              .doOnTerminate(() -> LOGGER.info("Closed rsocket gw client transport"));
         });
   }
 

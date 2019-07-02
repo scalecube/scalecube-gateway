@@ -111,7 +111,7 @@ public final class WebsocketGwClient implements GatewayClient {
           // noinspection unchecked
           Mono<WebsocketSession> curr = websocketMonoUpdater.get(this);
           return (curr == null ? Mono.<Void>empty() : curr.flatMap(WebsocketSession::close))
-              .doOnTerminate(() -> LOGGER.info("Closed websocket client sdk transport"));
+              .doOnTerminate(() -> LOGGER.info("Closed websocket gw client transport"));
         });
   }
 
