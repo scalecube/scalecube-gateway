@@ -44,7 +44,7 @@ public class CorsTest {
   @AfterEach
   void afterEach() {
     if (gateway != null) {
-      gateway.shutdown().block(TIMEOUT);
+      gateway.shutdown().block();
     }
   }
 
