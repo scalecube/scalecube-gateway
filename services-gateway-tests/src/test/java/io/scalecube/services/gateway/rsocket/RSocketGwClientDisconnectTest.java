@@ -42,7 +42,8 @@ class RSocketGwClientDisconnectTest {
     Address gwAddress = gwWithServices.gateway(GATEWAY_ALIAS_NAME).address();
     GwClientSettings settings = GwClientSettings.builder().build();
     clientServiceCall =
-        new ServiceCall().transport(GwClientTransports.rsocketGwClientTransport(settings))
+        new ServiceCall()
+            .transport(GwClientTransports.rsocketGwClientTransport(settings))
             .router(new StaticAddressRouter(gwAddress));
   }
 
