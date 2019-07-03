@@ -9,6 +9,7 @@ import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,15 +29,24 @@ public class WebsocketGatewayAcceptor
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
+  private final Consumer<WebsocketSession> onOpen;
+  private final Consumer<WebsocketSession> onClose;
 
   /**
    * Constructor for websocket acceptor.
    *
    * @param serviceCall service call
+   * @param onClose on session close funcaiton
    * @param metrics metrics instance
    */
-  public WebsocketGatewayAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
+  public WebsocketGatewayAcceptor(
+      ServiceCall serviceCall,
+      Consumer<WebsocketSession> onOpen,
+      Consumer<WebsocketSession> onClose,
+      GatewayMetrics metrics) {
     this.serviceCall = serviceCall;
+    this.onOpen = onOpen;
+    this.onClose = onClose;
     this.metrics = metrics;
   }
 
@@ -48,7 +58,7 @@ public class WebsocketGatewayAcceptor
   }
 
   private Mono<Void> onConnect(WebsocketSession session) {
-    LOGGER.info("Session connected: " + session);
+    onOpen.accept(session);
 
     session
         .receive()
@@ -78,8 +88,7 @@ public class WebsocketGatewayAcceptor
                 LOGGER.error(
                     "Exception occurred on session.receive(), session={}", session.id(), th));
 
-    return session //
-        .onClose(() -> LOGGER.info("Session disconnected: " + session));
+    return session.onClose(() -> onClose.accept(session));
   }
 
   private void handleMessage(WebsocketSession session, GatewayMessage request) {
