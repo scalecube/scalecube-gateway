@@ -10,7 +10,6 @@ import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
-import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
@@ -52,7 +51,8 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(seedAddress)))
+                        .options(
+                            config -> config.membership(opts -> opts.seedMembers(seedAddress))))
             .transport(() -> new RSocketServiceTransport().numOfWorkers(numOfThreads))
             .services(new BenchmarkServiceImpl())
             .startAwait();

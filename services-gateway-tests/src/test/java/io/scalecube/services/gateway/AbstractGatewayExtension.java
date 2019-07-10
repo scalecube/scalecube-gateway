@@ -87,7 +87,8 @@ public abstract class AbstractGatewayExtension
 
   private ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
+        .options(
+            config -> config.membership(opts -> opts.seedMembers(gateway.discovery().address())));
   }
 
   public void shutdownServices() {

@@ -82,9 +82,10 @@ public class GatewayRunner {
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(
-            opts ->
-                opts.seedMembers(config.seedAddresses())
-                    .port(config.discoveryPort())
+            clusterConfig ->
+                clusterConfig
+                    .membership(opts -> opts.seedMembers(config.seedAddresses()))
+                    .transport(opts -> opts.port(config.discoveryPort()))
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()));
   }
