@@ -1,5 +1,6 @@
 package io.scalecube.services.gateway.clientsdk;
 
+import io.scalecube.services.Reflect;
 import io.scalecube.services.gateway.clientsdk.exceptions.ClientErrorMapper;
 import io.scalecube.services.gateway.clientsdk.exceptions.DefaultClientErrorMapper;
 import io.scalecube.services.gateway.clientsdk.http.HttpClientCodec;

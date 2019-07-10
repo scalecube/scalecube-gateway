@@ -40,7 +40,7 @@ public class RemoteInvocationHandler implements InvocationHandler {
     ClientMessage request =
         ClientMessage.builder()
             .qualifier(methodInfo.qualifier())
-            .data(methodInfo.parameterCount() != 0 ? args[0] : null)
+            .data(methodInfo.requestType() != Void.TYPE ? args[0] : null)
             .build();
 
     Type responseType = methodInfo.parameterizedReturnType();
