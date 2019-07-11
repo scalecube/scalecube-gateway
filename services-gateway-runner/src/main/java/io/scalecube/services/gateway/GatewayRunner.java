@@ -26,6 +26,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.netty.tcp.TcpServer;
 
 public class GatewayRunner {
 
@@ -58,8 +59,7 @@ public class GatewayRunner {
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(
-            opts -> opts.serviceTransport(RSocketServiceTransport::new).port(config.servicePort()))
+        .transport(() -> newServiceTransport(config))
         .gateway(opts -> new WebsocketGateway(opts.id("ws").port(7070)))
         .gateway(
             opts ->
@@ -73,12 +73,19 @@ public class GatewayRunner {
         .block();
   }
 
+  private static RSocketServiceTransport newServiceTransport(Config config) {
+    return new RSocketServiceTransport()
+        .tcpServer(
+            loopResources -> TcpServer.create().runOn(loopResources).port(config.servicePort()));
+  }
+
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(
-            opts ->
-                opts.seedMembers(config.seedAddresses())
-                    .port(config.discoveryPort())
+            clusterConfig ->
+                clusterConfig
+                    .membership(opts -> opts.seedMembers(config.seedAddresses()))
+                    .transport(opts -> opts.port(config.discoveryPort()))
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()));
   }
