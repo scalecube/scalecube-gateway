@@ -5,6 +5,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,8 @@ public final class WebsocketSession {
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
 
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
+
+  private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
 
@@ -45,7 +48,7 @@ public final class WebsocketSession {
       WebsocketInbound inbound,
       WebsocketOutbound outbound) {
     this.codec = codec;
-    this.id = Integer.toHexString(System.identityHashCode(this));
+    this.id = "" + SESSION_ID_GENERATOR.incrementAndGet();
 
     String contentType = httpRequest.requestHeaders().get(HttpHeaderNames.CONTENT_TYPE);
     this.contentType = Optional.ofNullable(contentType).orElse(DEFAULT_CONTENT_TYPE);

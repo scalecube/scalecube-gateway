@@ -31,6 +31,9 @@ public class WebsocketGatewayAcceptor
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
 
+  private BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage =
+      (session, msg) -> msg;
+
   private Consumer<WebsocketSession> onOpen =
       session -> {
         // no-op
@@ -44,16 +47,23 @@ public class WebsocketGatewayAcceptor
    * Constructor for websocket acceptor.
    *
    * @param serviceCall service call
-   * @param onClose on session close function
+   * @param onMessage onMessage function
+   * @param onOpen onOpen open function
+   * @param onClose onClose function
    * @param metrics metrics instance
    */
   public WebsocketGatewayAcceptor(
       ServiceCall serviceCall,
       GatewayMetrics metrics,
+      BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage,
       Consumer<WebsocketSession> onOpen,
       Consumer<WebsocketSession> onClose) {
     this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
     this.metrics = Objects.requireNonNull(metrics, "metrics");
+
+    if (onMessage != null) {
+      this.onMessage = onMessage;
+    }
 
     if (onOpen != null) {
       this.onOpen = onOpen;
@@ -90,6 +100,7 @@ public class WebsocketGatewayAcceptor
                     .flatMap(msg -> handleCancel(session, msg))
                     .map(msg -> checkSidNonce(session, (GatewayMessage) msg))
                     .map(this::checkQualifier)
+                    .map(msg -> onMessage.apply(session, msg))
                     .subscribe(
                         request -> handleMessage(session, request),
                         th -> {

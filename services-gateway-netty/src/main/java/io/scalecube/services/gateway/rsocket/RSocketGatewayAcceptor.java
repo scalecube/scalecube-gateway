@@ -5,16 +5,12 @@ import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
-import io.rsocket.exceptions.RejectedSetupException;
-import io.rsocket.exceptions.SetupException;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
-import java.util.Objects;
-import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -27,47 +23,17 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
 
-  private Consumer<ConnectionSetupPayload> onOpen =
-      setup -> {
-        // no-op
-      };
-  private Runnable onClose =
-      () -> {
-        // no-op
-      };
-
-  public RSocketGatewayAcceptor(
-      ServiceCall serviceCall,
-      GatewayMetrics metrics,
-      Consumer<ConnectionSetupPayload> onOpen,
-      Runnable onClose) {
-    this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
-    this.metrics = Objects.requireNonNull(metrics, "metrics");
-
-    if (onOpen != null) {
-      this.onOpen = onOpen;
-    }
-
-    if (onClose != null) {
-      this.onClose = onClose;
-    }
+  public RSocketGatewayAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
+    this.serviceCall = serviceCall;
+    this.metrics = metrics;
   }
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
     LOGGER.info("Accepted rsocket websocket: {}, connectionSetup: {}", rsocket, setup);
 
-    try {
-      onOpen.accept(setup);
-    } catch (SetupException e) {
-      return Mono.error(e);
-    } catch (Exception e) {
-      return Mono.error(new RejectedSetupException(e.getMessage(), e));
-    }
-
     rsocket
         .onClose()
-        .doOnTerminate(onClose)
         .doOnTerminate(() -> LOGGER.info("Client disconnected: {}", rsocket))
         .subscribe(null, th -> LOGGER.error("Exception on closing rsocket: {}", th.toString()));
 
