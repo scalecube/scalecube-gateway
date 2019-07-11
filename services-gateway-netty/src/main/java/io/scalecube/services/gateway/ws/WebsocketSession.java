@@ -97,15 +97,22 @@ public final class WebsocketSession {
   }
 
   /**
-   * Close the websocket session with <i>normal</i> status. <a
-   * href="https://tools.ietf.org/html/rfc6455#section-7.4.1">Defined Status Codes:</a> <i>1000
-   * indicates a normal closure, meaning that the purpose for which the connection was established
-   * has been fulfilled.</i>
+   * Close the websocket session.
    *
    * @return mono void
    */
   public Mono<Void> close() {
     return outbound.sendClose().then();
+  }
+
+  /**
+   * Closes websocket session with <i>normal</i> status.
+   *
+   * @param reason close reason
+   * @return mono void
+   */
+  public Mono<Void> close(String reason) {
+    return outbound.sendClose(1000, reason).then();
   }
 
   /**
