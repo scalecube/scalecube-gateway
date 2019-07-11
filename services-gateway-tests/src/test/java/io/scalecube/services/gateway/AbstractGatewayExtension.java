@@ -38,7 +38,7 @@ public abstract class AbstractGatewayExtension
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .gateway(gatewayFactory)
             .startAwait();
   }
@@ -79,7 +79,7 @@ public abstract class AbstractGatewayExtension
     services =
         Microservices.builder()
             .discovery(this::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(serviceInstance)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
@@ -87,7 +87,8 @@ public abstract class AbstractGatewayExtension
 
   private ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
+        .options(
+            config -> config.membership(opts -> opts.seedMembers(gateway.discovery().address())));
   }
 
   public void shutdownServices() {

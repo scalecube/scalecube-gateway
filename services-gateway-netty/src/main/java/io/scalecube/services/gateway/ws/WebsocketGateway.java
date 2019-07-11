@@ -9,17 +9,47 @@ import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.resources.LoopResources;
 
 public class WebsocketGateway extends GatewayTemplate {
 
+  private BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage;
+  private Consumer<WebsocketSession> onOpen;
+  private Consumer<WebsocketSession> onClose;
+
   private DisposableServer server;
   private LoopResources loopResources;
 
+  /**
+   * Constructor.
+   *
+   * @param options options
+   */
   public WebsocketGateway(GatewayOptions options) {
     super(options);
+  }
+
+  /**
+   * Constructor.
+   *
+   * @param options options
+   * @param onMessage onMessage function
+   * @param onOpen opOpen function
+   * @param onClose onCLose function
+   */
+  public WebsocketGateway(
+      GatewayOptions options,
+      BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage,
+      Consumer<WebsocketSession> onOpen,
+      Consumer<WebsocketSession> onClose) {
+    super(options);
+    this.onMessage = onMessage;
+    this.onOpen = onOpen;
+    this.onClose = onClose;
   }
 
   @Override
@@ -29,7 +59,7 @@ public class WebsocketGateway extends GatewayTemplate {
           ServiceCall serviceCall =
               options.call().requestReleaser(ReferenceCountUtil::safestRelease);
           WebsocketGatewayAcceptor acceptor =
-              new WebsocketGatewayAcceptor(serviceCall, gatewayMetrics);
+              new WebsocketGatewayAcceptor(serviceCall, gatewayMetrics, onMessage, onOpen, onClose);
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());

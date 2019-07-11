@@ -10,7 +10,6 @@ import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
-import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
@@ -41,7 +40,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .gateway(opts -> new WebsocketGateway(opts.id("ws")))
             .gateway(opts -> new HttpGateway(opts.id("http")))
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .metrics(registry())
             .startAwait();
 
@@ -52,13 +51,9 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(seedAddress)))
-            .transport(
-                opts ->
-                    opts.serviceTransport(
-                        () ->
-                            new RSocketServiceTransport(
-                                numOfThreads, HeadersCodec.getInstance("application/json"))))
+                        .options(
+                            config -> config.membership(opts -> opts.seedMembers(seedAddress))))
+            .transport(() -> new RSocketServiceTransport().numOfWorkers(numOfThreads))
             .services(new BenchmarkServiceImpl())
             .startAwait();
   }
