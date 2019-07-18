@@ -60,7 +60,7 @@ public class GatewayRunner {
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(() -> serviceTransport(config))
+        .transport(() -> newServiceTransport(config))
         .gateway(opts -> new WebsocketGateway(opts.id("ws").port(7070)))
         .gateway(
             opts ->
@@ -74,23 +74,19 @@ public class GatewayRunner {
         .block();
   }
 
-  private static ServiceTransport serviceTransport(Config config) {
+  private static RSocketServiceTransport newServiceTransport(Config config) {
     return new RSocketServiceTransport()
         .tcpServer(
-            loopResources ->
-                TcpServer.create()
-                    .wiretap(false)
-                    .port(config.servicePort())
-                    .runOn(loopResources)
-                    .noSSL());
+            loopResources -> TcpServer.create().runOn(loopResources).port(config.servicePort()));
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(
-            opts ->
-                opts.seedMembers(config.seedAddresses())
-                    .port(config.discoveryPort())
+            clusterConfig ->
+                clusterConfig
+                    .membership(opts -> opts.seedMembers(config.seedAddresses()))
+                    .transport(opts -> opts.port(config.discoveryPort()))
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()));
   }

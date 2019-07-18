@@ -6,9 +6,11 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,19 +27,51 @@ public class WebsocketGatewayAcceptor
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayAcceptor.class);
 
+  private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
-  private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
+
+  private BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage =
+      (session, msg) -> msg;
+
+  private Consumer<WebsocketSession> onOpen =
+      session -> {
+        // no-op
+      };
+  private Consumer<WebsocketSession> onClose =
+      session -> {
+        // no-op
+      };
 
   /**
    * Constructor for websocket acceptor.
    *
    * @param serviceCall service call
+   * @param onMessage onMessage function
+   * @param onOpen onOpen open function
+   * @param onClose onClose function
    * @param metrics metrics instance
    */
-  public WebsocketGatewayAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
-    this.serviceCall = serviceCall;
-    this.metrics = metrics;
+  public WebsocketGatewayAcceptor(
+      ServiceCall serviceCall,
+      GatewayMetrics metrics,
+      BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage,
+      Consumer<WebsocketSession> onOpen,
+      Consumer<WebsocketSession> onClose) {
+    this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
+    this.metrics = Objects.requireNonNull(metrics, "metrics");
+
+    if (onMessage != null) {
+      this.onMessage = onMessage;
+    }
+
+    if (onOpen != null) {
+      this.onOpen = onOpen;
+    }
+
+    if (onClose != null) {
+      this.onClose = onClose;
+    }
   }
 
   @Override
@@ -48,7 +82,13 @@ public class WebsocketGatewayAcceptor
   }
 
   private Mono<Void> onConnect(WebsocketSession session) {
-    LOGGER.info("Session connected: " + session);
+    LOGGER.info("Session opened: " + session);
+
+    try {
+      onOpen.accept(session);
+    } catch (Exception e) {
+      return session.close(e.getMessage());
+    }
 
     session
         .receive()
@@ -60,6 +100,7 @@ public class WebsocketGatewayAcceptor
                     .flatMap(msg -> handleCancel(session, msg))
                     .map(msg -> checkSidNonce(session, (GatewayMessage) msg))
                     .map(this::checkQualifier)
+                    .map(msg -> onMessage.apply(session, msg))
                     .subscribe(
                         request -> handleMessage(session, request),
                         th -> {
@@ -78,8 +119,9 @@ public class WebsocketGatewayAcceptor
                 LOGGER.error(
                     "Exception occurred on session.receive(), session={}", session.id(), th));
 
-    return session //
-        .onClose(() -> LOGGER.info("Session disconnected: " + session));
+    return session
+        .onClose(() -> onClose.accept(session))
+        .doOnTerminate(() -> LOGGER.info("Session closed: " + session));
   }
 
   private void handleMessage(WebsocketSession session, GatewayMessage request) {
