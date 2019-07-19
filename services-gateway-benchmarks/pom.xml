@@ -22,7 +22,7 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-clientsdk</artifactId>
+      <artifactId>scalecube-services-gateway-client-transport</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

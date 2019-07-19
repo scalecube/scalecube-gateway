@@ -3,10 +3,9 @@ package io.scalecube.services.benchmarks.gateway.remote;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.net.Address;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
-import io.scalecube.services.gateway.clientsdk.Client;
-import java.util.function.BiFunction;
+import io.scalecube.services.gateway.transport.GatewayClient;
+import java.util.function.Function;
 import reactor.core.publisher.Mono;
-import reactor.netty.resources.LoopResources;
 
 public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmarkState> {
 
@@ -22,19 +21,17 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
    * @param settings benchmark settings.
    */
   public RemoteBenchmarkState(
-      BenchmarkSettings settings,
-      int gatewayPort,
-      BiFunction<Address, LoopResources, Client> clientBuilder) {
+      BenchmarkSettings settings, int gatewayPort, Function<Address, GatewayClient> clientBuilder) {
     super(settings, clientBuilder);
     gatewayAddress = Address.create(settings.find("gatewayHost", "localhost"), gatewayPort);
   }
 
   /**
-   * Factory function for {@link Client}.
+   * Factory function for {@link GatewayClient}.
    *
    * @return client
    */
-  public Mono<Client> createClient() {
+  public Mono<GatewayClient> createClient() {
     return createClient(gatewayAddress, clientBuilder);
   }
 }

@@ -27,7 +27,7 @@ class RSocketLocalGatewayTest {
 
   @BeforeEach
   void initService() {
-    service = extension.client().forService(GreetingService.class);
+    service = extension.client().api(GreetingService.class);
   }
 
   @Test

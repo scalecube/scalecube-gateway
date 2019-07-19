@@ -1,9 +1,10 @@
 package io.scalecube.services.benchmarks.gateway.standalone.rsocket;
 
+import io.scalecube.services.benchmarks.gateway.GatewayClientCodecs;
 import io.scalecube.services.benchmarks.gateway.InfiniteStreamScenario;
 import io.scalecube.services.benchmarks.gateway.standalone.StandaloneBenchmarkState;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
 
 public class StandaloneInfiniteStreamBenchmark {
 
@@ -19,11 +20,9 @@ public class StandaloneInfiniteStreamBenchmark {
             new StandaloneBenchmarkState(
                 benchmarkSettings,
                 "rsws",
-                (address, loopResources) ->
-                    Client.rsocket(
-                        ClientSettings.builder()
-                            .address(address)
-                            .loopResources(loopResources)
-                            .build())));
+                address ->
+                    new RSocketGatewayClient(
+                        GatewayClientSettings.builder().address(address).build(),
+                        GatewayClientCodecs.RSOCKET_CLIENT_CODEC)));
   }
 }

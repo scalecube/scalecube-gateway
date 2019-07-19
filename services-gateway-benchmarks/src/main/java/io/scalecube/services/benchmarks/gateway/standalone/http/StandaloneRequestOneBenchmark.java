@@ -1,9 +1,10 @@
 package io.scalecube.services.benchmarks.gateway.standalone.http;
 
+import io.scalecube.services.benchmarks.gateway.GatewayClientCodecs;
 import io.scalecube.services.benchmarks.gateway.RequestOneScenario;
 import io.scalecube.services.benchmarks.gateway.standalone.StandaloneBenchmarkState;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.http.HttpGatewayClient;
 
 public class StandaloneRequestOneBenchmark {
 
@@ -19,11 +20,9 @@ public class StandaloneRequestOneBenchmark {
             new StandaloneBenchmarkState(
                 benchmarkSettings,
                 "http",
-                (address, loopResources) ->
-                    Client.http(
-                        ClientSettings.builder()
-                            .address(address)
-                            .loopResources(loopResources)
-                            .build())));
+                address ->
+                    new HttpGatewayClient(
+                        GatewayClientSettings.builder().address(address).build(),
+                        GatewayClientCodecs.HTTP_CLIENT_CODEC)));
   }
 }
