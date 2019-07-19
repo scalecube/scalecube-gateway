@@ -11,10 +11,16 @@ import io.scalecube.services.routing.Router;
 import java.util.Collections;
 import java.util.Optional;
 
+/** Syntethic router for returning preconstructed static service reference with given address. */
 public class StaticAddressRouter implements Router {
 
   private final ServiceReference staticServiceReference;
 
+  /**
+   * Constructor.
+   *
+   * @param address address
+   */
   public StaticAddressRouter(Address address) {
     this.staticServiceReference =
         new ServiceReference(
