@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
 
@@ -19,7 +20,7 @@ public final class HttpGwClient implements GatewayClient {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGwClient.class);
 
   private final GwClientCodec<ByteBuf> codec;
-  private final reactor.netty.http.client.HttpClient httpClient;
+  private final HttpClient httpClient;
   private final ConnectionProvider connectionProvider;
 
   /**
@@ -32,7 +33,7 @@ public final class HttpGwClient implements GatewayClient {
     connectionProvider = ConnectionProvider.elastic("http-client-transport");
 
     httpClient =
-        reactor.netty.http.client.HttpClient.create(connectionProvider)
+        HttpClient.create(connectionProvider)
             .followRedirect(settings.followRedirect())
             .tcpConfiguration(
                 tcpClient -> {

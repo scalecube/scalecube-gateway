@@ -20,9 +20,9 @@ public class StandaloneRequestOneBenchmark {
             new StandaloneBenchmarkState(
                 benchmarkSettings,
                 "ws",
-                address -> new WebsocketGwClient(
-                    GwClientSettings.builder().address(address)
-                        .build(), GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
-
+                address ->
+                    new WebsocketGwClient(
+                        GwClientSettings.builder().address(address).build(),
+                        GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
   }
 }

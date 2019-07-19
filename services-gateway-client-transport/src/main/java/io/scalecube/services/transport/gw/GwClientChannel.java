@@ -39,3 +39,4 @@ public class GwClientChannel implements ClientChannel {
         .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
   }
 }
+

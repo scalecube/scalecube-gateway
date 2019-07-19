@@ -22,7 +22,7 @@ public class DistributedRequestOneBenchmark {
                 "http",
                 address ->
                     new HttpGwClient(
-                        GwClientSettings.builder().address(address)
-                            .build(), GwClientCodecs.HTTP_CLIENT_CODEC)));
+                        GwClientSettings.builder().address(address).build(),
+                        GwClientCodecs.HTTP_CLIENT_CODEC)));
   }
 }

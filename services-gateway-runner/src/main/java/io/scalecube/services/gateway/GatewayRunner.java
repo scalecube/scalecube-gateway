@@ -16,7 +16,6 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
-import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.File;
 import java.nio.file.Path;

@@ -22,7 +22,7 @@ public class StandaloneInfiniteStreamBenchmark {
                 "rsws",
                 address ->
                     new RSocketGwClient(
-                        GwClientSettings.builder().address(address)
-                            .build(), GwClientCodecs.RSOCKET_CLIENT_CODEC)));
+                        GwClientSettings.builder().address(address).build(),
+                        GwClientCodecs.RSOCKET_CLIENT_CODEC)));
   }
 }

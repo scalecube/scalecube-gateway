@@ -14,7 +14,6 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.resources.LoopResources;
 
 public final class WebsocketGwClient implements GatewayClient {
 

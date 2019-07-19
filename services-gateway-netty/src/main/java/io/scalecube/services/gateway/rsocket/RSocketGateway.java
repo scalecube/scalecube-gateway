@@ -4,6 +4,7 @@ import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
@@ -35,6 +36,8 @@ public class RSocketGateway extends GatewayTemplate {
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
+          } else {
+            loopResources = LoopResources.create("rsocket-gateway");
           }
 
           WebsocketServerTransport rsocketTransport =
@@ -42,6 +45,10 @@ public class RSocketGateway extends GatewayTemplate {
                   prepareHttpServer(loopResources, options.port(), gatewayMetrics));
 
           return RSocketFactory.receive()
+              .frameDecoder(
+                  frame ->
+                      ByteBufPayload.create(
+                          frame.sliceData().retain(), frame.sliceMetadata().retain()))
               .acceptor(acceptor)
               .transport(rsocketTransport)
               .start()

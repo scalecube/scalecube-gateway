@@ -22,7 +22,7 @@ public class DistributedInfiniteStreamBenchmark {
                 "ws",
                 address ->
                     new WebsocketGwClient(
-                        GwClientSettings.builder().address(address)
-                            .build(), GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
+                        GwClientSettings.builder().address(address).build(),
+                        GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
   }
 }

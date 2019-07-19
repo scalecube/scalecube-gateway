@@ -24,7 +24,7 @@ public class RemoteRequestOneBenchmark {
                 WS_PORT,
                 address ->
                     new WebsocketGwClient(
-                        GwClientSettings.builder().address(address)
-                            .build(), GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
+                        GwClientSettings.builder().address(address).build(),
+                        GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
   }
 }

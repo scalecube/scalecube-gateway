@@ -24,7 +24,7 @@ public class RemoteInfiniteStreamBenchmark {
                 RS_PORT,
                 address ->
                     new RSocketGwClient(
-                        GwClientSettings.builder().address(address)
-                            .build(), GwClientCodecs.RSOCKET_CLIENT_CODEC)));
+                        GwClientSettings.builder().address(address).build(),
+                        GwClientCodecs.RSOCKET_CLIENT_CODEC)));
   }
 }

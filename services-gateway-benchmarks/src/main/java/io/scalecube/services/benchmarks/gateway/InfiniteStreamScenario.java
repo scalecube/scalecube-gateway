@@ -60,8 +60,7 @@ public final class InfiniteStreamScenario {
 
           Integer rateLimit = rateLimit(settings);
 
-          ServiceMessage request =
-              ServiceMessage.builder().qualifier(QUALIFIER).build();
+          ServiceMessage request = ServiceMessage.builder().qualifier(QUALIFIER).build();
 
           return client ->
               (executionTick, task) ->
