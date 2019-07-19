@@ -34,7 +34,7 @@ public class GatewayRunner {
   private static final String DECORATOR =
       "#######################################################################";
 
-  private static final String REPORTER_PATH = "reports/gw/metrics";
+  private static final String REPORTER_PATH = "reports/gateway/metrics";
 
   /**
    * Main runner.

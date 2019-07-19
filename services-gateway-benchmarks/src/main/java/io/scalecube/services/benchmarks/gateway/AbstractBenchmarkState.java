@@ -6,7 +6,7 @@ import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.transport.gw.client.GatewayClient;
+import io.scalecube.services.gateway.transport.GatewayClient;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Level;

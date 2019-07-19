@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.gw.client.websocket;
+package io.scalecube.services.gateway.transport.websocket;
 
 public enum Signal {
   COMPLETE(1),

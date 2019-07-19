@@ -1,19 +1,18 @@
-package io.scalecube.services.transport.gw;
+package io.scalecube.services.gateway.transport;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import io.scalecube.services.transport.gw.client.GatewayClient;
 import java.lang.reflect.Type;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class GwClientChannel implements ClientChannel {
+public class GatewayClientChannel implements ClientChannel {
 
   private final GatewayClient gatewayClient;
 
-  GwClientChannel(GatewayClient gatewayClient) {
+  GatewayClientChannel(GatewayClient gatewayClient) {
     this.gatewayClient = gatewayClient;
   }
 
@@ -39,4 +38,3 @@ public class GwClientChannel implements ClientChannel {
         .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
   }
 }
-

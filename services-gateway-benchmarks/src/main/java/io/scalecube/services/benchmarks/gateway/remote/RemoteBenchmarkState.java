@@ -3,7 +3,7 @@ package io.scalecube.services.benchmarks.gateway.remote;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.net.Address;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
-import io.scalecube.services.transport.gw.client.GatewayClient;
+import io.scalecube.services.gateway.transport.GatewayClient;
 import java.util.function.Function;
 import reactor.core.publisher.Mono;
 

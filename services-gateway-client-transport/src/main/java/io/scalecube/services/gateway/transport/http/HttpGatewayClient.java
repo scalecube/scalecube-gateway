@@ -1,12 +1,12 @@
-package io.scalecube.services.transport.gw.client.http;
+package io.scalecube.services.gateway.transport.http;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
-import io.scalecube.services.transport.gw.client.GatewayClient;
-import io.scalecube.services.transport.gw.client.GwClientCodec;
-import io.scalecube.services.transport.gw.client.GwClientSettings;
+import io.scalecube.services.gateway.transport.GatewayClient;
+import io.scalecube.services.gateway.transport.GatewayClientCodec;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -15,11 +15,11 @@ import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
 
-public final class HttpGwClient implements GatewayClient {
+public final class HttpGatewayClient implements GatewayClient {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGwClient.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayClient.class);
 
-  private final GwClientCodec<ByteBuf> codec;
+  private final GatewayClientCodec<ByteBuf> codec;
   private final HttpClient httpClient;
   private final ConnectionProvider connectionProvider;
 
@@ -28,7 +28,7 @@ public final class HttpGwClient implements GatewayClient {
    *
    * @param settings client settings
    */
-  public HttpGwClient(GwClientSettings settings, GwClientCodec<ByteBuf> codec) {
+  public HttpGatewayClient(GatewayClientSettings settings, GatewayClientCodec<ByteBuf> codec) {
     this.codec = codec;
     connectionProvider = ConnectionProvider.elastic("http-client-transport");
 
@@ -81,10 +81,10 @@ public final class HttpGwClient implements GatewayClient {
   public Mono<Void> close() {
     return connectionProvider
         .disposeLater()
-        .doOnTerminate(() -> LOGGER.info("Closed http gw client transport"));
+        .doOnTerminate(() -> LOGGER.info("Closed http gateway client transport"));
   }
 
-  public GwClientCodec<ByteBuf> getCodec() {
+  public GatewayClientCodec<ByteBuf> getCodec() {
     return codec;
   }
 

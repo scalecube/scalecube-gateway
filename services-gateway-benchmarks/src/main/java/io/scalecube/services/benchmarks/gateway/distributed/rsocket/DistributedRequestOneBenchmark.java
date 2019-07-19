@@ -1,10 +1,10 @@
 package io.scalecube.services.benchmarks.gateway.distributed.rsocket;
 
-import io.scalecube.services.benchmarks.gateway.GwClientCodecs;
+import io.scalecube.services.benchmarks.gateway.GatewayClientCodecs;
 import io.scalecube.services.benchmarks.gateway.RequestOneScenario;
 import io.scalecube.services.benchmarks.gateway.distributed.DistributedBenchmarkState;
-import io.scalecube.services.transport.gw.client.GwClientSettings;
-import io.scalecube.services.transport.gw.client.rsocket.RSocketGwClient;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
 
 public class DistributedRequestOneBenchmark {
 
@@ -21,8 +21,8 @@ public class DistributedRequestOneBenchmark {
                 benchmarkSettings,
                 "rsws",
                 address ->
-                    new RSocketGwClient(
-                        GwClientSettings.builder().address(address).build(),
-                        GwClientCodecs.RSOCKET_CLIENT_CODEC)));
+                    new RSocketGatewayClient(
+                        GatewayClientSettings.builder().address(address).build(),
+                        GatewayClientCodecs.RSOCKET_CLIENT_CODEC)));
   }
 }

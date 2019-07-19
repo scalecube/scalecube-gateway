@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.gw.client.websocket;
+package io.scalecube.services.gateway.transport.websocket;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 
@@ -20,9 +20,9 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
+import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
-import io.scalecube.services.transport.gw.client.GwClientCodec;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map.Entry;
@@ -30,9 +30,9 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class WebsocketGwClientCodec implements GwClientCodec<ByteBuf> {
+public final class WebsocketGatewayClientCodec implements GatewayClientCodec<ByteBuf> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGwClientCodec.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayClientCodec.class);
 
   private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper());
 
@@ -53,7 +53,7 @@ public final class WebsocketGwClientCodec implements GwClientCodec<ByteBuf> {
    *
    * @param dataCodec data message codec.
    */
-  public WebsocketGwClientCodec(DataCodec dataCodec) {
+  public WebsocketGatewayClientCodec(DataCodec dataCodec) {
     this(dataCodec, true /*always release by default*/);
   }
 
@@ -64,7 +64,7 @@ public final class WebsocketGwClientCodec implements GwClientCodec<ByteBuf> {
    * @param dataCodec data message codec.
    * @param releaseDataOnEncode release data on encode flag.
    */
-  public WebsocketGwClientCodec(DataCodec dataCodec, boolean releaseDataOnEncode) {
+  public WebsocketGatewayClientCodec(DataCodec dataCodec, boolean releaseDataOnEncode) {
     this.dataCodec = dataCodec;
     this.releaseDataOnEncode = releaseDataOnEncode; // always release by default
   }

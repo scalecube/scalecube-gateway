@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.gw.client.rsocket;
+package io.scalecube.services.gateway.transport.rsocket;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -9,17 +9,17 @@ import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
+import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
-import io.scalecube.services.transport.gw.client.GwClientCodec;
 import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class RSocketGwClientCodec implements GwClientCodec<Payload> {
+public final class RSocketGatewayClientCodec implements GatewayClientCodec<Payload> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGwClientCodec.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGatewayClientCodec.class);
 
   private final HeadersCodec headersCodec;
   private final DataCodec dataCodec;
@@ -30,7 +30,7 @@ public final class RSocketGwClientCodec implements GwClientCodec<Payload> {
    * @param headersCodec headers message codec.
    * @param dataCodec data message codec.
    */
-  public RSocketGwClientCodec(HeadersCodec headersCodec, DataCodec dataCodec) {
+  public RSocketGatewayClientCodec(HeadersCodec headersCodec, DataCodec dataCodec) {
     this.headersCodec = headersCodec;
     this.dataCodec = dataCodec;
   }

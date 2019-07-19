@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.gw.client.rsocket;
+package io.scalecube.services.gateway.transport.rsocket;
 
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
@@ -6,9 +6,9 @@ import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
-import io.scalecube.services.transport.gw.client.GatewayClient;
-import io.scalecube.services.transport.gw.client.GwClientCodec;
-import io.scalecube.services.transport.gw.client.GwClientSettings;
+import io.scalecube.services.gateway.transport.GatewayClient;
+import io.scalecube.services.gateway.transport.GatewayClientCodec;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
@@ -17,26 +17,26 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
-public final class RSocketGwClient implements GatewayClient {
+public final class RSocketGatewayClient implements GatewayClient {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGwClient.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGatewayClient.class);
 
-  private static final AtomicReferenceFieldUpdater<RSocketGwClient, Mono> rSocketMonoUpdater =
-      AtomicReferenceFieldUpdater.newUpdater(RSocketGwClient.class, Mono.class, "rsocketMono");
+  private static final AtomicReferenceFieldUpdater<RSocketGatewayClient, Mono> rSocketMonoUpdater =
+      AtomicReferenceFieldUpdater.newUpdater(RSocketGatewayClient.class, Mono.class, "rsocketMono");
 
-  private final GwClientSettings settings;
-  private final GwClientCodec<Payload> codec;
+  private final GatewayClientSettings settings;
+  private final GatewayClientCodec<Payload> codec;
 
   @SuppressWarnings("unused")
   private volatile Mono<?> rsocketMono;
 
   /**
-   * Constructor for gw over rsocket client transport.
+   * Constructor for gateway over rsocket client transport.
    *
    * @param settings client settings.
    * @param codec client codec.
    */
-  public RSocketGwClient(GwClientSettings settings, GwClientCodec<Payload> codec) {
+  public RSocketGatewayClient(GatewayClientSettings settings, GatewayClientCodec<Payload> codec) {
     this.settings = settings;
     this.codec = codec;
   }
@@ -99,11 +99,11 @@ public final class RSocketGwClient implements GatewayClient {
           // noinspection unchecked
           Mono<RSocket> curr = rSocketMonoUpdater.get(this);
           return (curr == null ? Mono.<Void>empty() : curr.flatMap(this::dispose))
-              .doOnTerminate(() -> LOGGER.info("Closed rsocket gw client transport"));
+              .doOnTerminate(() -> LOGGER.info("Closed rsocket gateway client transport"));
         });
   }
 
-  public GwClientCodec<Payload> getCodec() {
+  public GatewayClientCodec<Payload> getCodec() {
     return codec;
   }
 
@@ -138,7 +138,8 @@ public final class RSocketGwClient implements GatewayClient {
                         rSocketMonoUpdater.getAndSet(this, null); // clear reference
                         LOGGER.info("Connection closed on {}:{}", settings.host(), settings.port());
                       })
-                  .subscribe(null, th -> LOGGER.warn("Exception on closing rsocket: {}", th));
+                  .subscribe(
+                      null, th -> LOGGER.warn("Exception on closing rsocket: {}", th.toString()));
             })
         .doOnError(
             ex -> {
@@ -149,7 +150,7 @@ public final class RSocketGwClient implements GatewayClient {
         .cache();
   }
 
-  private WebsocketClientTransport createRSocketTransport(GwClientSettings settings) {
+  private WebsocketClientTransport createRSocketTransport(GatewayClientSettings settings) {
     String path = "/";
 
     HttpClient httpClient =

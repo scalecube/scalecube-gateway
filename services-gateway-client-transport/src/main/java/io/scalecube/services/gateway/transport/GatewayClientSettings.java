@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.gw.client;
+package io.scalecube.services.gateway.transport;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -6,7 +6,7 @@ import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.SslProvider;
 
-public class GwClientSettings {
+public class GatewayClientSettings {
 
   private static final String DEFAULT_HOST = "localhost";
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
@@ -19,7 +19,7 @@ public class GwClientSettings {
   private final SslProvider sslProvider;
   private final ServiceClientErrorMapper errorMapper;
 
-  private GwClientSettings(Builder builder) {
+  private GatewayClientSettings(Builder builder) {
     this.host = builder.host;
     this.port = builder.port;
     this.contentType = builder.contentType;
@@ -61,13 +61,13 @@ public class GwClientSettings {
     return new Builder();
   }
 
-  public static Builder from(GwClientSettings gwClientSettings) {
-    return new Builder(gwClientSettings);
+  public static Builder from(GatewayClientSettings gatewayClientSettings) {
+    return new Builder(gatewayClientSettings);
   }
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("GwClientSettings{");
+    final StringBuilder sb = new StringBuilder("GatewayClientSettings{");
     sb.append("host='").append(host).append('\'');
     sb.append(", port=").append(port);
     sb.append(", contentType='").append(contentType).append('\'');
@@ -90,7 +90,7 @@ public class GwClientSettings {
 
     private Builder() {}
 
-    private Builder(GwClientSettings originalSettings) {
+    private Builder(GatewayClientSettings originalSettings) {
       this.host = originalSettings.host;
       this.port = originalSettings.port;
       this.contentType = originalSettings.contentType;
@@ -156,8 +156,8 @@ public class GwClientSettings {
       return this;
     }
 
-    public GwClientSettings build() {
-      return new GwClientSettings(this);
+    public GatewayClientSettings build() {
+      return new GatewayClientSettings(this);
     }
   }
 }

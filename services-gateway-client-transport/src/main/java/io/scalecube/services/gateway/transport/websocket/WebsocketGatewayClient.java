@@ -1,11 +1,11 @@
-package io.scalecube.services.transport.gw.client.websocket;
+package io.scalecube.services.gateway.transport.websocket;
 
 import io.netty.buffer.ByteBuf;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.transport.gw.client.GatewayClient;
-import io.scalecube.services.transport.gw.client.GwClientCodec;
-import io.scalecube.services.transport.gw.client.GwClientSettings;
+import io.scalecube.services.gateway.transport.GatewayClient;
+import io.scalecube.services.gateway.transport.GatewayClientCodec;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
@@ -15,18 +15,20 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
-public final class WebsocketGwClient implements GatewayClient {
+public final class WebsocketGatewayClient implements GatewayClient {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketClientTransport.class);
 
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
 
-  private static final AtomicReferenceFieldUpdater<WebsocketGwClient, Mono> websocketMonoUpdater =
-      AtomicReferenceFieldUpdater.newUpdater(WebsocketGwClient.class, Mono.class, "websocketMono");
+  private static final AtomicReferenceFieldUpdater<WebsocketGatewayClient, Mono>
+      websocketMonoUpdater =
+          AtomicReferenceFieldUpdater.newUpdater(
+              WebsocketGatewayClient.class, Mono.class, "websocketMono");
 
-  private final GwClientCodec<ByteBuf> codec;
-  private final GwClientSettings settings;
+  private final GatewayClientCodec<ByteBuf> codec;
+  private final GatewayClientSettings settings;
   private final HttpClient httpClient;
   private final AtomicLong sidCounter = new AtomicLong();
 
@@ -39,7 +41,7 @@ public final class WebsocketGwClient implements GatewayClient {
    * @param settings client settings
    * @param codec client codec.
    */
-  public WebsocketGwClient(GwClientSettings settings, GwClientCodec<ByteBuf> codec) {
+  public WebsocketGatewayClient(GatewayClientSettings settings, GatewayClientCodec<ByteBuf> codec) {
     this.settings = settings;
     this.codec = codec;
     httpClient =
@@ -110,11 +112,11 @@ public final class WebsocketGwClient implements GatewayClient {
           // noinspection unchecked
           Mono<WebsocketSession> curr = websocketMonoUpdater.get(this);
           return (curr == null ? Mono.<Void>empty() : curr.flatMap(WebsocketSession::close))
-              .doOnTerminate(() -> LOGGER.info("Closed websocket gw client transport"));
+              .doOnTerminate(() -> LOGGER.info("Closed websocket gateway client transport"));
         });
   }
 
-  public GwClientCodec<ByteBuf> getCodec() {
+  public GatewayClientCodec<ByteBuf> getCodec() {
     return codec;
   }
 
