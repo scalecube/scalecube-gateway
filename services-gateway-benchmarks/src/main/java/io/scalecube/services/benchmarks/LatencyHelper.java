@@ -18,8 +18,7 @@ public final class LatencyHelper {
   private final BenchmarkTimer serviceToClientTimer;
 
   /**
-   * Creates an instance which helps calculate gateway latency by the headers into received
-   * message.
+   * Creates an instance which helps calculate gateway latency by the headers into received message.
    *
    * @param state a benchmark state
    */

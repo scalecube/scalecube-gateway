@@ -5,6 +5,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,8 @@ public final class WebsocketSession {
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
 
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
+
+  private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
 
@@ -45,7 +48,7 @@ public final class WebsocketSession {
       WebsocketInbound inbound,
       WebsocketOutbound outbound) {
     this.codec = codec;
-    this.id = Integer.toHexString(System.identityHashCode(this));
+    this.id = "" + SESSION_ID_GENERATOR.incrementAndGet();
 
     String contentType = httpRequest.requestHeaders().get(HttpHeaderNames.CONTENT_TYPE);
     this.contentType = Optional.ofNullable(contentType).orElse(DEFAULT_CONTENT_TYPE);
@@ -97,15 +100,22 @@ public final class WebsocketSession {
   }
 
   /**
-   * Close the websocket session with <i>normal</i> status. <a
-   * href="https://tools.ietf.org/html/rfc6455#section-7.4.1">Defined Status Codes:</a> <i>1000
-   * indicates a normal closure, meaning that the purpose for which the connection was established
-   * has been fulfilled.</i>
+   * Close the websocket session.
    *
    * @return mono void
    */
   public Mono<Void> close() {
     return outbound.sendClose().then();
+  }
+
+  /**
+   * Closes websocket session with <i>normal</i> status.
+   *
+   * @param reason close reason
+   * @return mono void
+   */
+  public Mono<Void> close(String reason) {
+    return outbound.sendClose(1000, reason).then();
   }
 
   /**

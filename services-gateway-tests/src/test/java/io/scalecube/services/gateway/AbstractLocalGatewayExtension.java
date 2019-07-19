@@ -3,9 +3,9 @@ package io.scalecube.services.gateway;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.transport.api.ClientTransport;
-import io.scalecube.services.transport.gw.StaticAddressRouter;
-import io.scalecube.services.transport.gw.client.GwClientSettings;
 import java.util.Optional;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -22,7 +22,7 @@ public abstract class AbstractLocalGatewayExtension
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLocalGatewayExtension.class);
   private final Object serviceInstance;
   private final Function<GatewayOptions, Gateway> gatewaySupplier;
-  private final Function<GwClientSettings, ClientTransport> clientSupplier;
+  private final Function<GatewayClientSettings, ClientTransport> clientSupplier;
 
   private Microservices gateway;
   private LoopResources clientLoopResources;
@@ -32,7 +32,7 @@ public abstract class AbstractLocalGatewayExtension
   protected AbstractLocalGatewayExtension(
       Object serviceInstance,
       Function<GatewayOptions, Gateway> gatewaySupplier,
-      Function<GwClientSettings, ClientTransport> clientSupplier) {
+      Function<GatewayClientSettings, ClientTransport> clientSupplier) {
     this.serviceInstance = serviceInstance;
     this.gatewaySupplier = gatewaySupplier;
     this.clientSupplier = clientSupplier;
@@ -51,16 +51,20 @@ public abstract class AbstractLocalGatewayExtension
                   return gateway;
                 })
             .startAwait();
-    clientLoopResources = LoopResources.create("gw-client-worker");
+
+    clientLoopResources = LoopResources.create("gateway-client-transport-worker");
   }
 
   @Override
   public final void beforeEach(ExtensionContext context) {
-    Address gwAddress = this.gateway.gateway(gatewayId).address();
-    GwClientSettings settings =
-        GwClientSettings.builder().address(gwAddress).build();
-    clientServiceCall = new ServiceCall().transport(clientSupplier.apply(settings))
-        .router(new StaticAddressRouter(gwAddress));
+    Address address = gateway.gateway(gatewayId).address();
+
+    GatewayClientSettings settings = GatewayClientSettings.builder().address(address).build();
+
+    clientServiceCall =
+        new ServiceCall()
+            .transport(clientSupplier.apply(settings))
+            .router(new StaticAddressRouter(address));
   }
 
   @Override

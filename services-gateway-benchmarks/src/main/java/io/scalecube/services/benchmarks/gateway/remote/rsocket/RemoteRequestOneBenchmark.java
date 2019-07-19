@@ -2,11 +2,11 @@ package io.scalecube.services.benchmarks.gateway.remote.rsocket;
 
 import static io.scalecube.services.benchmarks.gateway.remote.RemoteBenchmarkState.RS_PORT;
 
-import io.scalecube.services.benchmarks.gateway.GwClientCodecs;
+import io.scalecube.services.benchmarks.gateway.GatewayClientCodecs;
 import io.scalecube.services.benchmarks.gateway.RequestOneScenario;
 import io.scalecube.services.benchmarks.gateway.remote.RemoteBenchmarkState;
-import io.scalecube.services.transport.gw.client.GwClientSettings;
-import io.scalecube.services.transport.gw.client.rsocket.RSocketGwClient;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
 
 public class RemoteRequestOneBenchmark {
 
@@ -23,8 +23,8 @@ public class RemoteRequestOneBenchmark {
                 benchmarkSettings,
                 RS_PORT,
                 address ->
-                    new RSocketGwClient(
-                        GwClientSettings.builder().address(address)
-                            .build(), GwClientCodecs.RSOCKET_CLIENT_CODEC)));
+                    new RSocketGatewayClient(
+                        GatewayClientSettings.builder().address(address).build(),
+                        GatewayClientCodecs.RSOCKET_CLIENT_CODEC)));
   }
 }

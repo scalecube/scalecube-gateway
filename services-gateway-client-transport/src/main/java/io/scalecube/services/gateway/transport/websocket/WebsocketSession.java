@@ -1,12 +1,12 @@
-package io.scalecube.services.transport.gw.client.websocket;
+package io.scalecube.services.gateway.transport.websocket;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
-import io.scalecube.services.transport.gw.client.GwClientCodec;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -29,7 +29,7 @@ final class WebsocketSession {
   private static final String SIGNAL = "sig";
 
   private final String id; // keep id for tracing
-  private final GwClientCodec<ByteBuf> codec;
+  private final GatewayClientCodec<ByteBuf> codec;
   private final Connection connection;
   private final WebsocketOutbound outbound;
 
@@ -37,7 +37,7 @@ final class WebsocketSession {
   private final Map<Long, UnicastProcessor<ServiceMessage>> inboundProcessors =
       new NonBlockingHashMapLong<>(1024);
 
-  WebsocketSession(GwClientCodec<ByteBuf> codec, Connection connection) {
+  WebsocketSession(GatewayClientCodec<ByteBuf> codec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
     this.connection = connection;
@@ -177,7 +177,7 @@ final class WebsocketSession {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("gw-client.WebsocketSession{");
+    final StringBuilder sb = new StringBuilder("gateway.client.transport.WebsocketSession{");
     sb.append("id='").append(id).append('\'');
     sb.append('}');
     return sb.toString();

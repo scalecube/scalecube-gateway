@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.http;
 
 import io.scalecube.services.gateway.AbstractGatewayExtension;
-import io.scalecube.services.transport.gw.GwClientTransports;
+import io.scalecube.services.gateway.transport.GatewayClientTransports;
 
 class HttpGatewayExtension extends AbstractGatewayExtension {
 
@@ -11,6 +11,6 @@ class HttpGatewayExtension extends AbstractGatewayExtension {
     super(
         serviceInstance,
         opts -> new HttpGateway(opts.id(GATEWAY_ALIAS_NAME)),
-        GwClientTransports::httpGwClientTransport);
+        GatewayClientTransports::httpGatewayClientTransport);
   }
 }

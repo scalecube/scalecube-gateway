@@ -8,7 +8,7 @@ import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.benchmarks.LatencyHelper;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.transport.gw.client.GatewayClient;
+import io.scalecube.services.gateway.transport.GatewayClient;
 import java.util.Optional;
 import java.util.function.Function;
 import org.slf4j.Logger;

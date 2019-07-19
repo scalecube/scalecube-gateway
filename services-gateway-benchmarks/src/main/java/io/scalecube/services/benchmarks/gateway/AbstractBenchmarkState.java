@@ -6,9 +6,8 @@ import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.transport.gw.client.GatewayClient;
+import io.scalecube.services.gateway.transport.GatewayClient;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.slf4j.Logger;
@@ -41,9 +40,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   public abstract Mono<GatewayClient> createClient();
 
   protected final Mono<GatewayClient> createClient(
-      Microservices gateway,
-      String gatewayName,
-      Function<Address, GatewayClient> clientBuilder) {
+      Microservices gateway, String gatewayName, Function<Address, GatewayClient> clientBuilder) {
     return Mono.defer(() -> createClient(gateway.gateway(gatewayName).address(), clientBuilder));
   }
 

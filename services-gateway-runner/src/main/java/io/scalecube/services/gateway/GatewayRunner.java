@@ -16,7 +16,6 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
-import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.File;
 import java.nio.file.Path;
@@ -35,7 +34,7 @@ public class GatewayRunner {
   private static final String DECORATOR =
       "#######################################################################";
 
-  private static final String REPORTER_PATH = "reports/gw/metrics";
+  private static final String REPORTER_PATH = "reports/gateway/metrics";
 
   /**
    * Main runner.
@@ -60,7 +59,7 @@ public class GatewayRunner {
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(() -> serviceTransport(config))
+        .transport(() -> newServiceTransport(config))
         .gateway(opts -> new WebsocketGateway(opts.id("ws").port(7070)))
         .gateway(
             opts ->
@@ -74,23 +73,19 @@ public class GatewayRunner {
         .block();
   }
 
-  private static ServiceTransport serviceTransport(Config config) {
+  private static RSocketServiceTransport newServiceTransport(Config config) {
     return new RSocketServiceTransport()
         .tcpServer(
-            loopResources ->
-                TcpServer.create()
-                    .wiretap(false)
-                    .port(config.servicePort())
-                    .runOn(loopResources)
-                    .noSSL());
+            loopResources -> TcpServer.create().runOn(loopResources).port(config.servicePort()));
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(
-            opts ->
-                opts.seedMembers(config.seedAddresses())
-                    .port(config.discoveryPort())
+            clusterConfig ->
+                clusterConfig
+                    .membership(opts -> opts.seedMembers(config.seedAddresses()))
+                    .transport(opts -> opts.port(config.discoveryPort()))
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()));
   }

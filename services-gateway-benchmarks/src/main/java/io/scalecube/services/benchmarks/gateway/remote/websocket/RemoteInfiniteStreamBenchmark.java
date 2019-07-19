@@ -2,11 +2,11 @@ package io.scalecube.services.benchmarks.gateway.remote.websocket;
 
 import static io.scalecube.services.benchmarks.gateway.remote.RemoteBenchmarkState.WS_PORT;
 
-import io.scalecube.services.benchmarks.gateway.GwClientCodecs;
+import io.scalecube.services.benchmarks.gateway.GatewayClientCodecs;
 import io.scalecube.services.benchmarks.gateway.InfiniteStreamScenario;
 import io.scalecube.services.benchmarks.gateway.remote.RemoteBenchmarkState;
-import io.scalecube.services.transport.gw.client.GwClientSettings;
-import io.scalecube.services.transport.gw.client.websocket.WebsocketGwClient;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
 
 public class RemoteInfiniteStreamBenchmark {
 
@@ -23,8 +23,8 @@ public class RemoteInfiniteStreamBenchmark {
                 benchmarkSettings,
                 WS_PORT,
                 address ->
-                    new WebsocketGwClient(
-                        GwClientSettings.builder().address(address)
-                            .build(), GwClientCodecs.WEBSOCKET_CLIENT_CODEC)));
+                    new WebsocketGatewayClient(
+                        GatewayClientSettings.builder().address(address).build(),
+                        GatewayClientCodecs.WEBSOCKET_CLIENT_CODEC)));
   }
 }

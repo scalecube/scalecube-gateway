@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.rsocket;
 
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
-import io.scalecube.services.transport.gw.GwClientTransports;
+import io.scalecube.services.gateway.transport.GatewayClientTransports;
 
 class RsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
 
@@ -11,6 +11,6 @@ class RsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
     super(
         serviceInstance,
         opts -> new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME)),
-        GwClientTransports::rsocketGwClientTransport);
+        GatewayClientTransports::rsocketGatewayClientTransport);
   }
 }

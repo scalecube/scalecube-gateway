@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.gw.client;
+package io.scalecube.services.gateway.transport;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
@@ -11,7 +11,7 @@ import java.lang.reflect.Type;
  *
  * @param <T> represents source or result for decoding or encoding operations respectively
  */
-public interface GwClientCodec<T> {
+public interface GatewayClientCodec<T> {
 
   /**
    * Data decoder function.
@@ -30,7 +30,7 @@ public interface GwClientCodec<T> {
    * Returns codec which is used to decode data object of {@link ServiceMessage}.
    *
    * @return data codec
-   * @see GwClientCodec#decodeData(ServiceMessage, Type)
+   * @see GatewayClientCodec#decodeData(ServiceMessage, Type)
    */
   DataCodec getDataCodec();
 

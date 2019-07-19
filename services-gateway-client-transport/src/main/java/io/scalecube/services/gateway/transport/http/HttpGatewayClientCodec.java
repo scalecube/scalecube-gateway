@@ -1,19 +1,19 @@
-package io.scalecube.services.transport.gw.client.http;
+package io.scalecube.services.gateway.transport.http;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
+import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
-import io.scalecube.services.transport.gw.client.GwClientCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class HttpGwClientCodec implements GwClientCodec<ByteBuf> {
+public final class HttpGatewayClientCodec implements GatewayClientCodec<ByteBuf> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGwClientCodec.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayClientCodec.class);
 
   private final DataCodec dataCodec;
 
@@ -22,7 +22,7 @@ public final class HttpGwClientCodec implements GwClientCodec<ByteBuf> {
    *
    * @param dataCodec data message codec.
    */
-  public HttpGwClientCodec(DataCodec dataCodec) {
+  public HttpGatewayClientCodec(DataCodec dataCodec) {
     this.dataCodec = dataCodec;
   }
 
