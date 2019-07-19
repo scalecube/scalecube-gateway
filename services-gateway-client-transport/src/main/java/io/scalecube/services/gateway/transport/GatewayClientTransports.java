@@ -35,8 +35,9 @@ public class GatewayClientTransports {
    * @return client transport
    */
   public static ClientTransport rsocketGatewayClientTransport(GatewayClientSettings cs) {
-    return new GatewayClientTransport(
-        cs, settings -> new RSocketGatewayClient(settings, RSOCKET_CLIENT_CODEC));
+    final java.util.function.Function<GatewayClientSettings, GatewayClient> function =
+        settings -> new RSocketGatewayClient(settings, RSOCKET_CLIENT_CODEC);
+    return new GatewayClientTransport(function.apply(cs));
   }
 
   /**
@@ -46,8 +47,9 @@ public class GatewayClientTransports {
    * @return client transport
    */
   public static ClientTransport websocketGatewayClientTransport(GatewayClientSettings cs) {
-    return new GatewayClientTransport(
-        cs, settings -> new WebsocketGatewayClient(settings, WEBSOCKET_CLIENT_CODEC));
+    final java.util.function.Function<GatewayClientSettings, GatewayClient> function =
+        settings -> new WebsocketGatewayClient(settings, WEBSOCKET_CLIENT_CODEC);
+    return new GatewayClientTransport(function.apply(cs));
   }
 
   /**
@@ -57,7 +59,8 @@ public class GatewayClientTransports {
    * @return client transport
    */
   public static ClientTransport httpGatewayClientTransport(GatewayClientSettings cs) {
-    return new GatewayClientTransport(
-        cs, settings -> new HttpGatewayClient(settings, HTTP_CLIENT_CODEC));
+    final java.util.function.Function<GatewayClientSettings, GatewayClient> function =
+        settings -> new HttpGatewayClient(settings, HTTP_CLIENT_CODEC);
+    return new GatewayClientTransport(function.apply(cs));
   }
 }
