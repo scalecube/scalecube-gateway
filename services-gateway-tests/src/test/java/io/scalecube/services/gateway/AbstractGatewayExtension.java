@@ -2,13 +2,13 @@ package io.scalecube.services.gateway;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.StaticAddressRouter;
+import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -24,41 +24,37 @@ public abstract class AbstractGatewayExtension
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGatewayExtension.class);
 
-  private final Microservices gateway;
   private final Object serviceInstance;
+  private final Function<GatewayOptions, Gateway> gatewaySupplier;
+  private final Function<GatewayClientSettings, ClientTransport> clientSupplier;
 
-  private Client client;
-  private Address gatewayAddress;
+  private String gatewayId;
+  private Microservices gateway;
   private Microservices services;
+  private ServiceCall clientServiceCall;
 
   protected AbstractGatewayExtension(
-      Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
+      Object serviceInstance,
+      Function<GatewayOptions, Gateway> gatewaySupplier,
+      Function<GatewayClientSettings, ClientTransport> clientSupplier) {
     this.serviceInstance = serviceInstance;
-
-    gateway =
-        Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
-            .transport(RSocketServiceTransport::new)
-            .gateway(gatewayFactory)
-            .startAwait();
-  }
-
-  @Override
-  public final void afterAll(ExtensionContext context) {
-    shutdownServices();
-    shutdownGateway();
-  }
-
-  @Override
-  public final void afterEach(ExtensionContext context) {
-    if (client != null) {
-      client.close();
-    }
+    this.gatewaySupplier = gatewaySupplier;
+    this.clientSupplier = clientSupplier;
   }
 
   @Override
   public final void beforeAll(ExtensionContext context) {
-    gatewayAddress = gateway.gateway(gatewayAliasName()).address();
+    gateway =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(RSocketServiceTransport::new)
+            .gateway(
+                options -> {
+                  Gateway gateway = gatewaySupplier.apply(options);
+                  gatewayId = gateway.id();
+                  return gateway;
+                })
+            .startAwait();
     startServices();
   }
 
@@ -68,11 +64,28 @@ public abstract class AbstractGatewayExtension
     if (services == null) {
       startServices();
     }
-    client = new Client(transport(), clientMessageCodec());
+    Address gatewayAddress = gateway.gateway(gatewayId).address();
+    GatewayClientSettings clintSettings =
+        GatewayClientSettings.builder().address(gatewayAddress).build();
+    clientServiceCall =
+        new ServiceCall()
+            .transport(clientSupplier.apply(clintSettings))
+            .router(new StaticAddressRouter(gatewayAddress));
   }
 
-  public Client client() {
-    return client;
+  @Override
+  public final void afterEach(ExtensionContext context) {
+    // no-op
+  }
+
+  @Override
+  public final void afterAll(ExtensionContext context) {
+    shutdownServices();
+    shutdownGateway();
+  }
+
+  public ServiceCall client() {
+    return clientServiceCall;
   }
 
   public void startServices() {
@@ -116,14 +129,4 @@ public abstract class AbstractGatewayExtension
       LOGGER.info("Shutdown gateway {}", gateway);
     }
   }
-
-  protected final ClientSettings clientSettings() {
-    return ClientSettings.builder().host(gatewayAddress.host()).port(gatewayAddress.port()).build();
-  }
-
-  protected abstract ClientTransport transport();
-
-  protected abstract ClientCodec clientMessageCodec();
-
-  protected abstract String gatewayAliasName();
 }

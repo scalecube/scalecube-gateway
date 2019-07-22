@@ -15,6 +15,11 @@
       <artifactId>scalecube-services-gateway-netty</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-gateway-client-transport</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>io.scalecube</groupId>

@@ -6,14 +6,13 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.BenchmarkServiceImpl;
-import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
+import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import reactor.core.publisher.Mono;
-import reactor.netty.resources.LoopResources;
 
 public class DistributedBenchmarkState extends AbstractBenchmarkState<DistributedBenchmarkState> {
 
@@ -25,7 +24,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
   public DistributedBenchmarkState(
       BenchmarkSettings settings,
       String gatewayName,
-      BiFunction<Address, LoopResources, Client> clientBuilder) {
+      Function<Address, GatewayClient> clientBuilder) {
     super(settings, clientBuilder);
     this.gatewayName = gatewayName;
   }
@@ -70,7 +69,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
   }
 
   @Override
-  public Mono<Client> createClient() {
+  public Mono<GatewayClient> createClient() {
     return createClient(gateway, gatewayName, clientBuilder);
   }
 }

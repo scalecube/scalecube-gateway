@@ -2,72 +2,89 @@ package io.scalecube.services.gateway;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientCodec;
-import io.scalecube.services.gateway.clientsdk.ClientSettings;
-import io.scalecube.services.gateway.clientsdk.ClientTransport;
+import io.scalecube.services.ServiceCall;
+import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.StaticAddressRouter;
+import io.scalecube.services.transport.api.ClientTransport;
+import java.util.Optional;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.netty.resources.LoopResources;
 
 public abstract class AbstractLocalGatewayExtension
-    implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
+    implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLocalGatewayExtension.class);
+  private final Object serviceInstance;
+  private final Function<GatewayOptions, Gateway> gatewaySupplier;
+  private final Function<GatewayClientSettings, ClientTransport> clientSupplier;
 
-  private final Microservices gateway;
-
-  private Client client;
-  private Address gatewayAddress;
+  private Microservices gateway;
+  private LoopResources clientLoopResources;
+  private ServiceCall clientServiceCall;
+  private String gatewayId;
 
   protected AbstractLocalGatewayExtension(
-      Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
-    gateway =
-        Microservices.builder().services(serviceInstance).gateway(gatewayFactory).startAwait();
-  }
-
-  @Override
-  public final void afterAll(ExtensionContext context) {
-    if (gateway != null) {
-      gateway.shutdown().block();
-      LOGGER.info("Shutdown gateway {}", gateway);
-    }
-  }
-
-  @Override
-  public final void afterEach(ExtensionContext context) {
-    if (client != null) {
-      client.close().block();
-      LOGGER.info("Shutdown client {}", client);
-    }
-  }
-
-  @Override
-  public final void beforeEach(ExtensionContext context) {
-    client = new Client(transport(), clientMessageCodec());
-  }
-
-  public Client client() {
-    return client;
+      Object serviceInstance,
+      Function<GatewayOptions, Gateway> gatewaySupplier,
+      Function<GatewayClientSettings, ClientTransport> clientSupplier) {
+    this.serviceInstance = serviceInstance;
+    this.gatewaySupplier = gatewaySupplier;
+    this.clientSupplier = clientSupplier;
   }
 
   @Override
   public final void beforeAll(ExtensionContext context) {
-    gatewayAddress = gateway.gateway(gatewayAliasName()).address();
+
+    gateway =
+        Microservices.builder()
+            .services(serviceInstance)
+            .gateway(
+                options -> {
+                  Gateway gateway = gatewaySupplier.apply(options);
+                  gatewayId = gateway.id();
+                  return gateway;
+                })
+            .startAwait();
+
+    clientLoopResources = LoopResources.create("gateway-client-transport-worker");
   }
 
-  protected final ClientSettings clientSettings() {
-    return ClientSettings.builder().host(gatewayAddress.host()).port(gatewayAddress.port()).build();
+  @Override
+  public final void beforeEach(ExtensionContext context) {
+    Address address = gateway.gateway(gatewayId).address();
+
+    GatewayClientSettings settings = GatewayClientSettings.builder().address(address).build();
+
+    clientServiceCall =
+        new ServiceCall()
+            .transport(clientSupplier.apply(settings))
+            .router(new StaticAddressRouter(address));
   }
 
-  protected abstract ClientTransport transport();
+  @Override
+  public final void afterAll(ExtensionContext context) {
+    Optional.ofNullable(clientLoopResources).ifPresent(LoopResources::dispose);
+    shutdownGateway();
+  }
 
-  protected abstract ClientCodec clientMessageCodec();
+  public ServiceCall client() {
+    return clientServiceCall;
+  }
 
-  protected abstract String gatewayAliasName();
+  private void shutdownGateway() {
+    if (gateway != null) {
+      try {
+        gateway.shutdown().block();
+      } catch (Throwable ignore) {
+        // ignore
+      }
+      LOGGER.info("Shutdown gateway {}", gateway);
+    }
+  }
 }

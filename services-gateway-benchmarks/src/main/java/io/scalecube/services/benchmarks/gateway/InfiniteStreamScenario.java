@@ -4,8 +4,8 @@ import static io.scalecube.services.examples.BenchmarkService.CLIENT_RECV_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.benchmarks.LatencyHelper;
-import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -60,8 +60,7 @@ public final class InfiniteStreamScenario {
 
           Integer rateLimit = rateLimit(settings);
 
-          ClientMessage request =
-              ClientMessage.builder().qualifier(QUALIFIER).rateLimit(rateLimit).build();
+          ServiceMessage request = ServiceMessage.builder().qualifier(QUALIFIER).build();
 
           return client ->
               (executionTick, task) ->
@@ -69,7 +68,7 @@ public final class InfiniteStreamScenario {
                       () ->
                           client
                               .requestStream(request)
-                              .map(InfiniteStreamScenario::enichResponse)
+                              .map(InfiniteStreamScenario::enrichResponse)
                               .limitRate(rateLimit)
                               .doOnNext(
                                   message -> {
@@ -88,7 +87,7 @@ public final class InfiniteStreamScenario {
         .orElse(DEFAULT_RATE_LIMIT);
   }
 
-  private static ClientMessage enichResponse(ClientMessage msg) {
-    return ClientMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
+  private static ServiceMessage enrichResponse(ServiceMessage msg) {
+    return ServiceMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
   }
 }

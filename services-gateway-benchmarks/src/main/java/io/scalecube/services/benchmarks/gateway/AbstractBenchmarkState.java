@@ -4,31 +4,29 @@ import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.gateway.clientsdk.Client;
-import io.scalecube.services.gateway.clientsdk.ClientMessage;
+import io.scalecube.services.gateway.transport.GatewayClient;
 import java.util.Optional;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
-import reactor.netty.resources.LoopResources;
 
 public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>>
     extends BenchmarkState<T> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractBenchmarkState.class);
 
-  public static final ClientMessage FIRST_REQUEST =
-      ClientMessage.builder().qualifier("/benchmarks/one").build();
+  public static final ServiceMessage FIRST_REQUEST =
+      ServiceMessage.builder().qualifier("/benchmarks/one").build();
 
-  protected LoopResources loopResources;
-  protected BiFunction<Address, LoopResources, Client> clientBuilder;
+  protected Function<Address, GatewayClient> clientBuilder;
 
   public AbstractBenchmarkState(
-      BenchmarkSettings settings, BiFunction<Address, LoopResources, Client> clientBuilder) {
+      BenchmarkSettings settings, Function<Address, GatewayClient> clientBuilder) {
     super(settings);
     this.clientBuilder = clientBuilder;
   }
@@ -37,31 +35,20 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   protected void beforeAll() throws Exception {
     super.beforeAll();
     int workerCount = Runtime.getRuntime().availableProcessors();
-    loopResources = LoopResources.create("worker-client-sdk", workerCount, true);
   }
 
-  @Override
-  protected void afterAll() throws Exception {
-    super.afterAll();
-    if (loopResources != null) {
-      loopResources.disposeLater().block();
-    }
-  }
+  public abstract Mono<GatewayClient> createClient();
 
-  public abstract Mono<Client> createClient();
-
-  protected final Mono<Client> createClient(
-      Microservices gateway,
-      String gatewayName,
-      BiFunction<Address, LoopResources, Client> clientBuilder) {
+  protected final Mono<GatewayClient> createClient(
+      Microservices gateway, String gatewayName, Function<Address, GatewayClient> clientBuilder) {
     return Mono.defer(() -> createClient(gateway.gateway(gatewayName).address(), clientBuilder));
   }
 
-  protected final Mono<Client> createClient(
-      Address gatewayAddress, BiFunction<Address, LoopResources, Client> clientBuilder) {
+  protected final Mono<GatewayClient> createClient(
+      Address gatewayAddress, Function<Address, GatewayClient> clientBuilder) {
     return Mono.defer(
         () -> {
-          Client client = clientBuilder.apply(gatewayAddress, loopResources);
+          GatewayClient client = clientBuilder.apply(gatewayAddress);
           return client
               .requestResponse(FIRST_REQUEST)
               .log("benchmark-client-first-request", Level.INFO, false, SignalType.ON_NEXT)
