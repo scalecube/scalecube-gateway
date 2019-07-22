@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.LoopResources;
 
 public final class RSocketGatewayClient implements GatewayClient {
 
@@ -26,6 +27,7 @@ public final class RSocketGatewayClient implements GatewayClient {
 
   private final GatewayClientSettings settings;
   private final GatewayClientCodec<Payload> codec;
+  private final LoopResources loopResources;
 
   @SuppressWarnings("unused")
   private volatile Mono<?> rsocketMono;
@@ -39,6 +41,7 @@ public final class RSocketGatewayClient implements GatewayClient {
   public RSocketGatewayClient(GatewayClientSettings settings, GatewayClientCodec<Payload> codec) {
     this.settings = settings;
     this.codec = codec;
+    this.loopResources = LoopResources.create("rsocket-gateway-client");
   }
 
   @Override
@@ -94,13 +97,8 @@ public final class RSocketGatewayClient implements GatewayClient {
 
   @Override
   public Mono<Void> close() {
-    return Mono.defer(
-        () -> {
-          // noinspection unchecked
-          Mono<RSocket> curr = rSocketMonoUpdater.get(this);
-          return (curr == null ? Mono.<Void>empty() : curr.flatMap(this::dispose))
-              .doOnTerminate(() -> LOGGER.info("Closed rsocket gateway client transport"));
-        });
+    return Mono.<Void>fromRunnable(loopResources::disposeLater)
+        .doOnTerminate(() -> LOGGER.info("Closed RSocketGatewayClient resources"));
   }
 
   public GatewayClientCodec<Payload> getCodec() {
@@ -161,7 +159,7 @@ public final class RSocketGatewayClient implements GatewayClient {
                   if (settings.sslProvider() != null) {
                     tcpClient = tcpClient.secure(settings.sslProvider());
                   }
-                  return tcpClient.host(settings.host()).port(settings.port());
+                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
                 });
 
     return WebsocketClientTransport.create(httpClient, path);

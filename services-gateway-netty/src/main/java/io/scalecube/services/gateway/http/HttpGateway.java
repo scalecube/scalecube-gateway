@@ -16,6 +16,7 @@ import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.Map.Entry;
 import java.util.function.UnaryOperator;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
@@ -137,7 +138,8 @@ public class HttpGateway extends GatewayTemplate {
 
   @Override
   public Mono<Void> stop() {
-    return shutdownServer(server).then(shutdownLoopResources(loopResources));
+    return Flux.concatDelayError(shutdownServer(server), shutdownLoopResources(loopResources))
+        .then();
   }
 
   protected HttpServer prepareHttpServer(

@@ -14,6 +14,7 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.LoopResources;
 
 public final class WebsocketGatewayClient implements GatewayClient {
 
@@ -31,6 +32,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
   private final GatewayClientSettings settings;
   private final HttpClient httpClient;
   private final AtomicLong sidCounter = new AtomicLong();
+  private final LoopResources loopResources;
 
   @SuppressWarnings("unused")
   private volatile Mono<?> websocketMono;
@@ -44,6 +46,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
   public WebsocketGatewayClient(GatewayClientSettings settings, GatewayClientCodec<ByteBuf> codec) {
     this.settings = settings;
     this.codec = codec;
+    this.loopResources = LoopResources.create("websocket-gateway-client");
+
     httpClient =
         HttpClient.newConnection()
             .followRedirect(settings.followRedirect())
@@ -52,7 +56,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                   if (settings.sslProvider() != null) {
                     tcpClient = tcpClient.secure(settings.sslProvider());
                   }
-                  return tcpClient.host(settings.host()).port(settings.port());
+                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
                 });
   }
 
@@ -107,13 +111,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   @Override
   public Mono<Void> close() {
-    return Mono.defer(
-        () -> {
-          // noinspection unchecked
-          Mono<WebsocketSession> curr = websocketMonoUpdater.get(this);
-          return (curr == null ? Mono.<Void>empty() : curr.flatMap(WebsocketSession::close))
-              .doOnTerminate(() -> LOGGER.info("Closed websocket gateway client transport"));
-        });
+    return Mono.<Void>fromRunnable(loopResources::disposeLater)
+        .doOnTerminate(() -> LOGGER.info("Closed WebsocketGatewayClient resources"));
   }
 
   public GatewayClientCodec<ByteBuf> getCodec() {

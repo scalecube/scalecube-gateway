@@ -84,28 +84,40 @@ final class WebsocketSession {
 
   public Mono<Void> send(ByteBuf byteBuf, long sid) {
     return Mono.defer(
-        () ->
-            outbound
-                .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new))
-                .then()
-                .doOnSuccess(
-                    avoid -> {
-                      inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
-                      LOGGER.debug("Put sid={}, session={}", sid, id);
-                    }));
+        () -> {
+          inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
+          LOGGER.debug("Put sid={}, session={}", sid, id);
+
+          return outbound
+              .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new))
+              .then()
+              .doOnError(
+                  th -> {
+                    UnicastProcessor<ServiceMessage> processor = inboundProcessors.remove(sid);
+                    if (processor != null) {
+                      processor.onError(th);
+                    }
+                  });
+        });
   }
 
   public Mono<Void> send(Flux<ByteBuf> byteBuf, long sid) {
     return Mono.defer(
-        () ->
-            outbound
-                .sendObject(byteBuf.map(TextWebSocketFrame::new))
-                .then()
-                .doOnSuccess(
-                    avoid -> {
-                      inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
-                      LOGGER.debug("Put sid={}, session={}", sid, id);
-                    }));
+        () -> {
+          inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
+          LOGGER.debug("Put sid={}, session={}", sid, id);
+
+          return outbound
+              .sendObject(byteBuf.map(TextWebSocketFrame::new))
+              .then()
+              .doOnError(
+                  th -> {
+                    UnicastProcessor<ServiceMessage> processor = inboundProcessors.remove(sid);
+                    if (processor != null) {
+                      processor.onError(th);
+                    }
+                  });
+        });
   }
 
   public Flux<ServiceMessage> receive(long sid) {

@@ -9,7 +9,7 @@ public class GatewayClientTransport implements ClientTransport {
 
   private final GatewayClient gatewayClient;
 
-  GatewayClientTransport(GatewayClient gatewayClient) {
+  public GatewayClientTransport(GatewayClient gatewayClient) {
     this.gatewayClient = gatewayClient;
   }
 
