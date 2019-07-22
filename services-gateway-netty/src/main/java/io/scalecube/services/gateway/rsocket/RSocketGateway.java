@@ -13,11 +13,15 @@ import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
-import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
 
 public class RSocketGateway extends GatewayTemplate {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGateway.class);
 
   private CloseableChannel server;
   private LoopResources loopResources;
@@ -65,18 +69,17 @@ public class RSocketGateway extends GatewayTemplate {
 
   @Override
   public Mono<Void> stop() {
-    return shutdownServer(server).then(shutdownLoopResources(loopResources));
+    return Flux.concatDelayError(shutdownServer(), shutdownLoopResources(loopResources)).then();
   }
 
-  private Mono<Void> shutdownServer(CloseableChannel closeableChannel) {
+  private Mono<Void> shutdownServer() {
     return Mono.defer(
-        () ->
-            Optional.ofNullable(closeableChannel)
-                .map(
-                    server -> {
-                      server.dispose();
-                      return server.onClose().onErrorResume(e -> Mono.empty());
-                    })
-                .orElse(Mono.empty()));
+        () -> {
+          if (server == null) {
+            return Mono.empty();
+          }
+          server.dispose();
+          return server.onClose().doOnError(e -> LOGGER.warn("Failed to close server: " + e));
+        });
   }
 }

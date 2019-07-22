@@ -11,6 +11,7 @@ import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.resources.LoopResources;
@@ -64,7 +65,7 @@ public class WebsocketGateway extends GatewayTemplate {
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
           } else {
-            loopResources = LoopResources.create("ws-gateway");
+            loopResources = LoopResources.create("websocket-gateway");
           }
 
           return prepareHttpServer(loopResources, options.port(), gatewayMetrics)
@@ -83,6 +84,7 @@ public class WebsocketGateway extends GatewayTemplate {
 
   @Override
   public Mono<Void> stop() {
-    return shutdownServer(server).then(shutdownLoopResources(loopResources));
+    return Flux.concatDelayError(shutdownServer(server), shutdownLoopResources(loopResources))
+        .then();
   }
 }

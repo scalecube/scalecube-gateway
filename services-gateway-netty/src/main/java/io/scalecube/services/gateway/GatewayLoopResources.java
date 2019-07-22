@@ -15,6 +15,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
 import reactor.netty.resources.LoopResources;
@@ -28,6 +29,7 @@ public class GatewayLoopResources implements LoopResources {
 
   private final EventLoopGroup bossGroup;
   private final EventLoopGroup workerGroup;
+  private final AtomicBoolean running = new AtomicBoolean(true);
 
   /**
    * Constructor for loop resources.
@@ -84,16 +86,21 @@ public class GatewayLoopResources implements LoopResources {
 
   @Override
   public boolean isDisposed() {
-    return bossGroup.isShutdown();
+    return !running.get();
   }
 
   @Override
   public Mono<Void> disposeLater() {
     return Mono.defer(
         () -> {
-          bossGroup.shutdownGracefully();
-          //noinspection unchecked
-          return FutureMono.from(((Future<Void>) bossGroup.terminationFuture()));
+          Mono<Void> promise = Mono.empty();
+          if (running.compareAndSet(true, false)) {
+            if (bossGroup != null) {
+              //noinspection unchecked
+              promise = FutureMono.from((Future) bossGroup.shutdownGracefully());
+            }
+          }
+          return promise;
         });
   }
 }
