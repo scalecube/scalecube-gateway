@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
+import reactor.netty.resources.LoopResources;
 
 public final class HttpGatewayClient implements GatewayClient {
 
@@ -21,7 +22,7 @@ public final class HttpGatewayClient implements GatewayClient {
 
   private final GatewayClientCodec<ByteBuf> codec;
   private final HttpClient httpClient;
-  private final ConnectionProvider connectionProvider;
+  private final LoopResources loopResources;
 
   /**
    * Creates instance of http client transport.
@@ -30,17 +31,17 @@ public final class HttpGatewayClient implements GatewayClient {
    */
   public HttpGatewayClient(GatewayClientSettings settings, GatewayClientCodec<ByteBuf> codec) {
     this.codec = codec;
-    connectionProvider = ConnectionProvider.elastic("http-client-transport");
+    this.loopResources = LoopResources.create("http-gateway-client");
 
     httpClient =
-        HttpClient.create(connectionProvider)
+        HttpClient.create(ConnectionProvider.elastic("http-gateway-client"))
             .followRedirect(settings.followRedirect())
             .tcpConfiguration(
                 tcpClient -> {
                   if (settings.sslProvider() != null) {
                     tcpClient = tcpClient.secure(settings.sslProvider());
                   }
-                  return tcpClient.host(settings.host()).port(settings.port());
+                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
                 });
   }
 
@@ -79,9 +80,8 @@ public final class HttpGatewayClient implements GatewayClient {
 
   @Override
   public Mono<Void> close() {
-    return connectionProvider
-        .disposeLater()
-        .doOnTerminate(() -> LOGGER.info("Closed http gateway client transport"));
+    return Mono.<Void>fromRunnable(loopResources::disposeLater)
+        .doOnTerminate(() -> LOGGER.info("Closed HttpGatewayClient resources"));
   }
 
   public GatewayClientCodec<ByteBuf> getCodec() {

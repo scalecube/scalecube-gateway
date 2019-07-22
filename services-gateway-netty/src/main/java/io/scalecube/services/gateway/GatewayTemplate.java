@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway;
 
 import java.net.InetSocketAddress;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -61,35 +60,30 @@ public abstract class GatewayTemplate implements Gateway {
    */
   protected final Mono<Void> shutdownLoopResources(LoopResources loopResources) {
     return Mono.defer(
-        () ->
-            Optional.ofNullable(loopResources)
-                .map(
-                    lr ->
-                        lr.disposeLater()
-                            .doOnError(
-                                e -> LOGGER.warn("Failed to close gateway loopResources: " + e))
-                            .onErrorResume(e -> Mono.empty()))
-                .orElse(Mono.empty()));
+        () -> {
+          if (loopResources == null) {
+            return Mono.empty();
+          }
+          return loopResources
+              .disposeLater()
+              .doOnError(e -> LOGGER.warn("Failed to close loopResources: " + e));
+        });
   }
 
   /**
    * Shutting down server of type {@link DisposableServer} if it's not null.
    *
-   * @param disposableServer server
+   * @param server server
    * @return mono hanle
    */
-  protected final Mono<Void> shutdownServer(DisposableServer disposableServer) {
+  protected final Mono<Void> shutdownServer(DisposableServer server) {
     return Mono.defer(
-        () ->
-            Optional.ofNullable(disposableServer)
-                .map(
-                    server -> {
-                      server.dispose();
-                      return server
-                          .onDispose()
-                          .doOnError(e -> LOGGER.warn("Failed to close server: " + e))
-                          .onErrorResume(e -> Mono.empty());
-                    })
-                .orElse(Mono.empty()));
+        () -> {
+          if (server == null) {
+            return Mono.empty();
+          }
+          server.dispose();
+          return server.onDispose().doOnError(e -> LOGGER.warn("Failed to close server: " + e));
+        });
   }
 }

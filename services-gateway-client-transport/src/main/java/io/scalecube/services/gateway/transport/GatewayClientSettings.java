@@ -3,7 +3,6 @@ package io.scalecube.services.gateway.transport;
 import io.scalecube.net.Address;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
-import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.SslProvider;
 
 public class GatewayClientSettings {
@@ -14,7 +13,6 @@ public class GatewayClientSettings {
   private final String host;
   private final int port;
   private final String contentType;
-  private final LoopResources loopResources;
   private final boolean followRedirect;
   private final SslProvider sslProvider;
   private final ServiceClientErrorMapper errorMapper;
@@ -23,7 +21,6 @@ public class GatewayClientSettings {
     this.host = builder.host;
     this.port = builder.port;
     this.contentType = builder.contentType;
-    this.loopResources = builder.loopResources;
     this.followRedirect = builder.followRedirect;
     this.sslProvider = builder.sslProvider;
     this.errorMapper = builder.errorMapper;
@@ -39,10 +36,6 @@ public class GatewayClientSettings {
 
   public String contentType() {
     return this.contentType;
-  }
-
-  public LoopResources loopResources() {
-    return loopResources;
   }
 
   public boolean followRedirect() {
@@ -71,7 +64,6 @@ public class GatewayClientSettings {
     sb.append("host='").append(host).append('\'');
     sb.append(", port=").append(port);
     sb.append(", contentType='").append(contentType).append('\'');
-    sb.append(", loopResources=").append(loopResources);
     sb.append(", followRedirect=").append(followRedirect);
     sb.append(", sslProvider=").append(sslProvider);
     sb.append('}');
@@ -83,7 +75,6 @@ public class GatewayClientSettings {
     private String host = DEFAULT_HOST;
     private int port;
     private String contentType = DEFAULT_CONTENT_TYPE;
-    private LoopResources loopResources;
     private boolean followRedirect = true;
     private SslProvider sslProvider;
     private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
@@ -94,7 +85,6 @@ public class GatewayClientSettings {
       this.host = originalSettings.host;
       this.port = originalSettings.port;
       this.contentType = originalSettings.contentType;
-      this.loopResources = originalSettings.loopResources;
       this.followRedirect = originalSettings.followRedirect;
       this.sslProvider = originalSettings.sslProvider;
       this.errorMapper = originalSettings.errorMapper;
