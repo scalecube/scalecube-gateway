@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoProcessor;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -33,6 +34,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
   private final HttpClient httpClient;
   private final AtomicLong sidCounter = new AtomicLong();
   private final LoopResources loopResources;
+  private final MonoProcessor<Void> close = MonoProcessor.create();
+  private final MonoProcessor<Void> onClose = MonoProcessor.create();
 
   @SuppressWarnings("unused")
   private volatile Mono<?> websocketMono;
@@ -58,6 +61,14 @@ public final class WebsocketGatewayClient implements GatewayClient {
                   }
                   return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
                 });
+
+    // Setup cleanup
+    close
+        .then(doClose())
+        .doFinally(s -> onClose.onComplete())
+        .doOnTerminate(() -> LOGGER.info("Closed WebsocketGatewayClient resources"))
+        .subscribe(
+            null, ex -> LOGGER.warn("Exception occurred on WebsocketGatewayClient close: " + ex));
   }
 
   @Override
@@ -110,9 +121,17 @@ public final class WebsocketGatewayClient implements GatewayClient {
   }
 
   @Override
-  public Mono<Void> close() {
-    return Mono.<Void>fromRunnable(loopResources::disposeLater)
-        .doOnTerminate(() -> LOGGER.info("Closed WebsocketGatewayClient resources"));
+  public void close() {
+    close.onComplete();
+  }
+
+  @Override
+  public Mono<Void> onClose() {
+    return onClose;
+  }
+
+  private Mono<Void> doClose() {
+    return Mono.defer(loopResources::disposeLater);
   }
 
   public GatewayClientCodec<ByteBuf> getCodec() {

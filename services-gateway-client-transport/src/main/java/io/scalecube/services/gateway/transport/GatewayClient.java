@@ -34,8 +34,13 @@ public interface GatewayClient {
    * Initiate cleaning of underlying resources (if any) like closing websocket connection or rSocket
    * session. Subsequent calls of requestOne() or requestMany() must issue new connection creation.
    * Note that close is not the end of client lifecycle.
-   *
-   * @return Async completion signal.
    */
-  Mono<Void> close();
+  void close();
+
+  /**
+   * Return close completion signal of the gateway client.
+   *
+   * @return close completion signal
+   */
+  Mono<Void> onClose();
 }
