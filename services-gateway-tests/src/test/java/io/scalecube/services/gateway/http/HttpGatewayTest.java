@@ -9,6 +9,7 @@ import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.gateway.transport.GatewayClient;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,10 +24,12 @@ class HttpGatewayTest {
   static HttpGatewayExtension extension = new HttpGatewayExtension(new GreetingServiceImpl());
 
   private GreetingService service;
+  private GatewayClient client;
 
   @BeforeEach
   void initService() {
-    service = extension.client().api(GreetingService.class);
+    client = extension.gatewayClient();
+    service = extension.serviceCall(client).api(GreetingService.class);
   }
 
   @Test

@@ -6,10 +6,14 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.GatewayClientTransport;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
-import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -18,6 +22,7 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 public abstract class AbstractGatewayExtension
     implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
@@ -26,20 +31,22 @@ public abstract class AbstractGatewayExtension
 
   private final Object serviceInstance;
   private final Function<GatewayOptions, Gateway> gatewaySupplier;
-  private final Function<GatewayClientSettings, ClientTransport> clientSupplier;
+  private final Function<GatewayClientSettings, GatewayClient> gatewayClientSupplier;
+
+  private List<GatewayClient> clients = new ArrayList<>();
 
   private String gatewayId;
   private Microservices gateway;
   private Microservices services;
-  private ServiceCall clientServiceCall;
+  private Address gatewayAddress;
 
   protected AbstractGatewayExtension(
       Object serviceInstance,
       Function<GatewayOptions, Gateway> gatewaySupplier,
-      Function<GatewayClientSettings, ClientTransport> clientSupplier) {
+      Function<GatewayClientSettings, GatewayClient> gatewayClientSupplier) {
     this.serviceInstance = serviceInstance;
     this.gatewaySupplier = gatewaySupplier;
-    this.clientSupplier = clientSupplier;
+    this.gatewayClientSupplier = gatewayClientSupplier;
   }
 
   @Override
@@ -64,18 +71,17 @@ public abstract class AbstractGatewayExtension
     if (services == null) {
       startServices();
     }
-    Address gatewayAddress = gateway.gateway(gatewayId).address();
-    GatewayClientSettings clintSettings =
-        GatewayClientSettings.builder().address(gatewayAddress).build();
-    clientServiceCall =
-        new ServiceCall()
-            .transport(clientSupplier.apply(clintSettings))
-            .router(new StaticAddressRouter(gatewayAddress));
+    gatewayAddress = gateway.gateway(gatewayId).address();
   }
 
   @Override
   public final void afterEach(ExtensionContext context) {
-    // no-op
+    if (clients != null) {
+      Mono.whenDelayError(clients.stream().map(GatewayClient::close).toArray(Mono[]::new))
+          .onErrorResume(th -> Mono.empty())
+          .block(Duration.ofSeconds(10));
+      clients.clear();
+    }
   }
 
   @Override
@@ -84,8 +90,29 @@ public abstract class AbstractGatewayExtension
     shutdownGateway();
   }
 
-  public ServiceCall client() {
-    return clientServiceCall;
+  /**
+   * Returns a new service call by the given gateway client.
+   *
+   * @param gatewayClient gateway client
+   * @return service call
+   */
+  public ServiceCall serviceCall(GatewayClient gatewayClient) {
+    return new ServiceCall()
+        .transport(new GatewayClientTransport(gatewayClient))
+        .router(new StaticAddressRouter(gatewayAddress));
+  }
+
+  /**
+   * Returns a new gateway client.
+   *
+   * @return gateway client
+   */
+  public GatewayClient gatewayClient() {
+    GatewayClientSettings clintSettings =
+        GatewayClientSettings.builder().address(gatewayAddress).build();
+    GatewayClient gatewayClient = gatewayClientSupplier.apply(clintSettings);
+    clients.add(gatewayClient);
+    return gatewayClient;
   }
 
   public void startServices() {

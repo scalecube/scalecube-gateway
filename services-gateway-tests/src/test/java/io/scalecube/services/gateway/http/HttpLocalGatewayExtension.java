@@ -2,6 +2,7 @@ package io.scalecube.services.gateway.http;
 
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
+import io.scalecube.services.gateway.transport.http.HttpGatewayClient;
 
 class HttpLocalGatewayExtension extends AbstractLocalGatewayExtension {
 
@@ -11,6 +12,6 @@ class HttpLocalGatewayExtension extends AbstractLocalGatewayExtension {
     super(
         serviceInstance,
         opts -> new HttpGateway(opts.id(GATEWAY_ALIAS_NAME)),
-        GatewayClientTransports::httpGatewayClientTransport);
+        settings -> new HttpGatewayClient(settings, GatewayClientTransports.HTTP_CLIENT_CODEC));
   }
 }
