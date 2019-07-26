@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.websocket;
+package io.scalecube.services.gateway.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -13,19 +13,20 @@ import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.GatewayClientTransport;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
-import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
-import io.scalecube.services.gateway.ws.WebsocketGateway;
+import io.scalecube.services.gateway.transport.http.HttpGatewayClient;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class WebsocketClientConnectionTest {
+@Disabled
+class HttpClientConnectionTest {
 
   private Microservices gateway;
   private Address gatewayAddress;
@@ -40,10 +41,10 @@ class WebsocketClientConnectionTest {
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
-            .gateway(options -> new WebsocketGateway(options.id("WS")))
+            .gateway(options -> new HttpGateway(options.id("HTTP")))
             .startAwait();
 
-    gatewayAddress = gateway.gateway("WS").address();
+    gatewayAddress = gateway.gateway("HTTP").address();
 
     service =
         Microservices.builder()
@@ -64,9 +65,7 @@ class WebsocketClientConnectionTest {
   @AfterEach
   void afterEach() {
     Flux.concat(
-            Mono.justOrEmpty(client)
-                .doOnNext(GatewayClient::close)
-                .flatMap(GatewayClient::onClose),
+            Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
             Mono.justOrEmpty(gateway).map(Microservices::shutdown),
             Mono.justOrEmpty(service).map(Microservices::shutdown))
         .then()
@@ -76,16 +75,16 @@ class WebsocketClientConnectionTest {
   @Test
   void testCloseServiceStreamAfterLostConnection() {
     client =
-        new WebsocketGatewayClient(
+        new HttpGatewayClient(
             GatewayClientSettings.builder().address(gatewayAddress).build(),
-            GatewayClientTransports.WEBSOCKET_CLIENT_CODEC);
+            GatewayClientTransports.HTTP_CLIENT_CODEC);
 
     ServiceCall serviceCall =
         new ServiceCall()
             .transport(new GatewayClientTransport(client))
             .router(new StaticAddressRouter(gatewayAddress));
 
-    StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
+    StepVerifier.create(serviceCall.api(TestService.class).oneNever().log("<<< "))
         .thenAwait(Duration.ofSeconds(1))
         .then(() -> client.close())
         .expectErrorMessage("Connection closed")
@@ -97,15 +96,15 @@ class WebsocketClientConnectionTest {
   @Service
   public interface TestService {
 
-    @ServiceMethod("manyNever")
-    Flux<Long> manyNever();
+    @ServiceMethod
+    Mono<Long> oneNever();
   }
 
   private class TestServiceImpl implements TestService {
 
     @Override
-    public Flux<Long> manyNever() {
-      return Flux.<Long>never().log(">>> ").doOnCancel(onCloseCounter::incrementAndGet);
+    public Mono<Long> oneNever() {
+      return Mono.<Long>never().log(">>> ").doOnCancel(onCloseCounter::incrementAndGet);
     }
   }
 }

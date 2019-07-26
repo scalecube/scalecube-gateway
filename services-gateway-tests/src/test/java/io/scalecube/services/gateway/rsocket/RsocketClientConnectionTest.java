@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.websocket;
+package io.scalecube.services.gateway.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -13,8 +13,7 @@ import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.GatewayClientTransport;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
-import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
-import io.scalecube.services.gateway.ws.WebsocketGateway;
+import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +24,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class WebsocketClientConnectionTest {
+class RsocketClientConnectionTest {
 
   private Microservices gateway;
   private Address gatewayAddress;
@@ -40,7 +39,7 @@ class WebsocketClientConnectionTest {
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
-            .gateway(options -> new WebsocketGateway(options.id("WS")))
+            .gateway(options -> new RSocketGateway(options.id("WS")))
             .startAwait();
 
     gatewayAddress = gateway.gateway("WS").address();
@@ -64,9 +63,7 @@ class WebsocketClientConnectionTest {
   @AfterEach
   void afterEach() {
     Flux.concat(
-            Mono.justOrEmpty(client)
-                .doOnNext(GatewayClient::close)
-                .flatMap(GatewayClient::onClose),
+            Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
             Mono.justOrEmpty(gateway).map(Microservices::shutdown),
             Mono.justOrEmpty(service).map(Microservices::shutdown))
         .then()
@@ -76,9 +73,9 @@ class WebsocketClientConnectionTest {
   @Test
   void testCloseServiceStreamAfterLostConnection() {
     client =
-        new WebsocketGatewayClient(
+        new RSocketGatewayClient(
             GatewayClientSettings.builder().address(gatewayAddress).build(),
-            GatewayClientTransports.WEBSOCKET_CLIENT_CODEC);
+            GatewayClientTransports.RSOCKET_CLIENT_CODEC);
 
     ServiceCall serviceCall =
         new ServiceCall()
