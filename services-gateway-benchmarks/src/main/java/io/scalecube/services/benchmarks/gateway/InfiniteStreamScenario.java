@@ -78,7 +78,10 @@ public final class InfiniteStreamScenario {
                               .doOnError(
                                   th -> LOGGER.warn("Exception occured on requestStream: " + th)));
         },
-        (state, client) -> client.close());
+        (state, client) -> {
+          client.close();
+          return client.onClose();
+        });
   }
 
   private static Integer rateLimit(BenchmarkSettings settings) {
