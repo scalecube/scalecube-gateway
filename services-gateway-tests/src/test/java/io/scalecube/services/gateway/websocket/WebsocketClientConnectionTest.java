@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 class WebsocketClientConnectionTest {
 
@@ -83,14 +84,11 @@ class WebsocketClientConnectionTest {
             .transport(new GatewayClientTransport(client))
             .router(new StaticAddressRouter(gatewayAddress));
 
-    serviceCall.api(TestService.class).manyNever().subscribe();
-
-    Mono.delay(Duration.ofSeconds(1)).block();
-
-    client.close();
-    client.onClose().block();
-
-    Mono.delay(Duration.ofSeconds(1)).block();
+    StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
+        .thenAwait(Duration.ofSeconds(1))
+        .then(() -> client.close())
+        .expectErrorMessage("Connection closed")
+        .verify(Duration.ofSeconds(10));
 
     assertEquals(1, onCloseCounter.get());
   }
@@ -99,14 +97,14 @@ class WebsocketClientConnectionTest {
   public interface TestService {
 
     @ServiceMethod("manyNever")
-    Flux<Integer> manyNever();
+    Flux<Long> manyNever();
   }
 
   private class TestServiceImpl implements TestService {
 
     @Override
-    public Flux<Integer> manyNever() {
-      return Flux.<Integer>never().doOnCancel(onCloseCounter::incrementAndGet);
+    public Flux<Long> manyNever() {
+      return Flux.<Long>never().log(">>> ").doOnCancel(onCloseCounter::incrementAndGet);
     }
   }
 }
