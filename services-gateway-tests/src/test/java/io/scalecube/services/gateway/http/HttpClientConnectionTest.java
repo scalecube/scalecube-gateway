@@ -15,6 +15,7 @@ import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.gateway.transport.http.HttpGatewayClient;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -84,10 +85,10 @@ class HttpClientConnectionTest {
             .transport(new GatewayClientTransport(client))
             .router(new StaticAddressRouter(gatewayAddress));
 
-    StepVerifier.create(serviceCall.api(TestService.class).oneNever().log("<<< "))
+    StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
         .thenAwait(Duration.ofSeconds(1))
         .then(() -> client.close())
-        .expectErrorMessage("Connection closed")
+        .expectError(IOException.class)
         .verify(Duration.ofSeconds(10));
 
     assertEquals(1, onCloseCounter.get());
@@ -96,14 +97,14 @@ class HttpClientConnectionTest {
   @Service
   public interface TestService {
 
-    @ServiceMethod
-    Mono<Long> oneNever();
+    @ServiceMethod("oneNever")
+    Mono<Long> oneNever(String name);
   }
 
   private class TestServiceImpl implements TestService {
 
     @Override
-    public Mono<Long> oneNever() {
+    public Mono<Long> oneNever(String name) {
       return Mono.<Long>never().log(">>> ").doOnCancel(onCloseCounter::incrementAndGet);
     }
   }
