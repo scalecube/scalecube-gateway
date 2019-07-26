@@ -80,7 +80,7 @@ public final class HttpGatewayClient implements GatewayClient {
 
   @Override
   public Mono<Void> close() {
-    return Mono.<Void>fromRunnable(loopResources::disposeLater)
+    return Mono.defer(loopResources::disposeLater)
         .doOnTerminate(() -> LOGGER.info("Closed HttpGatewayClient resources"));
   }
 

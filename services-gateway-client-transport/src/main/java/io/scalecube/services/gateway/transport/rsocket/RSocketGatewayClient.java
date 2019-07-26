@@ -97,7 +97,7 @@ public final class RSocketGatewayClient implements GatewayClient {
 
   @Override
   public Mono<Void> close() {
-    return Mono.<Void>fromRunnable(loopResources::disposeLater)
+    return Mono.defer(loopResources::disposeLater)
         .doOnTerminate(() -> LOGGER.info("Closed RSocketGatewayClient resources"));
   }
 
