@@ -1,5 +1,6 @@
 package io.scalecube.services.gateway.websocket;
 
+import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.net.Address;
@@ -8,6 +9,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.gateway.TestUtils;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.GatewayClientTransport;
@@ -91,6 +93,7 @@ class WebsocketClientConnectionTest {
         .expectErrorMessage("Connection closed")
         .verify(Duration.ofSeconds(10));
 
+    TestUtils.await(() -> onCloseCounter.get() == 1).block(TIMEOUT);
     assertEquals(1, onCloseCounter.get());
   }
 
