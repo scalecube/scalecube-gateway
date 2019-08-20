@@ -52,8 +52,7 @@ public final class HttpGatewayClient implements GatewayClient {
         .then(doClose())
         .doFinally(s -> onClose.onComplete())
         .doOnTerminate(() -> LOGGER.info("Closed HttpGatewayClient resources"))
-        .subscribe(
-            null, ex -> LOGGER.warn("Exception occurred on HttpGatewayClient close: " + ex));
+        .subscribe(null, ex -> LOGGER.warn("Exception occurred on HttpGatewayClient close: " + ex));
   }
 
   @Override
@@ -62,18 +61,13 @@ public final class HttpGatewayClient implements GatewayClient {
         () -> {
           ByteBuf byteBuf = codec.encode(request);
           return httpClient
+              .headers(headers -> request.headers().forEach(headers::set))
               .post()
               .uri(request.qualifier())
-              .send(
-                  (httpRequest, out) -> {
-                    LOGGER.debug("Sending request {}", request);
-                    // prepare request headers
-                    request.headers().forEach(httpRequest::header);
-                    return out.sendObject(byteBuf).then();
-                  })
+              .send(Mono.just(byteBuf))
               .responseSingle(
-                  (httpResponse, bbMono) ->
-                      bbMono.map(ByteBuf::retain).map(content -> toMessage(httpResponse, content)));
+                  (response, bbMono) ->
+                      bbMono.map(ByteBuf::retain).map(content -> toMessage(response, content)));
         });
   }
 
