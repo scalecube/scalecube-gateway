@@ -87,13 +87,11 @@ public class HttpGatewayAcceptor
         .flatMap(
             response -> {
               enrichResponse(httpResponse, response);
-              return Mono.defer(
-                  () ->
-                      response.isError() // check error
-                          ? error(httpResponse, response)
-                          : response.hasData() // check data
-                              ? ok(httpResponse, response)
-                              : noContent(httpResponse));
+              return response.isError() // check error
+                  ? error(httpResponse, response)
+                  : response.hasData() // check data
+                      ? ok(httpResponse, response)
+                      : noContent(httpResponse);
             });
   }
 
@@ -108,9 +106,10 @@ public class HttpGatewayAcceptor
     ByteBuf content =
         response.hasData(ErrorData.class)
             ? encodeData(response.data(), response.dataFormatOrDefault())
-            : ((ByteBuf) response.data()).retain();
+            : ((ByteBuf) response.data());
 
-    return httpResponse.status(status).sendObject(content).then();
+    // send with publisher (defer buffer cleanup to netty)
+    return httpResponse.status(status).send(Mono.just(content)).then();
   }
 
   private Mono<Void> noContent(HttpServerResponse httpResponse) {
@@ -120,10 +119,11 @@ public class HttpGatewayAcceptor
   private Mono<Void> ok(HttpServerResponse httpResponse, ServiceMessage response) {
     ByteBuf content =
         response.hasData(ByteBuf.class)
-            ? ((ByteBuf) response.data()).retain()
+            ? ((ByteBuf) response.data())
             : encodeData(response.data(), response.dataFormatOrDefault());
 
-    return httpResponse.status(OK).sendObject(content).then();
+    // send with publisher (defer buffer cleanup to netty)
+    return httpResponse.status(OK).send(Mono.just(content)).then();
   }
 
   private ByteBuf encodeData(Object data, String dataFormat) {
