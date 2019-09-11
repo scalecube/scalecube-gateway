@@ -84,11 +84,13 @@ public final class WebsocketSession {
    */
   public Mono<Void> send(GatewayMessage response) {
     return Mono.defer(
-        () ->
-            outbound
-                .sendObject(Mono.just(response).map(codec::encode).map(TextWebSocketFrame::new))
-                .then()
-                .doOnSuccessOrError((avoid, th) -> logSend(response, th)));
+        () -> {
+          // send with publisher (defer buffer cleanup to netty)
+          return outbound
+              .sendObject(Mono.just(response).map(codec::encode).map(TextWebSocketFrame::new))
+              .then()
+              .doOnSuccessOrError((avoid, th) -> logSend(response, th));
+        });
   }
 
   private void logSend(GatewayMessage response, Throwable th) {

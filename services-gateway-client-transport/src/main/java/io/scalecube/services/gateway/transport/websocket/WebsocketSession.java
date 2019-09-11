@@ -65,7 +65,7 @@ final class WebsocketSession {
                 Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 return;
               }
-              long sid = Long.valueOf(msg.header(STREAM_ID));
+              long sid = Long.parseLong(msg.header(STREAM_ID));
               // processor?
               UnicastProcessor<ServiceMessage> processor = inboundProcessors.get(sid);
               if (processor == null) {
@@ -94,6 +94,7 @@ final class WebsocketSession {
           inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
           LOGGER.debug("Put sid={}, session={}", sid, id);
 
+          // send with publisher (defer buffer cleanup to netty)
           return outbound
               .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new))
               .then()
@@ -107,14 +108,15 @@ final class WebsocketSession {
         });
   }
 
-  public Mono<Void> send(Flux<ByteBuf> byteBuf, long sid) {
+  public Mono<Void> send(Flux<ByteBuf> byteBufFlux, long sid) {
     return Mono.defer(
         () -> {
           inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
           LOGGER.debug("Put sid={}, session={}", sid, id);
 
+          // send with publisher (defer buffer cleanup to netty)
           return outbound
-              .sendObject(byteBuf.map(TextWebSocketFrame::new))
+              .sendObject(byteBufFlux.map(TextWebSocketFrame::new))
               .then()
               .doOnError(
                   th -> {
