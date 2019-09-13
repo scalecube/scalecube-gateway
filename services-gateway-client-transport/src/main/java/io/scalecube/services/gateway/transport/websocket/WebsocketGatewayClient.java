@@ -10,10 +10,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
+import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -75,20 +75,18 @@ public final class WebsocketGatewayClient implements GatewayClient {
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     return Mono.defer(
         () -> {
-          long sid = getSid(request);
+          long sid = sidCounter.incrementAndGet();
           ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMap(
-                  session ->
-                      session
-                          .send(byteBuf, sid)
-                          .then(
-                              Mono.<ServiceMessage>create(
-                                  sink ->
-                                      session
-                                          .receive(sid)
-                                          .subscribe(sink::success, sink::error, sink::success)))
-                          .doOnCancel(() -> handleCancel(sid, session)));
+                  session -> {
+                    MonoProcessor<ServiceMessage> monoProcessor = session.newMonoProcessor(sid);
+                    return session
+                        .send(byteBuf, sid)
+                        .then(monoProcessor)
+                        .doOnCancel(() -> handleCancel(sid, session))
+                        .doOnTerminate(() -> session.removeProcessor(sid));
+                  });
         });
   }
 
@@ -96,20 +94,18 @@ public final class WebsocketGatewayClient implements GatewayClient {
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
     return Flux.defer(
         () -> {
-          long sid = getSid(request);
+          long sid = sidCounter.incrementAndGet();
           ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMapMany(
-                  session ->
-                      session
-                          .send(byteBuf, sid)
-                          .thenMany(
-                              Flux.<ServiceMessage>create(
-                                  sink ->
-                                      session
-                                          .receive(sid)
-                                          .subscribe(sink::next, sink::error, sink::complete)))
-                          .doOnCancel(() -> handleCancel(sid, session)));
+                  session -> {
+                    UnicastProcessor<ServiceMessage> processor = session.newUnicastProcessor(sid);
+                    return session
+                        .send(byteBuf, sid)
+                        .thenMany(processor)
+                        .doOnCancel(() -> handleCancel(sid, session))
+                        .doOnTerminate(() -> session.removeProcessor(sid));
+                  });
         });
   }
 
@@ -178,14 +174,14 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .cache();
   }
 
-  private Disposable handleCancel(long sid, WebsocketSession session) {
+  private void handleCancel(long sid, WebsocketSession session) {
     ByteBuf byteBuf =
         codec.encode(
             ServiceMessage.builder()
                 .header(STREAM_ID, sid)
                 .header(SIGNAL, Signal.CANCEL.codeAsString())
                 .build());
-    return session
+    session
         .send(byteBuf, sid)
         .subscribe(
             null,
@@ -196,10 +192,5 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   private ByteBuf encodeRequest(ServiceMessage message, long sid) {
     return codec.encode(ServiceMessage.from(message).header(STREAM_ID, sid).build());
-  }
-
-  private long getSid(ServiceMessage request) {
-    String sid = request.header(STREAM_ID);
-    return sid == null ? sidCounter.incrementAndGet() : Long.parseLong(sid);
   }
 }

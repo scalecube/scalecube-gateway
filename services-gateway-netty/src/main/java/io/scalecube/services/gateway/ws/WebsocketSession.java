@@ -25,7 +25,6 @@ public final class WebsocketSession {
 
   private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 
-  private final AtomicLong sidCounter = new AtomicLong();
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
 
   private final WebsocketInbound inbound;
@@ -156,12 +155,8 @@ public final class WebsocketSession {
     return result;
   }
 
-  public long sidCounter() {
-    return sidCounter.get();
-  }
-
-  public long incrementSidCounter() {
-    return sidCounter.incrementAndGet();
+  public boolean containsSid(Long streamId) {
+    return streamId != null && subscriptions.containsKey(streamId);
   }
 
   /**

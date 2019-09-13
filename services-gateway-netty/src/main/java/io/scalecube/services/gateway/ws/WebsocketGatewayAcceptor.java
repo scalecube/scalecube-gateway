@@ -98,7 +98,7 @@ public class WebsocketGatewayAcceptor
                     .doOnNext(message -> metrics.markRequest())
                     .map(this::checkSid)
                     .flatMap(msg -> handleCancel(session, msg))
-                    .map(msg -> checkSidNonce(session, (GatewayMessage) msg))
+                    .map(msg -> validateSid(session, (GatewayMessage) msg))
                     .map(this::checkQualifier)
                     .map(msg -> onMessage.apply(session, msg))
                     .subscribe(
@@ -209,14 +209,11 @@ public class WebsocketGatewayAcceptor
     return msg;
   }
 
-  private GatewayMessage checkSidNonce(WebsocketSession session, GatewayMessage msg) {
-    long sid = msg.streamId();
-    long currentSid = session.sidCounter();
-    if (sid != currentSid + 1) {
+  private GatewayMessage validateSid(WebsocketSession session, GatewayMessage msg) {
+    if (session.containsSid(msg.streamId())) {
       throw WebsocketRequestException.newBadRequest(
-          "Invalid sid=" + sid + " in request, next valid sid: " + (currentSid + 1), msg);
+          "sid=" + msg.streamId() + " is already registered", msg);
     } else {
-      session.incrementSidCounter();
       return msg;
     }
   }
