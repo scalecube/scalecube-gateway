@@ -98,7 +98,7 @@ public class WebsocketGatewayAcceptor
                     .doOnNext(message -> metrics.markRequest())
                     .map(this::checkSid)
                     .flatMap(msg -> handleCancel(session, msg))
-                    .map(msg -> checkSidNonce(session, (GatewayMessage) msg))
+                    .map(msg -> validateSid(session, (GatewayMessage) msg))
                     .map(this::checkQualifier)
                     .map(msg -> onMessage.apply(session, msg))
                     .subscribe(
@@ -107,7 +107,7 @@ public class WebsocketGatewayAcceptor
                           if (th instanceof WebsocketRequestException) {
                             WebsocketRequestException ex = (WebsocketRequestException) th;
                             ex.releaseRequest(); // release
-                            handleError(session, ex.request(), th);
+                            handleError(session, ex.request(), ex.getCause());
                           } else {
                             LOGGER.error(
                                 "Exception occurred on processing request, session={}",
@@ -209,7 +209,7 @@ public class WebsocketGatewayAcceptor
     return msg;
   }
 
-  private GatewayMessage checkSidNonce(WebsocketSession session, GatewayMessage msg) {
+  private GatewayMessage validateSid(WebsocketSession session, GatewayMessage msg) {
     if (session.containsSid(msg.streamId())) {
       throw WebsocketRequestException.newBadRequest(
           "sid=" + msg.streamId() + " is already registered", msg);
