@@ -1,14 +1,22 @@
 package io.scalecube.services.gateway.websocket;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -104,6 +112,35 @@ class WebsocketLocalGatewayTest {
             throwable ->
                 "Expected service request data of type: class java.lang.String, but received: null"
                     .equals(throwable.getMessage()))
+        .verify(TIMEOUT);
+  }
+
+  @Test
+  void shouldReturnErrorOnInvalidSid() {
+    ServiceMessage request =
+        ServiceMessage.builder()
+            .qualifier(Qualifier.asString(GreetingService.NAMESPACE, "one"))
+            .header("sid", "1")
+            .data("data")
+            .build();
+
+    StepVerifier.create(extension.client().requestOne(request, String.class))
+        .assertNext(
+            response -> {
+              assertEquals(1, Integer.parseInt(response.header("sid")));
+              assertEquals("Echo:data", response.data());
+            })
+        .expectComplete()
+        .verify(TIMEOUT);
+
+    StepVerifier.create(extension.client().requestOne(request, String.class))
+        .expectErrorSatisfies(
+            throwable -> {
+              assertTrue(throwable instanceof BadRequestException, "" + throwable);
+              assertThat(
+                  throwable.getMessage(),
+                  Matchers.containsString("Invalid sid=1 in request, next valid sid: 2"));
+            })
         .verify(TIMEOUT);
   }
 }

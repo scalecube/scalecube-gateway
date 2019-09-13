@@ -75,7 +75,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     return Mono.defer(
         () -> {
-          long sid = sidCounter.incrementAndGet();
+          long sid = getSid(request);
           ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMap(
@@ -96,7 +96,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
     return Flux.defer(
         () -> {
-          long sid = sidCounter.incrementAndGet();
+          long sid = getSid(request);
           ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMapMany(
@@ -196,5 +196,10 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   private ByteBuf encodeRequest(ServiceMessage message, long sid) {
     return codec.encode(ServiceMessage.from(message).header(STREAM_ID, sid).build());
+  }
+
+  private long getSid(ServiceMessage request) {
+    String sid = request.header(STREAM_ID);
+    return sid == null ? sidCounter.incrementAndGet() : Long.parseLong(sid);
   }
 }

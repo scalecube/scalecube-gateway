@@ -107,7 +107,7 @@ public class WebsocketGatewayAcceptor
                           if (th instanceof WebsocketRequestException) {
                             WebsocketRequestException ex = (WebsocketRequestException) th;
                             ex.releaseRequest(); // release
-                            handleError(session, ex.request(), th);
+                            handleError(session, ex.request(), ex.getCause());
                           } else {
                             LOGGER.error(
                                 "Exception occurred on processing request, session={}",
@@ -210,10 +210,13 @@ public class WebsocketGatewayAcceptor
   }
 
   private GatewayMessage checkSidNonce(WebsocketSession session, GatewayMessage msg) {
-    if (session.containsSid(msg.streamId())) {
+    long sid = msg.streamId();
+    long currentSid = session.sidCounter();
+    if (sid != currentSid + 1) {
       throw WebsocketRequestException.newBadRequest(
-          "sid=" + msg.streamId() + " is already registered", msg);
+          "Invalid sid=" + sid + " in request, next valid sid: " + (currentSid + 1), msg);
     } else {
+      session.incrementSidCounter();
       return msg;
     }
   }
