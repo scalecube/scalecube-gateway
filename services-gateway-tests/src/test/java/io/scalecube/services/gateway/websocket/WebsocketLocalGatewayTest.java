@@ -143,4 +143,27 @@ class WebsocketLocalGatewayTest {
             })
         .verify(TIMEOUT);
   }
+
+  @Test
+  void shouldCancelSuccessullyWhenCalledRepeatedly() {
+    IntStream.range(1, 100)
+        .forEach(
+            i -> {
+              ServiceMessage request =
+                  ServiceMessage.builder()
+                      .qualifier(Qualifier.asString(GreetingService.NAMESPACE, "one"))
+                      .header("sid", "" + i)
+                      .data("data")
+                      .build();
+
+              StepVerifier.create(extension.client().requestOne(request, String.class))
+                  .assertNext(
+                      response -> {
+                        assertEquals(i, Integer.parseInt(response.header("sid")));
+                        assertEquals("Echo:data", response.data());
+                      })
+                  .thenCancel()
+                  .verify(TIMEOUT);
+            });
+  }
 }
