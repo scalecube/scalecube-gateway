@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
-import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -79,14 +78,12 @@ public final class WebsocketGatewayClient implements GatewayClient {
           ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMap(
-                  session -> {
-                    MonoProcessor<ServiceMessage> monoProcessor = session.newMonoProcessor(sid);
-                    return session
-                        .send(byteBuf, sid)
-                        .then(monoProcessor)
-                        .doOnCancel(() -> handleCancel(sid, session))
-                        .doOnTerminate(() -> session.removeProcessor(sid));
-                  });
+                  session ->
+                      session
+                          .send(byteBuf, sid)
+                          .then(session.newMonoProcessor(sid))
+                          .doOnCancel(() -> handleCancel(sid, session))
+                          .doOnTerminate(() -> session.removeProcessor(sid)));
         });
   }
 
@@ -98,14 +95,12 @@ public final class WebsocketGatewayClient implements GatewayClient {
           ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMapMany(
-                  session -> {
-                    UnicastProcessor<ServiceMessage> processor = session.newUnicastProcessor(sid);
-                    return session
-                        .send(byteBuf, sid)
-                        .thenMany(processor)
-                        .doOnCancel(() -> handleCancel(sid, session))
-                        .doOnTerminate(() -> session.removeProcessor(sid));
-                  });
+                  session ->
+                      session
+                          .send(byteBuf, sid)
+                          .thenMany(session.newUnicastProcessor(sid))
+                          .doOnCancel(() -> handleCancel(sid, session))
+                          .doOnTerminate(() -> session.removeProcessor(sid)));
         });
   }
 

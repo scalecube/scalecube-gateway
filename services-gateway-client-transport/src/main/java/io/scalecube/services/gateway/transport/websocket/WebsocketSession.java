@@ -52,31 +52,29 @@ final class WebsocketSession {
         .retain()
         .subscribe(
             byteBuf -> {
-              // decode msg
-              ServiceMessage msg;
+              // decode message
+              ServiceMessage message;
               try {
-                msg = codec.decode(byteBuf);
+                message = codec.decode(byteBuf);
               } catch (Exception ex) {
                 LOGGER.error("Response decoder failed: " + ex);
                 return;
               }
-              // ignore msgs w/o sid
-              if (!msg.headers().containsKey(STREAM_ID)) {
-                LOGGER.error("Ignore response: {} with null sid, session={}", msg, id);
-                Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
+              // ignore messages w/o sid
+              if (!message.headers().containsKey(STREAM_ID)) {
+                LOGGER.error("Ignore response: {} with null sid, session={}", message, id);
+                Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 return;
               }
-              long sid = Long.parseLong(msg.header(STREAM_ID));
               // processor?
+              long sid = Long.parseLong(message.header(STREAM_ID));
               Processor<ServiceMessage, ServiceMessage> processor = inboundProcessors.get(sid);
               if (processor == null) {
-                LOGGER.error(
-                    "Can't find processor by sid={} for response: {}, session={}", sid, msg, id);
-                Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
+                Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 return;
               }
-              // handle response msg
-              handleResponse(msg, processor::onNext, processor::onError, processor::onComplete);
+              // handle response message
+              handleResponse(message, processor::onNext, processor::onError, processor::onComplete);
             });
 
     connection.onDispose(
@@ -170,10 +168,10 @@ final class WebsocketSession {
         if (signal == Signal.ERROR) {
           // decode error data to retrieve real error cause
           ServiceMessage errorMessage = codec.decodeData(response, ErrorData.class);
-          Throwable e = DefaultErrorMapper.INSTANCE.toError(errorMessage);
+          Throwable error = DefaultErrorMapper.INSTANCE.toError(errorMessage);
           String sid = response.header(STREAM_ID);
-          LOGGER.error("Received error response: sid={}, error={}", sid, e);
-          onError.accept(e);
+          LOGGER.error("Received error response: sid={}, error={}", sid, error);
+          onError.accept(error);
         }
       } else {
         // handle normal response
