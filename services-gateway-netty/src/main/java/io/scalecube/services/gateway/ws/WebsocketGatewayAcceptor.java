@@ -223,11 +223,11 @@ public class WebsocketGatewayAcceptor
       return Mono.just(msg);
     }
 
-    if (!session.dispose(msg.streamId())) {
-      throw WebsocketRequestException.newBadRequest("Failed CANCEL request", msg);
-    }
     // release data if CANCEL contains data (it shouldn't normally), just in case
     Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
+
+    // dispose by sid (if anything to dispose)
+    session.dispose(msg.streamId());
 
     GatewayMessage cancelAck =
         GatewayMessage.builder().streamId(msg.streamId()).signal(Signal.CANCEL).build();
