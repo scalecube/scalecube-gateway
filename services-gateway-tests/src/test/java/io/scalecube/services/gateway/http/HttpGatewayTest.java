@@ -104,4 +104,13 @@ class HttpGatewayTest {
         .expectComplete()
         .verify(TIMEOUT);
   }
+
+  @Test
+  void shouldReturnNoEventOnNeverService() {
+    StepVerifier.create(service.neverOne("hi"))
+        .expectSubscription()
+        .expectNoEvent(Duration.ofSeconds(1))
+        .thenCancel()
+        .verify();
+  }
 }
