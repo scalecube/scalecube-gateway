@@ -9,6 +9,7 @@ import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
+import java.util.StringJoiner;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import reactor.core.publisher.Flux;
@@ -86,5 +87,14 @@ public class WebsocketGateway extends GatewayTemplate {
   public Mono<Void> stop() {
     return Flux.concatDelayError(shutdownServer(server), shutdownLoopResources(loopResources))
         .then();
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", WebsocketGateway.class.getSimpleName() + "[", "]")
+        .add("server=" + server)
+        .add("loopResources=" + loopResources)
+        .add("options=" + options)
+        .toString();
   }
 }
