@@ -13,6 +13,7 @@ import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
+import java.util.StringJoiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -81,5 +82,14 @@ public class RSocketGateway extends GatewayTemplate {
           server.dispose();
           return server.onClose().doOnError(e -> LOGGER.warn("Failed to close server: " + e));
         });
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", RSocketGateway.class.getSimpleName() + "[", "]")
+        .add("server=" + server)
+        .add("loopResources=" + loopResources)
+        .add("options=" + options)
+        .toString();
   }
 }
