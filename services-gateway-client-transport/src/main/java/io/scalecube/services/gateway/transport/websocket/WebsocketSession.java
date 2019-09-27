@@ -12,10 +12,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import org.jctools.maps.NonBlockingHashMapLong;
+import org.reactivestreams.Processor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoProcessor;
 import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.Connection;
 import reactor.netty.NettyPipeline.SendOptions;
@@ -35,7 +36,7 @@ final class WebsocketSession {
   private final WebsocketOutbound outbound;
 
   // processor by sid mapping
-  private final Map<Long, UnicastProcessor<ServiceMessage>> inboundProcessors =
+  private final Map<Long, Processor<ServiceMessage, ServiceMessage>> inboundProcessors =
       new NonBlockingHashMapLong<>(1024);
 
   WebsocketSession(GatewayClientCodec<ByteBuf> codec, Connection connection) {
@@ -51,31 +52,29 @@ final class WebsocketSession {
         .retain()
         .subscribe(
             byteBuf -> {
-              // decode msg
-              ServiceMessage msg;
+              // decode message
+              ServiceMessage message;
               try {
-                msg = codec.decode(byteBuf);
+                message = codec.decode(byteBuf);
               } catch (Exception ex) {
                 LOGGER.error("Response decoder failed: " + ex);
                 return;
               }
-              // ignore msgs w/o sid
-              if (!msg.headers().containsKey(STREAM_ID)) {
-                LOGGER.error("Ignore response: {} with null sid, session={}", msg, id);
-                Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
+              // ignore messages w/o sid
+              if (!message.headers().containsKey(STREAM_ID)) {
+                LOGGER.error("Ignore response: {} with null sid, session={}", message, id);
+                Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 return;
               }
-              long sid = Long.parseLong(msg.header(STREAM_ID));
               // processor?
-              UnicastProcessor<ServiceMessage> processor = inboundProcessors.get(sid);
+              long sid = Long.parseLong(message.header(STREAM_ID));
+              Processor<ServiceMessage, ServiceMessage> processor = inboundProcessors.get(sid);
               if (processor == null) {
-                LOGGER.error(
-                    "Can't find processor by sid={} for response: {}, session={}", sid, msg, id);
-                Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
+                Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 return;
               }
-              // handle response msg
-              handleResponse(msg, processor::onNext, processor::onError, processor::onComplete);
+              // handle response message
+              handleResponse(message, processor::onNext, processor::onError, processor::onComplete);
             });
 
     connection.onDispose(
@@ -88,59 +87,47 @@ final class WebsocketSession {
     return id;
   }
 
+  public MonoProcessor<ServiceMessage> newMonoProcessor(long sid) {
+    return (MonoProcessor<ServiceMessage>)
+        inboundProcessors.computeIfAbsent(
+            sid,
+            key -> {
+              LOGGER.debug("Put sid={}, session={}", sid, id);
+              return MonoProcessor.create();
+            });
+  }
+
+  public UnicastProcessor<ServiceMessage> newUnicastProcessor(long sid) {
+    return (UnicastProcessor<ServiceMessage>)
+        inboundProcessors.computeIfAbsent(
+            sid,
+            key -> {
+              LOGGER.debug("Put sid={}, session={}", sid, id);
+              return UnicastProcessor.create();
+            });
+  }
+
+  public void removeProcessor(long sid) {
+    if (inboundProcessors.remove(sid) != null) {
+      LOGGER.debug("Removed sid={}, session={}", sid, id);
+    }
+  }
+
   public Mono<Void> send(ByteBuf byteBuf, long sid) {
     return Mono.defer(
         () -> {
-          inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
-          LOGGER.debug("Put sid={}, session={}", sid, id);
-
           // send with publisher (defer buffer cleanup to netty)
           return outbound
               .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new))
               .then()
               .doOnError(
                   th -> {
-                    UnicastProcessor<ServiceMessage> processor = inboundProcessors.remove(sid);
+                    Processor<ServiceMessage, ServiceMessage> processor =
+                        inboundProcessors.remove(sid);
                     if (processor != null) {
                       processor.onError(th);
                     }
                   });
-        });
-  }
-
-  public Mono<Void> send(Flux<ByteBuf> byteBufFlux, long sid) {
-    return Mono.defer(
-        () -> {
-          inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
-          LOGGER.debug("Put sid={}, session={}", sid, id);
-
-          // send with publisher (defer buffer cleanup to netty)
-          return outbound
-              .sendObject(byteBufFlux.map(TextWebSocketFrame::new))
-              .then()
-              .doOnError(
-                  th -> {
-                    UnicastProcessor<ServiceMessage> processor = inboundProcessors.remove(sid);
-                    if (processor != null) {
-                      processor.onError(th);
-                    }
-                  });
-        });
-  }
-
-  public Flux<ServiceMessage> receive(long sid) {
-    return Flux.defer(
-        () -> {
-          UnicastProcessor<ServiceMessage> processor = inboundProcessors.get(sid);
-          if (processor == null) {
-            LOGGER.error("Can't find processor by sid={}, session={}", sid, id);
-            throw new IllegalStateException("Can't find processor by sid");
-          }
-          return processor.doOnTerminate(
-              () -> {
-                inboundProcessors.remove(sid);
-                LOGGER.debug("Removed sid={}, session={}", sid, id);
-              });
         });
   }
 
@@ -181,10 +168,10 @@ final class WebsocketSession {
         if (signal == Signal.ERROR) {
           // decode error data to retrieve real error cause
           ServiceMessage errorMessage = codec.decodeData(response, ErrorData.class);
-          Throwable e = DefaultErrorMapper.INSTANCE.toError(errorMessage);
+          Throwable error = DefaultErrorMapper.INSTANCE.toError(errorMessage);
           String sid = response.header(STREAM_ID);
-          LOGGER.error("Received error response: sid={}, error={}", sid, e);
-          onError.accept(e);
+          LOGGER.error("Received error response: sid={}, error={}", sid, error);
+          onError.accept(error);
         }
       } else {
         // handle normal response

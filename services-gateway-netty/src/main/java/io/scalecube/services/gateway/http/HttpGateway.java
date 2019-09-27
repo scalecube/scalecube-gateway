@@ -15,6 +15,7 @@ import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.Map.Entry;
+import java.util.StringJoiner;
 import java.util.function.UnaryOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -167,5 +168,16 @@ public class HttpGateway extends GatewayTemplate {
                         }
                       });
             });
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", HttpGateway.class.getSimpleName() + "[", "]")
+        .add("server=" + server)
+        .add("loopResources=" + loopResources)
+        .add("corsEnabled=" + corsEnabled)
+        .add("corsConfigBuilder=" + corsConfigBuilder)
+        .add("options=" + options)
+        .toString();
   }
 }

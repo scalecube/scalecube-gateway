@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
@@ -82,13 +81,9 @@ public final class WebsocketGatewayClient implements GatewayClient {
                   session ->
                       session
                           .send(byteBuf, sid)
-                          .then(
-                              Mono.<ServiceMessage>create(
-                                  sink ->
-                                      session
-                                          .receive(sid)
-                                          .subscribe(sink::success, sink::error, sink::success)))
-                          .doOnCancel(() -> handleCancel(sid, session)));
+                          .then(session.newMonoProcessor(sid))
+                          .doOnCancel(() -> handleCancel(sid, session))
+                          .doOnTerminate(() -> session.removeProcessor(sid)));
         });
   }
 
@@ -103,13 +98,9 @@ public final class WebsocketGatewayClient implements GatewayClient {
                   session ->
                       session
                           .send(byteBuf, sid)
-                          .thenMany(
-                              Flux.<ServiceMessage>create(
-                                  sink ->
-                                      session
-                                          .receive(sid)
-                                          .subscribe(sink::next, sink::error, sink::complete)))
-                          .doOnCancel(() -> handleCancel(sid, session)));
+                          .thenMany(session.newUnicastProcessor(sid))
+                          .doOnCancel(() -> handleCancel(sid, session))
+                          .doOnTerminate(() -> session.removeProcessor(sid)));
         });
   }
 
@@ -178,14 +169,14 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .cache();
   }
 
-  private Disposable handleCancel(long sid, WebsocketSession session) {
+  private void handleCancel(long sid, WebsocketSession session) {
     ByteBuf byteBuf =
         codec.encode(
             ServiceMessage.builder()
                 .header(STREAM_ID, sid)
                 .header(SIGNAL, Signal.CANCEL.codeAsString())
                 .build());
-    return session
+    session
         .send(byteBuf, sid)
         .subscribe(
             null,
