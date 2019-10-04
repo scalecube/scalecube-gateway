@@ -2,6 +2,10 @@ package io.scalecube.services.gateway.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.examples.EmptyGreetingRequest;
+import io.scalecube.services.examples.EmptyGreetingResponse;
 import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
@@ -94,6 +98,27 @@ class HttpLocalGatewayTest {
     StepVerifier.create(service.neverOne("hi"))
         .expectSubscription()
         .expectNoEvent(Duration.ofSeconds(1))
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  void shouldReturnOnEmptyGreeting() {
+    StepVerifier.create(service.emptyGreeting(new EmptyGreetingRequest()))
+        .expectSubscription()
+        .expectNextMatches(resp -> resp instanceof EmptyGreetingResponse)
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  void shouldReturnOnEmptyMessageGreeting() {
+    String qualifier = Qualifier.asString(GreetingService.NAMESPACE, "empty/wrappedPojo");
+    ServiceMessage request =
+        ServiceMessage.builder().qualifier(qualifier).data(new EmptyGreetingRequest()).build();
+    StepVerifier.create(extension.client().requestOne(request, EmptyGreetingResponse.class))
+        .expectSubscription()
+        .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .thenCancel()
         .verify();
   }
