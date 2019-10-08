@@ -83,7 +83,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                           .send(byteBuf, sid)
                           .then(session.newMonoProcessor(sid))
                           .doOnCancel(() -> handleCancel(sid, session))
-                          .doOnTerminate(() -> session.removeProcessor(sid)));
+                          .doFinally(s -> session.removeProcessor(sid)));
         });
   }
 
@@ -100,7 +100,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                           .send(byteBuf, sid)
                           .thenMany(session.newUnicastProcessor(sid))
                           .doOnCancel(() -> handleCancel(sid, session))
-                          .doOnTerminate(() -> session.removeProcessor(sid)));
+                          .doFinally(s -> session.removeProcessor(sid)));
         });
   }
 
