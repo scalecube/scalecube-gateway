@@ -82,8 +82,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                       session
                           .send(byteBuf, sid)
                           .then(session.newMonoProcessor(sid))
-                          .doOnCancel(() -> handleCancel(sid, session))
-                          .doOnTerminate(() -> session.removeProcessor(sid)));
+                          .doOnCancel(() -> handleCancel(sid, session)));
         });
   }
 
@@ -99,8 +98,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                       session
                           .send(byteBuf, sid)
                           .thenMany(session.newUnicastProcessor(sid))
-                          .doOnCancel(() -> handleCancel(sid, session))
-                          .doOnTerminate(() -> session.removeProcessor(sid)));
+                          .doOnCancel(() -> handleCancel(sid, session)));
         });
   }
 
@@ -183,6 +181,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
             th ->
                 LOGGER.error(
                     "Exception on sending CANCEL signal for session={}", session.id(), th));
+
+    session.removeProcessor(sid);
   }
 
   private ByteBuf encodeRequest(ServiceMessage message, long sid) {

@@ -1,5 +1,7 @@
 package io.scalecube.services.gateway.websocket;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.examples.EmptyGreetingRequest;
@@ -152,5 +154,14 @@ class WebsocketGatewayTest {
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .thenCancel()
         .verify();
+  }
+
+  @Test
+  public void testManyStreamBlockFirst() {
+    for (int i = 0; i < 100; i++) {
+      //noinspection ConstantConditions
+      long first = service.manyStream(30L).filter(k -> k != 0).take(1).blockFirst();
+      assertEquals(1, first);
+    }
   }
 }
