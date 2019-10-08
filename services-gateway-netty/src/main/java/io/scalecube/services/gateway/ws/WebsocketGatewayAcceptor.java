@@ -1,5 +1,6 @@
 package io.scalecube.services.gateway.ws;
 
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
@@ -26,6 +28,15 @@ public class WebsocketGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayAcceptor.class);
+
+  static {
+    Hooks.onNextDropped(
+        obj -> {
+          if (obj instanceof ByteBufPayload) {
+            ReferenceCountUtil.safestRelease(obj);
+          }
+        });
+  }
 
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;

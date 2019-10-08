@@ -6,11 +6,13 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.netty.http.client.HttpClient;
@@ -19,6 +21,15 @@ import reactor.netty.resources.LoopResources;
 public final class WebsocketGatewayClient implements GatewayClient {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketClientTransport.class);
+
+  static {
+    Hooks.onNextDropped(
+        obj -> {
+          if (obj instanceof ServiceMessage) {
+            ReferenceCountUtil.safestRelease(((ServiceMessage) obj).data());
+          }
+        });
+  }
 
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
@@ -82,7 +93,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
                       session
                           .send(byteBuf, sid)
                           .then(session.newMonoProcessor(sid))
-                          .doOnCancel(() -> handleCancel(sid, session)));
+                          .doOnCancel(() -> handleCancel(sid, session))
+                          .doFinally(s -> session.removeProcessor(sid)));
         });
   }
 
@@ -98,7 +110,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
                       session
                           .send(byteBuf, sid)
                           .thenMany(session.newUnicastProcessor(sid))
-                          .doOnCancel(() -> handleCancel(sid, session)));
+                          .doOnCancel(() -> handleCancel(sid, session))
+                          .doFinally(s -> session.removeProcessor(sid)));
         });
   }
 
@@ -181,8 +194,6 @@ public final class WebsocketGatewayClient implements GatewayClient {
             th ->
                 LOGGER.error(
                     "Exception on sending CANCEL signal for session={}", session.id(), th));
-
-    session.removeProcessor(sid);
   }
 
   private ByteBuf encodeRequest(ServiceMessage message, long sid) {
