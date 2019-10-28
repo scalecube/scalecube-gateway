@@ -161,7 +161,10 @@ public final class RSocketGatewayClient implements GatewayClient {
         .doOnError(
             ex -> {
               LOGGER.warn(
-                  "Failed to connect on {}:{}, cause: {}", settings.host(), settings.port(), ex);
+                  "Failed to connect on {}:{}, cause: {}",
+                  settings.host(),
+                  settings.port(),
+                  ex.toString());
               rSocketMonoUpdater.getAndSet(this, null); // clear reference
             })
         .cache();

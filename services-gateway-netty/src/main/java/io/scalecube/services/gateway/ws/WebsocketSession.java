@@ -180,9 +180,9 @@ public final class WebsocketSession {
 
   private void clearSubscriptions() {
     if (subscriptions.size() > 1) {
-      LOGGER.info("Clear all {} subscriptions on session={}", subscriptions.size(), id);
+      LOGGER.debug("Clear all {} subscriptions on session={}", subscriptions.size(), id);
     } else if (subscriptions.size() == 1) {
-      LOGGER.info("Clear 1 subscription on session={}", id);
+      LOGGER.debug("Clear 1 subscription on session={}", id);
     }
     subscriptions.forEach((sid, disposable) -> disposable.dispose());
     subscriptions.clear();
