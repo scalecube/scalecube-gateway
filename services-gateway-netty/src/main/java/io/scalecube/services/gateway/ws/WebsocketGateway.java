@@ -8,8 +8,6 @@ import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.StringJoiner;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
@@ -17,9 +15,7 @@ import reactor.netty.resources.LoopResources;
 
 public class WebsocketGateway extends GatewayTemplate {
 
-  private BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage;
-  private Consumer<WebsocketSession> onOpen;
-  private Consumer<WebsocketSession> onClose;
+  private final GatewayHandler gatewayHandler;
 
   private DisposableServer server;
   private LoopResources loopResources;
@@ -31,25 +27,18 @@ public class WebsocketGateway extends GatewayTemplate {
    */
   public WebsocketGateway(GatewayOptions options) {
     super(options);
+    this.gatewayHandler = GatewayHandler.DEFAULT_INSTANCE;
   }
 
   /**
    * Constructor.
    *
    * @param options options
-   * @param onMessage onMessage function
-   * @param onOpen opOpen function
-   * @param onClose onCLose function
+   * @param gatewayHandler gateway handler
    */
-  public WebsocketGateway(
-      GatewayOptions options,
-      BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage,
-      Consumer<WebsocketSession> onOpen,
-      Consumer<WebsocketSession> onClose) {
+  public WebsocketGateway(GatewayOptions options, GatewayHandler gatewayHandler) {
     super(options);
-    this.onMessage = onMessage;
-    this.onOpen = onOpen;
-    this.onClose = onClose;
+    this.gatewayHandler = gatewayHandler;
   }
 
   @Override
@@ -59,7 +48,7 @@ public class WebsocketGateway extends GatewayTemplate {
           ServiceCall serviceCall =
               options.call().requestReleaser(ReferenceCountUtil::safestRelease);
           WebsocketGatewayAcceptor acceptor =
-              new WebsocketGatewayAcceptor(serviceCall, gatewayMetrics, onMessage, onOpen, onClose);
+              new WebsocketGatewayAcceptor(serviceCall, gatewayMetrics, gatewayHandler);
 
           loopResources = LoopResources.create("websocket-gateway");
 
