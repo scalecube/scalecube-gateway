@@ -3,11 +3,11 @@ package io.scalecube.services.gateway.ws;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public interface GatewayHandler {
+public interface WebsocketGatewayHandler {
 
-  Logger LOGGER = LoggerFactory.getLogger(GatewayHandler.class);
+  Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayHandler.class);
 
-  GatewayHandler DEFAULT_INSTANCE = new GatewayHandler() {};
+  WebsocketGatewayHandler DEFAULT_INSTANCE = new WebsocketGatewayHandler() {};
 
   /**
    * Message mapper function.

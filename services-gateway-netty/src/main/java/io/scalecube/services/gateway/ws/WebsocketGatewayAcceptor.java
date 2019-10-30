@@ -25,7 +25,7 @@ public class WebsocketGatewayAcceptor
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
-  private final GatewayHandler gatewayHandler;
+  private final WebsocketGatewayHandler gatewayHandler;
 
   /**
    * Constructor for websocket acceptor.
@@ -34,7 +34,7 @@ public class WebsocketGatewayAcceptor
    * @param gatewayHandler gateway handler
    */
   public WebsocketGatewayAcceptor(
-      ServiceCall serviceCall, GatewayMetrics metrics, GatewayHandler gatewayHandler) {
+      ServiceCall serviceCall, GatewayMetrics metrics, WebsocketGatewayHandler gatewayHandler) {
     this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
     this.metrics = Objects.requireNonNull(metrics, "metrics");
     this.gatewayHandler = Objects.requireNonNull(gatewayHandler, "gatewayHandler");

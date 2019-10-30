@@ -15,7 +15,7 @@ import reactor.netty.resources.LoopResources;
 
 public class WebsocketGateway extends GatewayTemplate {
 
-  private final GatewayHandler gatewayHandler;
+  private final WebsocketGatewayHandler gatewayHandler;
 
   private DisposableServer server;
   private LoopResources loopResources;
@@ -27,7 +27,7 @@ public class WebsocketGateway extends GatewayTemplate {
    */
   public WebsocketGateway(GatewayOptions options) {
     super(options);
-    this.gatewayHandler = GatewayHandler.DEFAULT_INSTANCE;
+    this.gatewayHandler = WebsocketGatewayHandler.DEFAULT_INSTANCE;
   }
 
   /**
@@ -36,7 +36,7 @@ public class WebsocketGateway extends GatewayTemplate {
    * @param options options
    * @param gatewayHandler gateway handler
    */
-  public WebsocketGateway(GatewayOptions options, GatewayHandler gatewayHandler) {
+  public WebsocketGateway(GatewayOptions options, WebsocketGatewayHandler gatewayHandler) {
     super(options);
     this.gatewayHandler = gatewayHandler;
   }
