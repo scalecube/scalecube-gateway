@@ -1,10 +1,8 @@
 package io.scalecube.services.gateway.ws;
 
-import io.netty.channel.EventLoopGroup;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
@@ -63,11 +61,7 @@ public class WebsocketGateway extends GatewayTemplate {
           WebsocketGatewayAcceptor acceptor =
               new WebsocketGatewayAcceptor(serviceCall, gatewayMetrics, onMessage, onOpen, onClose);
 
-          if (options.workerPool() != null) {
-            loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
-          } else {
-            loopResources = LoopResources.create("websocket-gateway");
-          }
+          loopResources = LoopResources.create("websocket-gateway");
 
           return prepareHttpServer(loopResources, options.port(), gatewayMetrics)
               .handle(acceptor)
