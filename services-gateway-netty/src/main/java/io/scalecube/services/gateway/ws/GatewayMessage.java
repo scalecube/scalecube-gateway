@@ -119,7 +119,9 @@ public class GatewayMessage {
     private Map<String, String> headers = new HashMap<>(1);
     private Object data;
 
-    Builder() {}
+    Builder() {
+      
+    }
 
     public Builder qualifier(String qualifier) {
       return header(QUALIFIER_FIELD, qualifier);
