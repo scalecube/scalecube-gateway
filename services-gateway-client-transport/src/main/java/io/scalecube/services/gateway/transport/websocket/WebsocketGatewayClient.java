@@ -83,7 +83,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                           .send(byteBuf, sid)
                           .then(session.newMonoProcessor(sid))
                           .doOnCancel(() -> handleCancel(sid, session))
-                          .doOnTerminate(() -> session.removeProcessor(sid)));
+                          .doFinally(s -> session.removeProcessor(sid)));
         });
   }
 
@@ -100,7 +100,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                           .send(byteBuf, sid)
                           .thenMany(session.newUnicastProcessor(sid))
                           .doOnCancel(() -> handleCancel(sid, session))
-                          .doOnTerminate(() -> session.removeProcessor(sid)));
+                          .doFinally(s -> session.removeProcessor(sid)));
         });
   }
 
@@ -157,7 +157,12 @@ public final class WebsocketGatewayClient implements GatewayClient {
                             "Closed {} on {}:{}", session, settings.host(), settings.port());
                       })
                   .subscribe(
-                      null, th -> LOGGER.warn("Exception on closing session={}", session.id(), th));
+                      null,
+                      th ->
+                          LOGGER.warn(
+                              "Exception on closing session={}, cause: {}",
+                              session.id(),
+                              th.toString()));
               return session;
             })
         .doOnError(

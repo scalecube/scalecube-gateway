@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway.http;
 
-import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
@@ -8,7 +7,6 @@ import io.netty.handler.codec.http.cors.CorsHandler;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
@@ -117,11 +115,7 @@ public class HttpGateway extends GatewayTemplate {
               options.call().requestReleaser(ReferenceCountUtil::safestRelease);
           HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(serviceCall, gatewayMetrics);
 
-          if (options.workerPool() != null) {
-            loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
-          } else {
-            loopResources = LoopResources.create("http-gateway");
-          }
+          loopResources = LoopResources.create("http-gateway");
 
           return prepareHttpServer(loopResources, options.port(), null /*metrics*/)
               .handle(acceptor)

@@ -10,7 +10,12 @@
   </Appenders>
 
   <Loggers>
-    <Logger name="io.netty.util.internal" level="error"/>
+    <Logger name="io.netty" level="info"/>
+    <Logger name="reactor.netty" level="info"/>
+    <Logger name="io.scalecube.transport" level="info"/>
+    <Logger name="io.scalecube.cluster" level="info"/>
+    <Logger name="io.scalecube.services" level="info"/>
+    <Logger name="io.scalecube.services.discovery" level="info"/>
 
     <Root level="info">
       <AppenderRef ref="console"/>

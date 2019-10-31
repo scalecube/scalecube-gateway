@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway.rsocket;
 
-import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
@@ -8,7 +7,6 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
@@ -39,11 +37,7 @@ public class RSocketGateway extends GatewayTemplate {
               options.call().requestReleaser(ReferenceCountUtil::safestRelease);
           RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(serviceCall, gatewayMetrics);
 
-          if (options.workerPool() != null) {
-            loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
-          } else {
-            loopResources = LoopResources.create("rsocket-gateway");
-          }
+          loopResources = LoopResources.create("rsocket-gateway");
 
           WebsocketServerTransport rsocketTransport =
               WebsocketServerTransport.create(

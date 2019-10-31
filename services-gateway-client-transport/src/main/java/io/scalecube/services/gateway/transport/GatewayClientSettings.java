@@ -79,7 +79,9 @@ public class GatewayClientSettings {
     private SslProvider sslProvider;
     private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
-    private Builder() {}
+    private Builder() {
+      
+    }
 
     private Builder(GatewayClientSettings originalSettings) {
       this.host = originalSettings.host;

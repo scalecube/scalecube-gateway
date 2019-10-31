@@ -41,7 +41,6 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>config</artifactId>
-      <version>${scalecube-config.version}</version>
     </dependency>
 
     <dependency>

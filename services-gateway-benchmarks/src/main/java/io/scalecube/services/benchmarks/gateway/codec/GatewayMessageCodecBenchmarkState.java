@@ -127,7 +127,9 @@ public class GatewayMessageCodecBenchmarkState
     private String token;
     private String sourceIpAddress;
 
-    PlaceOrderRequest() {}
+    PlaceOrderRequest() {
+      
+    }
 
     @Override
     public String toString() {

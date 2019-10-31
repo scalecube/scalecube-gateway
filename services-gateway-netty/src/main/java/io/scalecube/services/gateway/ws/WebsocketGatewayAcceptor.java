@@ -10,10 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,53 +22,22 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 public class WebsocketGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayAcceptor.class);
-
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
-
-  private BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage =
-      (session, msg) -> msg;
-
-  private Consumer<WebsocketSession> onOpen =
-      session -> {
-        // no-op
-      };
-  private Consumer<WebsocketSession> onClose =
-      session -> {
-        // no-op
-      };
+  private final WebsocketGatewayHandler gatewayHandler;
 
   /**
    * Constructor for websocket acceptor.
    *
    * @param serviceCall service call
-   * @param onMessage onMessage function
-   * @param onOpen onOpen open function
-   * @param onClose onClose function
-   * @param metrics metrics instance
+   * @param gatewayHandler gateway handler
    */
   public WebsocketGatewayAcceptor(
-      ServiceCall serviceCall,
-      GatewayMetrics metrics,
-      BiFunction<WebsocketSession, GatewayMessage, GatewayMessage> onMessage,
-      Consumer<WebsocketSession> onOpen,
-      Consumer<WebsocketSession> onClose) {
+      ServiceCall serviceCall, GatewayMetrics metrics, WebsocketGatewayHandler gatewayHandler) {
     this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
     this.metrics = Objects.requireNonNull(metrics, "metrics");
-
-    if (onMessage != null) {
-      this.onMessage = onMessage;
-    }
-
-    if (onOpen != null) {
-      this.onOpen = onOpen;
-    }
-
-    if (onClose != null) {
-      this.onClose = onClose;
-    }
+    this.gatewayHandler = Objects.requireNonNull(gatewayHandler, "gatewayHandler");
   }
 
   @Override
@@ -82,10 +48,8 @@ public class WebsocketGatewayAcceptor
   }
 
   private Mono<Void> onConnect(WebsocketSession session) {
-    LOGGER.info("Session opened: " + session);
-
     try {
-      onOpen.accept(session);
+      gatewayHandler.onSessionOpen(session);
     } catch (Exception e) {
       return session.close(e.getMessage());
     }
@@ -100,28 +64,12 @@ public class WebsocketGatewayAcceptor
                     .flatMap(msg -> handleCancel(session, msg))
                     .map(msg -> validateSid(session, (GatewayMessage) msg))
                     .map(this::checkQualifier)
-                    .map(msg -> onMessage.apply(session, msg))
+                    .map(msg -> gatewayHandler.mapMessage(session, msg))
                     .subscribe(
-                        request -> handleMessage(session, request),
-                        th -> {
-                          if (th instanceof WebsocketRequestException) {
-                            WebsocketRequestException ex = (WebsocketRequestException) th;
-                            ex.releaseRequest(); // release
-                            handleError(session, ex.request(), ex.getCause());
-                          } else {
-                            LOGGER.error(
-                                "Exception occurred on processing request, session={}",
-                                session.id(),
-                                th);
-                          }
-                        }),
-            th ->
-                LOGGER.error(
-                    "Exception occurred on session.receive(), session={}", session.id(), th));
+                        request -> handleMessage(session, request), th -> handleError(session, th)),
+            th -> gatewayHandler.onError(session, th, null, null));
 
-    return session
-        .onClose(() -> onClose.accept(session))
-        .doOnTerminate(() -> LOGGER.info("Session closed: " + session));
+    return session.onClose(() -> gatewayHandler.onSessionClose(session));
   }
 
   private void handleMessage(WebsocketSession session, GatewayMessage request) {
@@ -145,28 +93,25 @@ public class WebsocketGatewayAcceptor
                         .send(response)
                         .subscribe(
                             avoid -> metrics.markResponse(),
-                            th ->
-                                LOGGER.error(
-                                    "Exception occurred on sending response: "
-                                        + "{} for request: {}, session={}",
-                                    response,
-                                    request,
-                                    session.id(),
-                                    th)),
-                th -> {
-                  // handle error
-                  handleError(session, request, th);
-                },
-                () -> {
-                  // handle complete
-                  handleCompletion(session, sid, receivedError);
-                });
+                            th -> gatewayHandler.onError(session, th, request, response)),
+                th -> handleError(session, request, th),
+                () -> handleCompletion(session, request, receivedError));
 
     session.register(sid, disposable);
   }
 
+  private void handleError(WebsocketSession session, Throwable throwable) {
+    if (throwable instanceof WebsocketRequestException) {
+      WebsocketRequestException ex = (WebsocketRequestException) throwable;
+      ex.releaseRequest(); // release
+      handleError(session, ex.request(), ex.getCause());
+    } else {
+      gatewayHandler.onError(session, throwable, null, null);
+    }
+  }
+
   private void handleError(WebsocketSession session, GatewayMessage req, Throwable th) {
-    LOGGER.error("Exception occurred on request: {}, session={}", req, session.id(), th);
+    gatewayHandler.onError(session, th, req, null);
 
     Builder builder = GatewayMessage.from(DefaultErrorMapper.INSTANCE.toMessage(th));
     Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
@@ -174,31 +119,16 @@ public class WebsocketGatewayAcceptor
 
     session
         .send(response)
-        .subscribe(
-            null,
-            throwable ->
-                LOGGER.error(
-                    "Exception occurred on sending ERROR signal: {}, session={}",
-                    response,
-                    session.id(),
-                    throwable));
+        .subscribe(null, ex -> gatewayHandler.onError(session, ex, req, response));
   }
 
-  private void handleCompletion(WebsocketSession session, Long sid, AtomicBoolean receivedError) {
+  private void handleCompletion(
+      WebsocketSession session, GatewayMessage req, AtomicBoolean receivedError) {
     if (!receivedError.get()) {
       Builder builder = GatewayMessage.builder();
-      Optional.ofNullable(sid).ifPresent(builder::streamId);
+      Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
       GatewayMessage response = builder.signal(Signal.COMPLETE).build();
-      session
-          .send(response)
-          .subscribe(
-              null,
-              throwable ->
-                  LOGGER.error(
-                      "Exception occurred on sending COMPLETE signal: {}, session={}",
-                      response,
-                      session.id(),
-                      throwable));
+      session.send(response).subscribe(null, ex -> gatewayHandler.onError(session, ex, req, null));
     }
   }
 

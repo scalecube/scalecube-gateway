@@ -5,6 +5,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import java.util.Map;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
@@ -180,9 +181,9 @@ public final class WebsocketSession {
 
   private void clearSubscriptions() {
     if (subscriptions.size() > 1) {
-      LOGGER.info("Clear all {} subscriptions on session={}", subscriptions.size(), id);
+      LOGGER.debug("Clear all {} subscriptions on session={}", subscriptions.size(), id);
     } else if (subscriptions.size() == 1) {
-      LOGGER.info("Clear 1 subscription on session={}", id);
+      LOGGER.debug("Clear 1 subscription on session={}", id);
     }
     subscriptions.forEach((sid, disposable) -> disposable.dispose());
     subscriptions.clear();
@@ -190,10 +191,8 @@ public final class WebsocketSession {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("WebsocketSession{");
-    sb.append("id='").append(id).append('\'');
-    sb.append(", contentType='").append(contentType).append('\'');
-    sb.append('}');
-    return sb.toString();
+    return new StringJoiner(", ", WebsocketSession.class.getSimpleName() + "[", "]")
+        .add("id=" + id)
+        .toString();
   }
 }

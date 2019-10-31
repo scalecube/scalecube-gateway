@@ -10,6 +10,7 @@ import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.util.Map;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.function.Consumer;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.reactivestreams.Processor;
@@ -184,9 +185,8 @@ final class WebsocketSession {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("gateway.client.transport.WebsocketSession{");
-    sb.append("id='").append(id).append('\'');
-    sb.append('}');
-    return sb.toString();
+    return new StringJoiner(", ", WebsocketSession.class.getSimpleName() + "[", "]")
+        .add("id=" + id)
+        .toString();
   }
 }
