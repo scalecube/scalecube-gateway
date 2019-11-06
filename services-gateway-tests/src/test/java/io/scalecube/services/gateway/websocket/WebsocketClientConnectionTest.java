@@ -3,6 +3,7 @@ package io.scalecube.services.gateway.websocket;
 import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.netty.buffer.ByteBuf;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
@@ -11,6 +12,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.TestUtils;
 import io.scalecube.services.gateway.transport.GatewayClient;
+import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.GatewayClientTransport;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
@@ -18,6 +20,7 @@ import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -28,6 +31,9 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class WebsocketClientConnectionTest {
+
+  public static final GatewayClientCodec<ByteBuf> CLIENT_CODEC =
+      GatewayClientTransports.WEBSOCKET_CLIENT_CODEC;
 
   private Microservices gateway;
   private Address gatewayAddress;
@@ -66,9 +72,7 @@ class WebsocketClientConnectionTest {
   @AfterEach
   void afterEach() {
     Flux.concat(
-            Mono.justOrEmpty(client)
-                .doOnNext(GatewayClient::close)
-                .flatMap(GatewayClient::onClose),
+            Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
             Mono.justOrEmpty(gateway).map(Microservices::shutdown),
             Mono.justOrEmpty(service).map(Microservices::shutdown))
         .then()
@@ -79,8 +83,7 @@ class WebsocketClientConnectionTest {
   void testCloseServiceStreamAfterLostConnection() {
     client =
         new WebsocketGatewayClient(
-            GatewayClientSettings.builder().address(gatewayAddress).build(),
-            GatewayClientTransports.WEBSOCKET_CLIENT_CODEC);
+            GatewayClientSettings.builder().address(gatewayAddress).build(), CLIENT_CODEC);
 
     ServiceCall serviceCall =
         new ServiceCall()
@@ -90,11 +93,33 @@ class WebsocketClientConnectionTest {
     StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
         .thenAwait(Duration.ofSeconds(1))
         .then(() -> client.close())
-        .expectErrorMessage("Connection closed")
+        .then(() -> client.onClose().block())
+        .expectError(IOException.class)
         .verify(Duration.ofSeconds(10));
 
     TestUtils.await(() -> onCloseCounter.get() == 1).block(TIMEOUT);
     assertEquals(1, onCloseCounter.get());
+  }
+
+  @Test
+  public void testCallRepeatedlyByInvalidAddress() {
+    Address invalidAddress = Address.create("localhost", 5050);
+
+    client =
+        new WebsocketGatewayClient(
+            GatewayClientSettings.builder().address(invalidAddress).build(), CLIENT_CODEC);
+
+    ServiceCall serviceCall =
+        new ServiceCall()
+            .transport(new GatewayClientTransport(client))
+            .router(new StaticAddressRouter(invalidAddress));
+
+    for (int i = 0; i < 100; i++) {
+      StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
+          .thenAwait(Duration.ofSeconds(1))
+          .expectError(IOException.class)
+          .verify(Duration.ofSeconds(10));
+    }
   }
 
   @Service
@@ -104,7 +129,7 @@ class WebsocketClientConnectionTest {
     Flux<Long> manyNever();
   }
 
-  private class TestServiceImpl implements TestService {
+  private static class TestServiceImpl implements TestService {
 
     @Override
     public Flux<Long> manyNever() {
