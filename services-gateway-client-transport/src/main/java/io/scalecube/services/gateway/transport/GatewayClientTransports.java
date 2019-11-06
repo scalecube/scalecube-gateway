@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.transport;
 
 import io.netty.buffer.ByteBuf;
 import io.rsocket.Payload;
-import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.transport.http.HttpGatewayClient;
 import io.scalecube.services.gateway.transport.http.HttpGatewayClientCodec;
@@ -23,14 +22,9 @@ public class GatewayClientTransports {
 
   static {
     Hooks.onNextDropped(
-        obj -> {
-          if (obj instanceof ServiceMessage) {
-            ReferenceCountUtil.safestRelease(((ServiceMessage) obj).data());
-          }
-          if (obj instanceof ByteBufPayload) {
-            ReferenceCountUtil.safestRelease(obj);
-          }
-        });
+        obj ->
+            ReferenceCountUtil.safestRelease(
+                obj instanceof ServiceMessage ? ((ServiceMessage) obj).data() : obj));
   }
 
   public static final GatewayClientCodec<ByteBuf> WEBSOCKET_CLIENT_CODEC =

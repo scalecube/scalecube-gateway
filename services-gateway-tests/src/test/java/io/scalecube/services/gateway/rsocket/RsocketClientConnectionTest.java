@@ -3,20 +3,24 @@ package io.scalecube.services.gateway.rsocket;
 import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.rsocket.Payload;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.TestUtils;
 import io.scalecube.services.gateway.transport.GatewayClient;
+import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.GatewayClientTransport;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -26,7 +30,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class RsocketClientConnectionTest {
+class RsocketClientConnectionTest extends BaseTest {
+
+  public static final GatewayClientCodec<Payload> CLIENT_CODEC =
+      GatewayClientTransports.RSOCKET_CLIENT_CODEC;
 
   private Microservices gateway;
   private Address gatewayAddress;
@@ -76,8 +83,7 @@ class RsocketClientConnectionTest {
   void testCloseServiceStreamAfterLostConnection() {
     client =
         new RSocketGatewayClient(
-            GatewayClientSettings.builder().address(gatewayAddress).build(),
-            GatewayClientTransports.RSOCKET_CLIENT_CODEC);
+            GatewayClientSettings.builder().address(gatewayAddress).build(), CLIENT_CODEC);
 
     ServiceCall serviceCall =
         new ServiceCall()
@@ -87,11 +93,33 @@ class RsocketClientConnectionTest {
     StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
         .thenAwait(Duration.ofSeconds(1))
         .then(() -> client.close())
-        .expectErrorMessage("Connection closed")
+        .then(() -> client.onClose().block())
+        .expectError(IOException.class)
         .verify(Duration.ofSeconds(10));
 
     TestUtils.await(() -> onCloseCounter.get() == 1).block(TIMEOUT);
     assertEquals(1, onCloseCounter.get());
+  }
+
+  @Test
+  public void testCallRepeatedlyByInvalidAddress() {
+    Address invalidAddress = Address.create("localhost", 5050);
+
+    client =
+        new RSocketGatewayClient(
+            GatewayClientSettings.builder().address(invalidAddress).build(), CLIENT_CODEC);
+
+    ServiceCall serviceCall =
+        new ServiceCall()
+            .transport(new GatewayClientTransport(client))
+            .router(new StaticAddressRouter(invalidAddress));
+
+    for (int i = 0; i < 100; i++) {
+      StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
+          .thenAwait(Duration.ofSeconds(1))
+          .expectError(IOException.class)
+          .verify(Duration.ofSeconds(10));
+    }
   }
 
   @Service
@@ -101,7 +129,7 @@ class RsocketClientConnectionTest {
     Flux<Long> manyNever();
   }
 
-  private class TestServiceImpl implements TestService {
+  private static class TestServiceImpl implements TestService {
 
     @Override
     public Flux<Long> manyNever() {

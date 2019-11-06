@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway;
 
-import io.rsocket.util.ByteBufPayload;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.gateway.ws.GatewayMessage;
 import java.net.InetSocketAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,9 +18,10 @@ public abstract class GatewayTemplate implements Gateway {
   static {
     Hooks.onNextDropped(
         obj -> {
-          if (obj instanceof ByteBufPayload) {
-            ReferenceCountUtil.safestRelease(obj);
-          }
+          ReferenceCountUtil.safestRelease(
+              obj instanceof ServiceMessage ? ((ServiceMessage) obj).data() : obj);
+          ReferenceCountUtil.safestRelease(
+              obj instanceof GatewayMessage ? ((GatewayMessage) obj).data() : obj);
         });
   }
 

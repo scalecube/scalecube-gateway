@@ -11,6 +11,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
+import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
@@ -22,7 +23,7 @@ import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
 
-public class CorsTest {
+public class CorsTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
   public static final int HTTP_PORT = 8999;
