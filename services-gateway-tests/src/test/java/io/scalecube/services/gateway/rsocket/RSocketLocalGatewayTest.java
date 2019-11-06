@@ -9,6 +9,7 @@ import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
+import io.scalecube.services.gateway.BaseTest;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,7 +20,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class RSocketLocalGatewayTest {
+class RSocketLocalGatewayTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 

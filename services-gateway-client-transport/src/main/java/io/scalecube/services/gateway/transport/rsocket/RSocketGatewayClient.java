@@ -58,52 +58,51 @@ public final class RSocketGatewayClient implements GatewayClient {
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     return Mono.defer(
-        () -> {
-          Payload payload = toPayload(request);
-          return getOrConnect()
-              .flatMap(
-                  rsocket ->
-                      rsocket
-                          .requestResponse(payload)
-                          .onErrorMap(
-                              ClosedChannelException.class,
-                              e -> new ConnectionClosedException("Connection closed")))
-              .map(this::toMessage);
-        });
+        () ->
+            getOrConnect()
+                .flatMap(
+                    rsocket ->
+                        rsocket
+                            .requestResponse(toPayload(request))
+                            .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
+                            .onErrorMap(
+                                ClosedChannelException.class,
+                                e -> new ConnectionClosedException("Connection closed")))
+                .map(this::toMessage));
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
     return Flux.defer(
-        () -> {
-          Payload payload = toPayload(request);
-          return getOrConnect()
-              .flatMapMany(
-                  rsocket ->
-                      rsocket
-                          .requestStream(payload)
-                          .onErrorMap(
-                              ClosedChannelException.class,
-                              e -> new ConnectionClosedException("Connection closed")))
-              .map(this::toMessage);
-        });
+        () ->
+            getOrConnect()
+                .flatMapMany(
+                    rsocket ->
+                        rsocket
+                            .requestStream(toPayload(request))
+                            .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
+                            .onErrorMap(
+                                ClosedChannelException.class,
+                                e -> new ConnectionClosedException("Connection closed")))
+                .map(this::toMessage));
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> requests) {
     return Flux.defer(
-        () -> {
-          Flux<Payload> reqPayloads = requests.map(this::toPayload);
-          return getOrConnect()
-              .flatMapMany(
-                  rsocket ->
-                      rsocket
-                          .requestChannel(reqPayloads)
-                          .onErrorMap(
-                              ClosedChannelException.class,
-                              e -> new ConnectionClosedException("Connection closed")))
-              .map(this::toMessage);
-        });
+        () ->
+            getOrConnect()
+                .flatMapMany(
+                    rsocket ->
+                        rsocket
+                            .requestChannel(
+                                requests
+                                    .doOnNext(r -> LOGGER.debug("Sending request {}", r))
+                                    .map(this::toPayload))
+                            .onErrorMap(
+                                ClosedChannelException.class,
+                                e -> new ConnectionClosedException("Connection closed")))
+                .map(this::toMessage));
   }
 
   @Override
@@ -122,11 +121,6 @@ public final class RSocketGatewayClient implements GatewayClient {
 
   public GatewayClientCodec<Payload> getCodec() {
     return codec;
-  }
-
-  private Mono<? extends Void> dispose(RSocket rsocket) {
-    rsocket.dispose();
-    return rsocket.onClose();
   }
 
   private Mono<RSocket> getOrConnect() {
@@ -192,6 +186,8 @@ public final class RSocketGatewayClient implements GatewayClient {
   }
 
   private ServiceMessage toMessage(Payload payload) {
-    return codec.decode(payload);
+    ServiceMessage message = codec.decode(payload);
+    LOGGER.debug("Received response {}", message);
+    return message;
   }
 }

@@ -58,29 +58,35 @@ public final class HttpGatewayClient implements GatewayClient {
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     return Mono.defer(
-        () -> {
-          ByteBuf byteBuf = codec.encode(request);
-          return httpClient
-              .headers(headers -> request.headers().forEach(headers::set))
-              .post()
-              .uri(request.qualifier())
-              .send(Mono.just(byteBuf))
-              .responseSingle(
-                  (response, bbMono) ->
-                      bbMono.map(ByteBuf::retain).map(content -> toMessage(response, content)));
-        });
+        () ->
+            httpClient
+                .post()
+                .uri(request.qualifier())
+                .send(
+                    (httpRequest, out) -> {
+                      LOGGER.debug("Sending request {}", request);
+                      // prepare request headers
+                      request.headers().forEach(httpRequest::header);
+                      // send with publisher (defer buffer cleanup to netty)
+                      return out.sendObject(Mono.just(codec.encode(request))).then();
+                    })
+                .responseSingle(
+                    (httpResponse, bbMono) ->
+                        bbMono
+                            .map(ByteBuf::retain)
+                            .map(content -> toMessage(httpResponse, content))));
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
     return Flux.error(
-        new UnsupportedOperationException("Request stream is not supported by HTTP/1.x"));
+        new UnsupportedOperationException("requestStream is not supported by HTTP/1.x"));
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> requests) {
     return Flux.error(
-        new UnsupportedOperationException("Request channel is not supported by HTTP/1.x"));
+        new UnsupportedOperationException("requestChannel is not supported by HTTP/1.x"));
   }
 
   @Override

@@ -10,6 +10,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.TestUtils;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
@@ -30,7 +31,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class WebsocketClientConnectionTest {
+class WebsocketClientConnectionTest extends BaseTest {
 
   public static final GatewayClientCodec<ByteBuf> CLIENT_CODEC =
       GatewayClientTransports.WEBSOCKET_CLIENT_CODEC;

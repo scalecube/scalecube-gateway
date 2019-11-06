@@ -10,13 +10,14 @@ import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.gateway.BaseTest;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
 
-class HttpLocalGatewayTest {
+class HttpLocalGatewayTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 

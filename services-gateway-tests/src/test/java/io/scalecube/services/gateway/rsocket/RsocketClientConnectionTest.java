@@ -10,6 +10,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.TestUtils;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
@@ -29,7 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class RsocketClientConnectionTest {
+class RsocketClientConnectionTest extends BaseTest {
 
   public static final GatewayClientCodec<Payload> CLIENT_CODEC =
       GatewayClientTransports.RSOCKET_CLIENT_CODEC;

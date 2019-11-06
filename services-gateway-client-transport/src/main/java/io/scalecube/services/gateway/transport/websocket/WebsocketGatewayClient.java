@@ -75,12 +75,12 @@ public final class WebsocketGatewayClient implements GatewayClient {
     return Mono.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
-          ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMap(
                   session ->
                       session
-                          .send(byteBuf, sid)
+                          .send(encodeRequest(request, sid), sid)
+                          .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
                           .then(session.newMonoProcessor(sid))
                           .doOnCancel(() -> handleCancel(sid, session))
                           .doFinally(s -> session.removeProcessor(sid)));
@@ -92,12 +92,12 @@ public final class WebsocketGatewayClient implements GatewayClient {
     return Flux.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
-          ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMapMany(
                   session ->
                       session
-                          .send(byteBuf, sid)
+                          .send(encodeRequest(request, sid), sid)
+                          .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
                           .thenMany(session.newUnicastProcessor(sid))
                           .doOnCancel(() -> handleCancel(sid, session))
                           .doFinally(s -> session.removeProcessor(sid)));
@@ -108,7 +108,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
   public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> requests) {
     return Flux.error(
         new UnsupportedOperationException(
-            "Request channel is not supported by WebSocket transport implementation"));
+            "requestChannel is not supported by WebSocket transport implementation"));
   }
 
   @Override
