@@ -11,6 +11,7 @@ import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.gateway.BaseTest;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
 
-class WebsocketLocalGatewayTest {
+class WebsocketLocalGatewayTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
