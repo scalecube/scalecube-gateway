@@ -5,6 +5,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.ReferenceCountUtil;
+import io.scalecube.services.gateway.SessionEventsHandler;
 import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
 import java.util.Objects;
 import java.util.Optional;
@@ -25,7 +26,7 @@ public class WebsocketGatewayAcceptor
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
-  private final WebsocketGatewayHandler gatewayHandler;
+  private final SessionEventsHandler<String, GatewayMessage> gatewayHandler;
 
   /**
    * Constructor for websocket acceptor.
@@ -34,7 +35,7 @@ public class WebsocketGatewayAcceptor
    * @param gatewayHandler gateway handler
    */
   public WebsocketGatewayAcceptor(
-      ServiceCall serviceCall, GatewayMetrics metrics, WebsocketGatewayHandler gatewayHandler) {
+      ServiceCall serviceCall, GatewayMetrics metrics, SessionEventsHandler<String, GatewayMessage> gatewayHandler) {
     this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
     this.metrics = Objects.requireNonNull(metrics, "metrics");
     this.gatewayHandler = Objects.requireNonNull(gatewayHandler, "gatewayHandler");
@@ -44,12 +45,12 @@ public class WebsocketGatewayAcceptor
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
     return httpResponse.sendWebsocket(
         (WebsocketInbound inbound, WebsocketOutbound outbound) ->
-            onConnect(new WebsocketSession(messageCodec, httpRequest, inbound, outbound)));
+            onConnect(new WebsocketGatewaySession(messageCodec, httpRequest, inbound, outbound)));
   }
 
-  private Mono<Void> onConnect(WebsocketSession session) {
+  private Mono<Void> onConnect(WebsocketGatewaySession session) {
     try {
-      gatewayHandler.onSessionOpen(session);
+      gatewayHandler.onSessionOpen(session.id());
     } catch (Exception e) {
       return session.close(e.getMessage());
     }
@@ -64,15 +65,15 @@ public class WebsocketGatewayAcceptor
                     .flatMap(msg -> handleCancel(session, msg))
                     .map(msg -> validateSid(session, (GatewayMessage) msg))
                     .map(this::checkQualifier)
-                    .map(msg -> gatewayHandler.mapMessage(session, msg))
+                    .map(msg -> gatewayHandler.mapMessage(session.id(), msg))
                     .subscribe(
                         request -> handleMessage(session, request), th -> handleError(session, th)),
-            th -> gatewayHandler.onError(session, th, null, null));
+            th -> gatewayHandler.onError(session.id(), th, null, null));
 
-    return session.onClose(() -> gatewayHandler.onSessionClose(session));
+    return session.onClose(() -> gatewayHandler.onSessionClose(session.id()));
   }
 
-  private void handleMessage(WebsocketSession session, GatewayMessage request) {
+  private void handleMessage(WebsocketGatewaySession session, GatewayMessage request) {
     Long sid = request.streamId();
 
     AtomicBoolean receivedError = new AtomicBoolean(false);
@@ -93,25 +94,25 @@ public class WebsocketGatewayAcceptor
                         .send(response)
                         .subscribe(
                             avoid -> metrics.markResponse(),
-                            th -> gatewayHandler.onError(session, th, request, response)),
+                            th -> gatewayHandler.onError(session.id(), th, request, response)),
                 th -> handleError(session, request, th),
                 () -> handleCompletion(session, request, receivedError));
 
     session.register(sid, disposable);
   }
 
-  private void handleError(WebsocketSession session, Throwable throwable) {
+  private void handleError(WebsocketGatewaySession session, Throwable throwable) {
     if (throwable instanceof WebsocketRequestException) {
       WebsocketRequestException ex = (WebsocketRequestException) throwable;
       ex.releaseRequest(); // release
       handleError(session, ex.request(), ex.getCause());
     } else {
-      gatewayHandler.onError(session, throwable, null, null);
+      gatewayHandler.onError(session.id(), throwable, null, null);
     }
   }
 
-  private void handleError(WebsocketSession session, GatewayMessage req, Throwable th) {
-    gatewayHandler.onError(session, th, req, null);
+  private void handleError(WebsocketGatewaySession session, GatewayMessage req, Throwable th) {
+    gatewayHandler.onError(session.id(), th, req, null);
 
     Builder builder = GatewayMessage.from(DefaultErrorMapper.INSTANCE.toMessage(th));
     Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
@@ -119,16 +120,16 @@ public class WebsocketGatewayAcceptor
 
     session
         .send(response)
-        .subscribe(null, ex -> gatewayHandler.onError(session, ex, req, response));
+        .subscribe(null, ex -> gatewayHandler.onError(session.id(), ex, req, response));
   }
 
   private void handleCompletion(
-      WebsocketSession session, GatewayMessage req, AtomicBoolean receivedError) {
+      WebsocketGatewaySession session, GatewayMessage req, AtomicBoolean receivedError) {
     if (!receivedError.get()) {
       Builder builder = GatewayMessage.builder();
       Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
       GatewayMessage response = builder.signal(Signal.COMPLETE).build();
-      session.send(response).subscribe(null, ex -> gatewayHandler.onError(session, ex, req, null));
+      session.send(response).subscribe(null, ex -> gatewayHandler.onError(session.id(), ex, req, null));
     }
   }
 
@@ -139,7 +140,7 @@ public class WebsocketGatewayAcceptor
     return msg;
   }
 
-  private GatewayMessage validateSid(WebsocketSession session, GatewayMessage msg) {
+  private GatewayMessage validateSid(WebsocketGatewaySession session, GatewayMessage msg) {
     if (session.containsSid(msg.streamId())) {
       throw WebsocketRequestException.newBadRequest(
           "sid=" + msg.streamId() + " is already registered", msg);
@@ -148,7 +149,7 @@ public class WebsocketGatewayAcceptor
     }
   }
 
-  private Mono<?> handleCancel(WebsocketSession session, GatewayMessage msg) {
+  private Mono<?> handleCancel(WebsocketGatewaySession session, GatewayMessage msg) {
     if (!msg.hasSignal(Signal.CANCEL)) {
       return Mono.just(msg);
     }

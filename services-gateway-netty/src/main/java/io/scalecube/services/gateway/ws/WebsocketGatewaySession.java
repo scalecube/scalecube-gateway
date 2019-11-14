@@ -18,9 +18,9 @@ import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
-public final class WebsocketSession {
+public final class WebsocketGatewaySession {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewaySession.class);
 
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
@@ -43,7 +43,7 @@ public final class WebsocketSession {
    * @param inbound - Websocket inbound
    * @param outbound - Websocket outbound
    */
-  public WebsocketSession(
+  public WebsocketGatewaySession(
       GatewayMessageCodec codec,
       HttpServerRequest httpRequest,
       WebsocketInbound inbound,
@@ -53,10 +53,8 @@ public final class WebsocketSession {
 
     String contentType = httpRequest.requestHeaders().get(HttpHeaderNames.CONTENT_TYPE);
     this.contentType = Optional.ofNullable(contentType).orElse(DEFAULT_CONTENT_TYPE);
-
     this.inbound =
         (WebsocketInbound) inbound.withConnection(c -> c.onDispose(this::clearSubscriptions));
-
     this.outbound = (WebsocketOutbound) outbound.options(SendOptions::flushOnEach);
   }
 
@@ -191,7 +189,7 @@ public final class WebsocketSession {
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", WebsocketSession.class.getSimpleName() + "[", "]")
+    return new StringJoiner(", ", WebsocketGatewaySession.class.getSimpleName() + "[", "]")
         .add("id=" + id)
         .toString();
   }
