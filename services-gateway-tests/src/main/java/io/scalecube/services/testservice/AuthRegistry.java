@@ -24,7 +24,7 @@ public class AuthRegistry {
   }
 
   public Optional<String> addAuth(String sessionId, String auth) {
-    if (allowedUsers.contains(sessionId)) {
+    if (allowedUsers.contains(auth)) {
       loggedInUsers.putIfAbsent(sessionId, auth);
       return Optional.of(auth);
     } else {

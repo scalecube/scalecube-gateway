@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.websocket;
+package io.scalecube.services.gateway.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
 
-public class WebsocketLocalGatewayAuthTest {
+public class RSocketLocalGatewayAuthTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
@@ -30,8 +30,8 @@ public class WebsocketLocalGatewayAuthTest {
   private static final AuthRegistry AUTH_REG = new AuthRegistry(ALLOWED_USERS);
 
   @RegisterExtension
-  static WsLocalWithAuthExtension extension =
-      new WsLocalWithAuthExtension(
+  static RsLocalWithAuthExtension extension =
+      new RsLocalWithAuthExtension(
           new SecuredServiceImpl(AUTH_REG), new SecuredAuthenticator(AUTH_REG), AUTH_REG);
 
   private SecuredService clientService;
