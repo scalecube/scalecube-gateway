@@ -73,12 +73,12 @@ public class RSocketLocalGatewayAuthTest {
   @Test
   void testCallSecuredMethod_notAuthenticated() {
     StepVerifier.create(
-        clientService.securedCall("echo", null))
+        clientService.requestOne("echo", null))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
               assertEquals(403, e.errorCode(), "Session is not authenticated");
-              assertTrue(e.getMessage().contains("User not allowed to use this service"));
+              assertTrue(e.getMessage().equals("Session is not authenticated"));
             })
         .verify();
   }
@@ -90,8 +90,7 @@ public class RSocketLocalGatewayAuthTest {
     // call secured service
     final String req = "echo";
     StepVerifier.create(
-        clientService.securedCall(req, null))
-        .expectNextCount(1)
+        clientService.requestOne(req, null))
         .expectNextMatches(resp -> resp.equals(ALLOWED_USER + "@" + req))
         .expectComplete()
         .verify();
@@ -107,7 +106,7 @@ public class RSocketLocalGatewayAuthTest {
     // call secured service
     final String req = "echo";
     StepVerifier.create(
-        clientService.securedCall(req, null))
+        clientService.requestOne(req, null))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -116,4 +115,6 @@ public class RSocketLocalGatewayAuthTest {
             })
         .verify();
   }
+
+
 }

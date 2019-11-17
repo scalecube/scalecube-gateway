@@ -5,6 +5,8 @@ import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import java.util.Optional;
+import java.util.stream.IntStream;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class SecuredServiceImpl implements SecuredService {
@@ -33,8 +35,16 @@ public class SecuredServiceImpl implements SecuredService {
   }
 
   @Override
-  public Mono<String> securedCall(String req, @Principal String auth) {
+  public Mono<String> requestOne(String req, @Principal String auth) {
     System.out.println("User " + auth + " accessed secured call");
     return Mono.just(auth + "@" + req);
+  }
+
+  @Override
+  public Flux<String> requestN(Integer times, String auth) {
+    if (times <= 0) {
+      return Flux.empty();
+    }
+    return Flux.fromStream(IntStream.range(0, times).mapToObj(String::valueOf));
   }
 }

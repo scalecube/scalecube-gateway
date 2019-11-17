@@ -73,12 +73,12 @@ public class WebsocketLocalGatewayAuthTest {
   @Test
   void testCallSecuredMethod_notAuthenticated() {
     StepVerifier.create(
-        clientService.securedCall("echo", null))
+        clientService.requestOne("echo", null))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
               assertEquals(403, e.errorCode(), "Session is not authenticated");
-              assertTrue(e.getMessage().contains("User not allowed to use this service"));
+              assertTrue(e.getMessage().contains("Session is not authenticated"));
             })
         .verify();
   }
@@ -90,8 +90,7 @@ public class WebsocketLocalGatewayAuthTest {
     // call secured service
     final String req = "echo";
     StepVerifier.create(
-        clientService.securedCall(req, null))
-        .expectNextCount(1)
+        clientService.requestOne(req, null).doOnNext(n -> System.out.println(">>>" + n)))
         .expectNextMatches(resp -> resp.equals(ALLOWED_USER + "@" + req))
         .expectComplete()
         .verify();
@@ -107,13 +106,39 @@ public class WebsocketLocalGatewayAuthTest {
     // call secured service
     final String req = "echo";
     StepVerifier.create(
-        clientService.securedCall(req, null))
+        clientService.requestOne(req, null))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
               assertEquals(403, e.errorCode());
               assertEquals("Session is not authenticated", e.getMessage());
             })
+        .verify();
+  }
+
+  @Test
+  void testCallSecuredMethod_notAuthenticatedRequestStream() {
+    StepVerifier.create(
+        clientService.requestN(10, null))
+        .expectErrorSatisfies(
+            th -> {
+              UnauthorizedException e = (UnauthorizedException) th;
+              assertEquals(403, e.errorCode(), "Session is not authenticated");
+              assertTrue(e.getMessage().equals("Session is not authenticated"));
+            })
+        .verify();
+  }
+
+  @Test
+  void testCallSecuredMethod_authenticatedReqStream() {
+    // authenticate session
+    extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class).block(TIMEOUT);
+    // call secured service
+    Integer times = 10;
+    StepVerifier.create(
+        clientService.requestN(times, null))
+        .expectNextCount(10)
+        .expectComplete()
         .verify();
   }
 }

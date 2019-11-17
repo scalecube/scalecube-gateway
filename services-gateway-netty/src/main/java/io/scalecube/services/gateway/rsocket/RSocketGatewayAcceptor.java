@@ -36,7 +36,7 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
     // Prepare message codec together with headers from metainfo
     HeadersCodec headersCodec = HeadersCodec.getInstance(setup.metadataMimeType());
     ServiceMessageCodec messageCodec = new ServiceMessageCodec(headersCodec);
-    final RsocketGatewaySession resultRsocket = new RsocketGatewaySession(serviceCall, metrics,
+    final RSocketGatewaySession resultRsocket = new RSocketGatewaySession(serviceCall, metrics,
         messageCodec, sessionEventsHandler::mapMessage);
 
     try {

@@ -5,6 +5,7 @@ import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import java.util.concurrent.atomic.AtomicLong;
@@ -17,7 +18,7 @@ import reactor.core.publisher.Mono;
  * #fireAndForget(Payload)}, {@link #requestResponse(Payload)}, {@link #requestStream(Payload)} and
  * {@link #requestChannel(org.reactivestreams.Publisher)}.
  */
-public final class RsocketGatewaySession extends AbstractRSocket {
+public final class RSocketGatewaySession extends AbstractRSocket {
 
   private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
   private final ServiceCall serviceCall;
@@ -25,6 +26,7 @@ public final class RsocketGatewaySession extends AbstractRSocket {
   private final ServiceMessageCodec messageCodec;
   private final String sessionId;
   private final BiFunction<String, ServiceMessage, ServiceMessage> messageMapper;
+  private final DefaultErrorMapper ERROR_MAPPER = DefaultErrorMapper.INSTANCE;
 
   /**
    * Constructor for gateway rsocket.
@@ -33,7 +35,7 @@ public final class RsocketGatewaySession extends AbstractRSocket {
    * @param metrics gateway metrics.
    * @param messageCodec message messageCodec.
    */
-  public RsocketGatewaySession(
+  public RSocketGatewaySession(
       ServiceCall serviceCall, GatewayMetrics metrics, ServiceMessageCodec messageCodec,
       BiFunction<String, ServiceMessage, ServiceMessage> messageMapper) {
     this.serviceCall = serviceCall;
@@ -69,6 +71,7 @@ public final class RsocketGatewaySession extends AbstractRSocket {
           metrics.markRequest();
           return serviceCall
               .requestOne(toMessage(payload))
+              .onErrorResume(th -> Mono.just(ERROR_MAPPER.toMessage(th)))
               .map(this::toPayload)
               .doOnNext(payload1 -> metrics.markServiceResponse());
         });
@@ -81,6 +84,7 @@ public final class RsocketGatewaySession extends AbstractRSocket {
           metrics.markRequest();
           return serviceCall
               .requestMany(toMessage(payload))
+              .onErrorResume(th -> Mono.just(ERROR_MAPPER.toMessage(th)))
               .map(this::toPayload)
               .doOnNext(payload1 -> metrics.markServiceResponse());
         });
