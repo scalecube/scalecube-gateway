@@ -9,11 +9,13 @@ import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
+import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.gateway.BaseTest;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import javax.naming.ServiceUnavailableException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -102,7 +104,7 @@ class RSocketLocalGatewayTest extends BaseTest {
     Mono<String> result = service.failingOne(req);
 
     StepVerifier.create(result)
-        .expectErrorMatches(throwable -> throwable instanceof ApplicationErrorException)
+        .expectErrorMatches(throwable -> throwable instanceof InternalServiceException)
         .verify(TIMEOUT);
   }
 

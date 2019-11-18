@@ -1,9 +1,10 @@
 package io.scalecube.services.testservice;
 
+import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.SessionEventsHandler;
 import io.scalecube.services.gateway.ws.GatewayMessage;
 
-public class SecuredWsGwSessionManager implements SessionEventsHandler<String, GatewayMessage> {
+public class SecuredWsGwSessionManager implements SessionEventsHandler<GatewayMessage> {
   private final AuthRegistry authRegistry;
 
   public SecuredWsGwSessionManager(AuthRegistry authRegistry) {
@@ -11,18 +12,18 @@ public class SecuredWsGwSessionManager implements SessionEventsHandler<String, G
   }
 
   @Override
-  public GatewayMessage mapMessage(String session, GatewayMessage req) {
-    return GatewayMessage.from(req).header(AuthRegistry.SESSION_ID, sessionId(session)).build();
+  public GatewayMessage mapMessage(GatewaySession session, GatewayMessage req) {
+    return GatewayMessage.from(req).header(AuthRegistry.SESSION_ID, session).build();
   }
 
   @Override
-  public void onSessionOpen(String s) {
-    System.out.println("Session opened: " + sessionId(s));
+  public void onSessionOpen(GatewaySession s) {
+    System.out.println("Session opened: " + s);
   }
 
   @Override
-  public void onSessionClose(String session) {
+  public void onSessionClose(GatewaySession session) {
     System.out.println("Session removed:" + session);
-    authRegistry.removeAuth(session);
+    authRegistry.removeAuth(session.sessionId());
   }
 }

@@ -10,6 +10,7 @@ import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.gateway.BaseTest;
 import java.time.Duration;
 import java.util.List;
@@ -103,7 +104,7 @@ class RSocketGatewayTest extends BaseTest {
     StepVerifier.create(service.one("hello"))
         .expectErrorMatches(
             throwable ->
-                throwable instanceof ApplicationErrorException
+                throwable instanceof ServiceUnavailableException
                     && throwable.getMessage().startsWith("No reachable member with such service"))
         .verify(TIMEOUT);
   }

@@ -28,8 +28,9 @@ public class GatewayHandlerTest {
   void testGatewayHandlers() {
 
     // Given:
-    TestHandler rsHandler = new TestHandler();
-    TestHandler wsHandler = new TestHandler();
+    // Start service with 2 gateways and create clients
+    TestSessionEventHandler rsHandler = new TestSessionEventHandler();
+    TestSessionEventHandler wsHandler = new TestSessionEventHandler();
     Function<GatewayOptions, Gateway> rsGw =
         opts -> new RSocketGateway(opts.id(RSGW).port(RS_PORT), rsHandler);
     Function<GatewayOptions, Gateway> wsGw =
@@ -40,27 +41,29 @@ public class GatewayHandlerTest {
     Microservices cluster =
         Microservices.builder().services(serviceInstance).gateway(rsGw).gateway(wsGw).startAwait();
 
-    LoopResources clientLoopResources = LoopResources.create("gateway-client-transport-worker");
-
     Address rsGwAddr = cluster.gateway(RSGW).address();
-    ServiceCall rsServiceCall =
+
+    // Test Connection callbacks:
+    TestService rsService =
         new ServiceCall()
             .transport(
                 GatewayClientTransports.rsocketGatewayClientTransport(
                     GatewayClientSettings.builder().address(rsGwAddr).build()))
-            .router(new StaticAddressRouter(rsGwAddr));
+            .router(new StaticAddressRouter(rsGwAddr)).api(TestService.class);
 
     Address wsGwAddr = cluster.gateway(WSGW).address();
-    ServiceCall wsServiceCall =
+    TestService wsService =
         new ServiceCall()
             .transport(
                 GatewayClientTransports.rsocketGatewayClientTransport(
-                    GatewayClientSettings.builder().address(rsGwAddr).build()))
-            .router(new StaticAddressRouter(rsGwAddr));
+                    GatewayClientSettings.builder().address(wsGwAddr).build()))
+            .router(new StaticAddressRouter(wsGwAddr)).api(TestService.class);
+
+
+    // When:
+
   }
 
-  @Test
-  void testHandler0() {}
 
   @Service
   public interface TestService {
@@ -98,35 +101,6 @@ public class GatewayHandlerTest {
     @Override
     public Flux<String> many(String name) {
       return Flux.just(name);
-    }
-  }
-
-  private static class TestHandler implements SessionEventsHandler {
-
-    CountDownLatch msgLatch = new CountDownLatch(1);
-    CountDownLatch errLatch = new CountDownLatch(1);
-    CountDownLatch connLatch = new CountDownLatch(1);
-    CountDownLatch disconnLatch = new CountDownLatch(1);
-
-    @Override
-    public Object mapMessage(Object s, Object req) {
-      msgLatch.countDown();
-      return req;
-    }
-
-    @Override
-    public void onError(Object s, Throwable throwable, Object req, Object resp) {
-      errLatch.countDown();
-    }
-
-    @Override
-    public void onSessionOpen(Object s) {
-      connLatch.countDown();
-    }
-
-    @Override
-    public void onSessionClose(Object s) {
-      disconnLatch.countDown();
     }
   }
 }

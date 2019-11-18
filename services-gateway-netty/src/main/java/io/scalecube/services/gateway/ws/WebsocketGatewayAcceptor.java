@@ -26,7 +26,7 @@ public class WebsocketGatewayAcceptor
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
-  private final SessionEventsHandler<String, GatewayMessage> gatewayHandler;
+  private final SessionEventsHandler<GatewayMessage> gatewayHandler;
 
   /**
    * Constructor for websocket acceptor.
@@ -35,7 +35,8 @@ public class WebsocketGatewayAcceptor
    * @param gatewayHandler gateway handler
    */
   public WebsocketGatewayAcceptor(
-      ServiceCall serviceCall, GatewayMetrics metrics, SessionEventsHandler<String, GatewayMessage> gatewayHandler) {
+      ServiceCall serviceCall, GatewayMetrics metrics,
+      SessionEventsHandler<GatewayMessage> gatewayHandler) {
     this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
     this.metrics = Objects.requireNonNull(metrics, "metrics");
     this.gatewayHandler = Objects.requireNonNull(gatewayHandler, "gatewayHandler");
@@ -50,7 +51,7 @@ public class WebsocketGatewayAcceptor
 
   private Mono<Void> onConnect(WebsocketGatewaySession session) {
     try {
-      gatewayHandler.onSessionOpen(session.id());
+      gatewayHandler.onSessionOpen(session);
     } catch (Exception e) {
       return session.close(e.getMessage());
     }
@@ -65,12 +66,12 @@ public class WebsocketGatewayAcceptor
                     .flatMap(msg -> handleCancel(session, msg))
                     .map(msg -> validateSid(session, (GatewayMessage) msg))
                     .map(this::checkQualifier)
-                    .map(msg -> gatewayHandler.mapMessage(session.id(), msg))
+                    .map(msg -> gatewayHandler.mapMessage(session, msg))
                     .subscribe(
                         request -> handleMessage(session, request), th -> handleError(session, th)),
-            th -> gatewayHandler.onError(session.id(), th, null, null));
+            th -> gatewayHandler.onError(session, th, null, null));
 
-    return session.onClose(() -> gatewayHandler.onSessionClose(session.id()));
+    return session.onClose(() -> gatewayHandler.onSessionClose(session));
   }
 
   private void handleMessage(WebsocketGatewaySession session, GatewayMessage request) {
@@ -94,7 +95,7 @@ public class WebsocketGatewayAcceptor
                         .send(response)
                         .subscribe(
                             avoid -> metrics.markResponse(),
-                            th -> gatewayHandler.onError(session.id(), th, request, response)),
+                            th -> gatewayHandler.onError(session, th, request, response)),
                 th -> handleError(session, request, th),
                 () -> handleCompletion(session, request, receivedError));
 
@@ -107,12 +108,12 @@ public class WebsocketGatewayAcceptor
       ex.releaseRequest(); // release
       handleError(session, ex.request(), ex.getCause());
     } else {
-      gatewayHandler.onError(session.id(), throwable, null, null);
+      gatewayHandler.onError(session, throwable, null, null);
     }
   }
 
   private void handleError(WebsocketGatewaySession session, GatewayMessage req, Throwable th) {
-    gatewayHandler.onError(session.id(), th, req, null);
+    gatewayHandler.onError(session, th, req, null);
 
     Builder builder = GatewayMessage.from(DefaultErrorMapper.INSTANCE.toMessage(th));
     Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
@@ -120,7 +121,7 @@ public class WebsocketGatewayAcceptor
 
     session
         .send(response)
-        .subscribe(null, ex -> gatewayHandler.onError(session.id(), ex, req, response));
+        .subscribe(null, ex -> gatewayHandler.onError(session, ex, req, response));
   }
 
   private void handleCompletion(
@@ -129,7 +130,8 @@ public class WebsocketGatewayAcceptor
       Builder builder = GatewayMessage.builder();
       Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
       GatewayMessage response = builder.signal(Signal.COMPLETE).build();
-      session.send(response).subscribe(null, ex -> gatewayHandler.onError(session.id(), ex, req, null));
+      session.send(response)
+          .subscribe(null, ex -> gatewayHandler.onError(session, ex, req, null));
     }
   }
 

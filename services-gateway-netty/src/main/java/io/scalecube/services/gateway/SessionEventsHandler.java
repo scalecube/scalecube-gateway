@@ -5,13 +5,13 @@ import io.scalecube.services.gateway.ws.GatewayMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public interface SessionEventsHandler<SESSION, MESSAGE> {
+public interface SessionEventsHandler<MESSAGE> {
 
   Logger LOGGER = LoggerFactory.getLogger(SessionEventsHandler.class);
 
-  SessionEventsHandler<String, GatewayMessage> DEFAULT_WS_INSTANCE = new SessionEventsHandler<String, GatewayMessage>() {
+  SessionEventsHandler<GatewayMessage> DEFAULT_WS_INSTANCE = new SessionEventsHandler<GatewayMessage>() {
   };
-  SessionEventsHandler<String, ServiceMessage> DEFAULT_RS_INSTANCE = new SessionEventsHandler<String, ServiceMessage>() {
+  SessionEventsHandler<ServiceMessage> DEFAULT_RS_INSTANCE = new SessionEventsHandler<ServiceMessage>() {
   };
 
   /**
@@ -21,7 +21,7 @@ public interface SessionEventsHandler<SESSION, MESSAGE> {
    * @param req request message (not null)
    * @return message
    */
-  default MESSAGE mapMessage(SESSION session, MESSAGE req) {
+  default MESSAGE mapMessage(GatewaySession session, MESSAGE req) {
     return req;
   }
 
@@ -34,10 +34,10 @@ public interface SessionEventsHandler<SESSION, MESSAGE> {
    * @param resp response message (optional)
    */
   default void onError(
-      SESSION session, Throwable throwable, MESSAGE req, MESSAGE resp) {
+      GatewaySession session, Throwable throwable, MESSAGE req, MESSAGE resp) {
     LOGGER.error(
         "Exception occurred on session={}, on request: {}, on response: {}, cause:",
-        sessionId(session),
+        session.sessionId(),
         req,
         resp,
         throwable);
@@ -48,7 +48,7 @@ public interface SessionEventsHandler<SESSION, MESSAGE> {
    *
    * @param session websocket session (not null)
    */
-  default void onSessionOpen(SESSION session) {
+  default void onSessionOpen(GatewaySession session) {
     LOGGER.info("Session opened: " + session);
   }
 
@@ -57,12 +57,8 @@ public interface SessionEventsHandler<SESSION, MESSAGE> {
    *
    * @param session websocket session (not null)
    */
-  default void onSessionClose(SESSION session) {
+  default void onSessionClose(GatewaySession session) {
     LOGGER.info("Session closed: " + session);
-  }
-
-  default String sessionId(SESSION session) {
-    return "" + session;
   }
 
 }

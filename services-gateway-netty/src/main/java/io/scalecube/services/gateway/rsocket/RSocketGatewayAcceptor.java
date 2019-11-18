@@ -20,10 +20,12 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
 
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
-  private final SessionEventsHandler<String, ServiceMessage> sessionEventsHandler;
+  private final SessionEventsHandler<ServiceMessage> sessionEventsHandler;
 
-  public RSocketGatewayAcceptor(ServiceCall serviceCall, GatewayMetrics metrics,
-      SessionEventsHandler<String, ServiceMessage> sessionEventsHandler) {
+  public RSocketGatewayAcceptor(
+      ServiceCall serviceCall,
+      GatewayMetrics metrics,
+      SessionEventsHandler<ServiceMessage> sessionEventsHandler) {
     this.serviceCall = serviceCall;
     this.metrics = metrics;
     this.sessionEventsHandler = sessionEventsHandler;
@@ -36,23 +38,25 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
     // Prepare message codec together with headers from metainfo
     HeadersCodec headersCodec = HeadersCodec.getInstance(setup.metadataMimeType());
     ServiceMessageCodec messageCodec = new ServiceMessageCodec(headersCodec);
-    final RSocketGatewaySession resultRsocket = new RSocketGatewaySession(serviceCall, metrics,
-        messageCodec, sessionEventsHandler::mapMessage);
+    final RSocketGatewaySession resultRsocketSession =
+        new RSocketGatewaySession(
+            serviceCall, metrics, messageCodec, sessionEventsHandler::mapMessage);
 
     try {
-      sessionEventsHandler.onSessionOpen(resultRsocket.id());
+      sessionEventsHandler.onSessionOpen(resultRsocketSession);
     } catch (Exception e) {
       return Mono.error(new ConnectionErrorException(e.getMessage()));
     }
 
     rsocket
         .onClose()
-        .doOnTerminate(() -> {
-          LOGGER.info("Client disconnected: {}", rsocket);
-          sessionEventsHandler.onSessionClose(resultRsocket.id());
-        })
+        .doOnTerminate(
+            () -> {
+              LOGGER.info("Client disconnected: {}", rsocket);
+              sessionEventsHandler.onSessionClose(resultRsocketSession);
+            })
         .subscribe(null, th -> LOGGER.error("Exception on closing rsocket: {}", th.toString()));
 
-    return Mono.just(resultRsocket);
+    return Mono.just(resultRsocketSession);
   }
 }

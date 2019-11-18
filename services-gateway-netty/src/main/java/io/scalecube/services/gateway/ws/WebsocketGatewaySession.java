@@ -3,6 +3,7 @@ package io.scalecube.services.gateway.ws;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.scalecube.services.gateway.GatewaySession;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -18,7 +19,7 @@ import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
-public final class WebsocketGatewaySession {
+public final class WebsocketGatewaySession implements GatewaySession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewaySession.class);
 
@@ -58,7 +59,8 @@ public final class WebsocketGatewaySession {
     this.outbound = (WebsocketOutbound) outbound.options(SendOptions::flushOnEach);
   }
 
-  public String id() {
+  @Override
+  public String sessionId() {
     return id;
   }
 

@@ -7,6 +7,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
+import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
@@ -18,14 +19,14 @@ import reactor.core.publisher.Mono;
  * #fireAndForget(Payload)}, {@link #requestResponse(Payload)}, {@link #requestStream(Payload)} and
  * {@link #requestChannel(org.reactivestreams.Publisher)}.
  */
-public final class RSocketGatewaySession extends AbstractRSocket {
+public final class RSocketGatewaySession extends AbstractRSocket implements GatewaySession {
 
   private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
   private final ServiceMessageCodec messageCodec;
   private final String sessionId;
-  private final BiFunction<String, ServiceMessage, ServiceMessage> messageMapper;
+  private final BiFunction<GatewaySession,  ServiceMessage, ServiceMessage> messageMapper;
   private final DefaultErrorMapper ERROR_MAPPER = DefaultErrorMapper.INSTANCE;
 
   /**
@@ -37,7 +38,7 @@ public final class RSocketGatewaySession extends AbstractRSocket {
    */
   public RSocketGatewaySession(
       ServiceCall serviceCall, GatewayMetrics metrics, ServiceMessageCodec messageCodec,
-      BiFunction<String, ServiceMessage, ServiceMessage> messageMapper) {
+      BiFunction<GatewaySession, ServiceMessage, ServiceMessage> messageMapper) {
     this.serviceCall = serviceCall;
     this.metrics = metrics;
     this.messageCodec = messageCodec;
@@ -45,12 +46,8 @@ public final class RSocketGatewaySession extends AbstractRSocket {
     this.sessionId = "" + SESSION_ID_GENERATOR.incrementAndGet();
   }
 
-  /**
-   * Session sessionId
-   *
-   * @return session sessionId of current rSocket connection
-   */
-  public String id() {
+  @Override
+  public String sessionId() {
     return this.sessionId;
   }
 
@@ -94,7 +91,7 @@ public final class RSocketGatewaySession extends AbstractRSocket {
     try {
       final ServiceMessage serviceMessage = messageCodec
           .decode(payload.sliceData().retain(), payload.sliceMetadata().retain());
-      return messageMapper.apply(sessionId, serviceMessage);
+      return messageMapper.apply(this, serviceMessage);
     } finally {
       payload.release();
     }

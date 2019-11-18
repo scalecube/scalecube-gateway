@@ -7,10 +7,12 @@ import io.netty.buffer.ByteBuf;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.annotations.Service;
-import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.gateway.BaseTest;
+import io.scalecube.services.gateway.TestService;
+import io.scalecube.services.gateway.TestServiceImpl;
+import io.scalecube.services.gateway.TestSessionEventHandler;
 import io.scalecube.services.gateway.TestUtils;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
@@ -23,8 +25,10 @@ import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -35,21 +39,21 @@ class WebsocketClientConnectionTest extends BaseTest {
 
   public static final GatewayClientCodec<ByteBuf> CLIENT_CODEC =
       GatewayClientTransports.WEBSOCKET_CLIENT_CODEC;
-
+  private static final AtomicInteger onCloseCounter = new AtomicInteger();
   private Microservices gateway;
   private Address gatewayAddress;
   private Microservices service;
-
-  private static final AtomicInteger onCloseCounter = new AtomicInteger();
   private GatewayClient client;
+  private TestSessionEventHandler sessionEventHandler;
 
   @BeforeEach
   void beforEach() {
+    this.sessionEventHandler = new TestSessionEventHandler();
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
-            .gateway(options -> new WebsocketGateway(options.id("WS")))
+            .gateway(options -> new WebsocketGateway(options.id("WS"), sessionEventHandler))
             .startAwait();
 
     gatewayAddress = gateway.gateway("WS").address();
@@ -64,7 +68,7 @@ class WebsocketClientConnectionTest extends BaseTest {
                                 config.membership(
                                     opts -> opts.seedMembers(gateway.discovery().address()))))
             .transport(RSocketServiceTransport::new)
-            .services(new TestServiceImpl())
+            .services(new TestServiceImpl(onCloseCounter::incrementAndGet))
             .startAwait();
 
     onCloseCounter.set(0);
@@ -73,9 +77,9 @@ class WebsocketClientConnectionTest extends BaseTest {
   @AfterEach
   void afterEach() {
     Flux.concat(
-            Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
-            Mono.justOrEmpty(gateway).map(Microservices::shutdown),
-            Mono.justOrEmpty(service).map(Microservices::shutdown))
+        Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
+        Mono.justOrEmpty(gateway).map(Microservices::shutdown),
+        Mono.justOrEmpty(service).map(Microservices::shutdown))
         .then()
         .block();
   }
@@ -123,18 +127,27 @@ class WebsocketClientConnectionTest extends BaseTest {
     }
   }
 
-  @Service
-  public interface TestService {
+  @Test
+  public void testHandlerEvents() throws InterruptedException {
+    // Test Connect
+    client =
+        new WebsocketGatewayClient(
+            GatewayClientSettings.builder().address(gatewayAddress).build(), CLIENT_CODEC);
 
-    @ServiceMethod("manyNever")
-    Flux<Long> manyNever();
-  }
+    TestService service =
+        new ServiceCall()
+            .transport(new GatewayClientTransport(client))
+            .router(new StaticAddressRouter(gatewayAddress)).api(TestService.class);
 
-  private static class TestServiceImpl implements TestService {
+    service.one("one").block(TIMEOUT);
+    sessionEventHandler.connLatch.await(3, TimeUnit.SECONDS);
+    Assertions.assertEquals(0, sessionEventHandler.connLatch.getCount());
 
-    @Override
-    public Flux<Long> manyNever() {
-      return Flux.<Long>never().log(">>> ").doOnCancel(onCloseCounter::incrementAndGet);
-    }
+    sessionEventHandler.msgLatch.await(3, TimeUnit.SECONDS);
+    Assertions.assertEquals(0, sessionEventHandler.msgLatch.getCount());
+
+    client.close();
+    sessionEventHandler.disconnLatch.await(3, TimeUnit.SECONDS);
+    Assertions.assertEquals(0, sessionEventHandler.disconnLatch.getCount());
   }
 }
