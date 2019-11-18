@@ -2,12 +2,17 @@ package io.scalecube.services.gateway.ws;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.netty.Connection;
 
 public interface WebsocketGatewayHandler {
 
   Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayHandler.class);
 
   WebsocketGatewayHandler DEFAULT_INSTANCE = new WebsocketGatewayHandler() {};
+
+  default void onConnection(Connection connection) {
+    System.err.println("### onConnection = " + connection);
+  }
 
   /**
    * Message mapper function.

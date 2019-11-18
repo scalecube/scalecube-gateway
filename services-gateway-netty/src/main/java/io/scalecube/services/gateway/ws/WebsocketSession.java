@@ -31,6 +31,7 @@ public final class WebsocketSession {
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
   private final GatewayMessageCodec codec;
+  private final WebsocketGatewayHandler gatewayHandler;
 
   private final String id;
   private final String contentType;
@@ -38,21 +39,26 @@ public final class WebsocketSession {
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
    *
+   * @param gatewayHandler
    * @param codec - msg codec
    * @param httpRequest - Init session HTTP request
    * @param inbound - Websocket inbound
    * @param outbound - Websocket outbound
    */
   public WebsocketSession(
+      WebsocketGatewayHandler gatewayHandler,
       GatewayMessageCodec codec,
       HttpServerRequest httpRequest,
       WebsocketInbound inbound,
       WebsocketOutbound outbound) {
+    this.gatewayHandler = gatewayHandler;
     this.codec = codec;
-    this.id = "" + SESSION_ID_GENERATOR.incrementAndGet();
+    this.id = Long.toHexString(SESSION_ID_GENERATOR.incrementAndGet());
 
     String contentType = httpRequest.requestHeaders().get(HttpHeaderNames.CONTENT_TYPE);
     this.contentType = Optional.ofNullable(contentType).orElse(DEFAULT_CONTENT_TYPE);
+
+    httpRequest.withConnection(gatewayHandler::onConnection);
 
     this.inbound =
         (WebsocketInbound) inbound.withConnection(c -> c.onDispose(this::clearSubscriptions));

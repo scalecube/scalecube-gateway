@@ -44,7 +44,7 @@ public class WebsocketGatewayAcceptor
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
     return httpResponse.sendWebsocket(
         (WebsocketInbound inbound, WebsocketOutbound outbound) ->
-            onConnect(new WebsocketSession(messageCodec, httpRequest, inbound, outbound)));
+            onConnect(new WebsocketSession(gatewayHandler, messageCodec, httpRequest, inbound, outbound)));
   }
 
   private Mono<Void> onConnect(WebsocketSession session) {
