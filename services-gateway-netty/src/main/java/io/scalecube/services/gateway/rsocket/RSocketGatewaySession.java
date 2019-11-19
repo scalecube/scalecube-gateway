@@ -9,6 +9,7 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.ServiceMessageCodec;
+import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Flux;
@@ -100,5 +101,12 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
 
   private Payload toPayload(ServiceMessage message) {
     return messageCodec.encodeAndTransform(message, ByteBufPayload::create);
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", RSocketGatewaySession.class.getSimpleName() + "[", "]")
+        .add(sessionId)
+        .toString();
   }
 }
