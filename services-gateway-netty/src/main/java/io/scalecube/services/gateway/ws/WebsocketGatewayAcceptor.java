@@ -5,7 +5,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.gateway.SessionEventsHandler;
+import io.scalecube.services.gateway.SessionEventHandler;
 import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
 import java.util.Objects;
 import java.util.Optional;
@@ -26,7 +26,7 @@ public class WebsocketGatewayAcceptor
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
-  private final SessionEventsHandler<GatewayMessage> gatewayHandler;
+  private final SessionEventHandler<GatewayMessage> gatewayHandler;
 
   /**
    * Constructor for websocket acceptor.
@@ -36,7 +36,7 @@ public class WebsocketGatewayAcceptor
    */
   public WebsocketGatewayAcceptor(
       ServiceCall serviceCall, GatewayMetrics metrics,
-      SessionEventsHandler<GatewayMessage> gatewayHandler) {
+      SessionEventHandler<GatewayMessage> gatewayHandler) {
     this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
     this.metrics = Objects.requireNonNull(metrics, "metrics");
     this.gatewayHandler = Objects.requireNonNull(gatewayHandler, "gatewayHandler");

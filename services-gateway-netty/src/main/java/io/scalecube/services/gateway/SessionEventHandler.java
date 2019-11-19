@@ -5,14 +5,14 @@ import io.scalecube.services.gateway.ws.GatewayMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public interface SessionEventsHandler<M> {
+public interface SessionEventHandler<M> {
 
-  Logger LOGGER = LoggerFactory.getLogger(SessionEventsHandler.class);
+  Logger LOGGER = LoggerFactory.getLogger(SessionEventHandler.class);
 
-  SessionEventsHandler<GatewayMessage> DEFAULT_WS_INSTANCE =
-      new SessionEventsHandler<GatewayMessage>() {};
-  SessionEventsHandler<ServiceMessage> DEFAULT_RS_INSTANCE =
-      new SessionEventsHandler<ServiceMessage>() {};
+  SessionEventHandler<GatewayMessage> DEFAULT_WS_INSTANCE =
+      new SessionEventHandler<GatewayMessage>() {};
+  SessionEventHandler<ServiceMessage> DEFAULT_RS_INSTANCE =
+      new SessionEventHandler<ServiceMessage>() {};
 
   /**
    * Message mapper function.

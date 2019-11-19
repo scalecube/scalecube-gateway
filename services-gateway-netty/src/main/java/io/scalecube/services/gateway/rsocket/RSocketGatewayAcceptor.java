@@ -8,7 +8,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.ServiceMessageCodec;
-import io.scalecube.services.gateway.SessionEventsHandler;
+import io.scalecube.services.gateway.SessionEventHandler;
 import io.scalecube.services.transport.api.HeadersCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,21 +20,21 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
 
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
-  private final SessionEventsHandler<ServiceMessage> sessionEventsHandler;
+  private final SessionEventHandler<ServiceMessage> sessionEventHandler;
 
   /**
    * Creates new acceptor for RS gateway.
    * @param serviceCall to call remote service
    * @param metrics to report events
-   * @param sessionEventsHandler handler for session events
+   * @param sessionEventHandler handler for session events
    */
   public RSocketGatewayAcceptor(
       ServiceCall serviceCall,
       GatewayMetrics metrics,
-      SessionEventsHandler<ServiceMessage> sessionEventsHandler) {
+      SessionEventHandler<ServiceMessage> sessionEventHandler) {
     this.serviceCall = serviceCall;
     this.metrics = metrics;
-    this.sessionEventsHandler = sessionEventsHandler;
+    this.sessionEventHandler = sessionEventHandler;
   }
 
   @Override
@@ -46,10 +46,10 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
     ServiceMessageCodec messageCodec = new ServiceMessageCodec(headersCodec);
     final RSocketGatewaySession resultRsocketSession =
         new RSocketGatewaySession(
-            serviceCall, metrics, messageCodec, sessionEventsHandler::mapMessage);
+            serviceCall, metrics, messageCodec, sessionEventHandler::mapMessage);
 
     try {
-      sessionEventsHandler.onSessionOpen(resultRsocketSession);
+      sessionEventHandler.onSessionOpen(resultRsocketSession);
     } catch (Exception e) {
       return Mono.error(new ConnectionErrorException(e.getMessage()));
     }
@@ -59,7 +59,7 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
         .doOnTerminate(
             () -> {
               LOGGER.info("Client disconnected: {}", rsocket);
-              sessionEventsHandler.onSessionClose(resultRsocketSession);
+              sessionEventHandler.onSessionClose(resultRsocketSession);
             })
         .subscribe(null, th -> LOGGER.error("Exception on closing rsocket: {}", th.toString()));
 
