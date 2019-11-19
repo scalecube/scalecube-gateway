@@ -49,7 +49,7 @@ public final class WebsocketSession {
       WebsocketInbound inbound,
       WebsocketOutbound outbound) {
     this.codec = codec;
-    this.id = "" + SESSION_ID_GENERATOR.incrementAndGet();
+    this.id = Long.toHexString(SESSION_ID_GENERATOR.incrementAndGet());
 
     String contentType = httpRequest.requestHeaders().get(HttpHeaderNames.CONTENT_TYPE);
     this.contentType = Optional.ofNullable(contentType).orElse(DEFAULT_CONTENT_TYPE);

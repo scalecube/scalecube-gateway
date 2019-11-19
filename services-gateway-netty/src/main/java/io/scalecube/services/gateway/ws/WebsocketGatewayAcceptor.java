@@ -66,7 +66,14 @@ public class WebsocketGatewayAcceptor
                     .map(this::checkQualifier)
                     .map(msg -> gatewayHandler.mapMessage(session, msg))
                     .subscribe(
-                        request -> handleMessage(session, request), th -> handleError(session, th)),
+                        request -> {
+                          try {
+                            handleMessage(session, request);
+                          } catch (Exception ex) {
+                            gatewayHandler.onError(session, ex, request, null);
+                          }
+                        },
+                        th -> handleError(session, th)),
             th -> gatewayHandler.onError(session, th, null, null));
 
     return session.onClose(() -> gatewayHandler.onSessionClose(session));
