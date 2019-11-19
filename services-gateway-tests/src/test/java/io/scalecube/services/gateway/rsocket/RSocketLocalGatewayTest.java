@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway.rsocket;
 
-import io.rsocket.exceptions.ApplicationErrorException;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.examples.EmptyGreetingRequest;
@@ -15,7 +14,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import javax.naming.ServiceUnavailableException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;

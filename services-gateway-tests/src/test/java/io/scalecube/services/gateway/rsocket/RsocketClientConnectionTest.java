@@ -20,7 +20,6 @@ import io.scalecube.services.gateway.transport.GatewayClientTransport;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
-import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
 import java.time.Duration;
@@ -52,7 +51,7 @@ class RsocketClientConnectionTest extends BaseTest {
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
-            .gateway(options -> new RSocketGateway(options.id("RS"),sessionEventHandler))
+            .gateway(options -> new RSocketGateway(options.id("RS"), sessionEventHandler))
             .startAwait();
 
     gatewayAddress = gateway.gateway("RS").address();
@@ -76,9 +75,9 @@ class RsocketClientConnectionTest extends BaseTest {
   @AfterEach
   void afterEach() {
     Flux.concat(
-        Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
-        Mono.justOrEmpty(gateway).map(Microservices::shutdown),
-        Mono.justOrEmpty(service).map(Microservices::shutdown))
+            Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
+            Mono.justOrEmpty(gateway).map(Microservices::shutdown),
+            Mono.justOrEmpty(service).map(Microservices::shutdown))
         .then()
         .block();
   }
@@ -136,7 +135,8 @@ class RsocketClientConnectionTest extends BaseTest {
     TestService service =
         new ServiceCall()
             .transport(new GatewayClientTransport(client))
-            .router(new StaticAddressRouter(gatewayAddress)).api(TestService.class);
+            .router(new StaticAddressRouter(gatewayAddress))
+            .api(TestService.class);
 
     service.one("one").block(TIMEOUT);
     sessionEventHandler.connLatch.await(3, TimeUnit.SECONDS);
@@ -149,5 +149,4 @@ class RsocketClientConnectionTest extends BaseTest {
     sessionEventHandler.disconnLatch.await(3, TimeUnit.SECONDS);
     Assertions.assertEquals(0, sessionEventHandler.disconnLatch.getCount());
   }
-
 }

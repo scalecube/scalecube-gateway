@@ -10,12 +10,10 @@ import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
-import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.netty.resources.LoopResources;
 
 public class GatewayHandlerTest {
 
@@ -49,7 +47,8 @@ public class GatewayHandlerTest {
             .transport(
                 GatewayClientTransports.rsocketGatewayClientTransport(
                     GatewayClientSettings.builder().address(rsGwAddr).build()))
-            .router(new StaticAddressRouter(rsGwAddr)).api(TestService.class);
+            .router(new StaticAddressRouter(rsGwAddr))
+            .api(TestService.class);
 
     Address wsGwAddr = cluster.gateway(WSGW).address();
     TestService wsService =
@@ -57,13 +56,12 @@ public class GatewayHandlerTest {
             .transport(
                 GatewayClientTransports.rsocketGatewayClientTransport(
                     GatewayClientSettings.builder().address(wsGwAddr).build()))
-            .router(new StaticAddressRouter(wsGwAddr)).api(TestService.class);
-
+            .router(new StaticAddressRouter(wsGwAddr))
+            .api(TestService.class);
 
     // When:
 
   }
-
 
   @Service
   public interface TestService {

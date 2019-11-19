@@ -50,8 +50,7 @@ public class WebsocketLocalGatewayAuthTest {
 
   @Test
   void testCreateSession_succ() {
-    StepVerifier.create(
-        extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class))
+    StepVerifier.create(extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class))
         .expectNextCount(1)
         .expectComplete()
         .verify();
@@ -60,7 +59,7 @@ public class WebsocketLocalGatewayAuthTest {
   @Test
   void testCreateSession_forbiddenUser() {
     StepVerifier.create(
-        extension.client().requestOne(createSessionReq("fake" + ALLOWED_USER), String.class))
+            extension.client().requestOne(createSessionReq("fake" + ALLOWED_USER), String.class))
         .expectErrorSatisfies(
             th -> {
               ForbiddenException e = (ForbiddenException) th;
@@ -72,8 +71,7 @@ public class WebsocketLocalGatewayAuthTest {
 
   @Test
   void testCallSecuredMethod_notAuthenticated() {
-    StepVerifier.create(
-        clientService.requestOne("echo", null))
+    StepVerifier.create(clientService.requestOne("echo", null))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -90,7 +88,7 @@ public class WebsocketLocalGatewayAuthTest {
     // call secured service
     final String req = "echo";
     StepVerifier.create(
-        clientService.requestOne(req, null).doOnNext(n -> System.out.println(">>>" + n)))
+            clientService.requestOne(req, null).doOnNext(n -> System.out.println(">>>" + n)))
         .expectNextMatches(resp -> resp.equals(ALLOWED_USER + "@" + req))
         .expectComplete()
         .verify();
@@ -100,13 +98,12 @@ public class WebsocketLocalGatewayAuthTest {
   void testCallSecuredMethod_authenticatedInvalidUser() {
     // authenticate session
     StepVerifier.create(
-        extension.client().requestOne(createSessionReq("fake" + ALLOWED_USER), String.class))
+            extension.client().requestOne(createSessionReq("fake" + ALLOWED_USER), String.class))
         .expectErrorSatisfies(th -> assertTrue(th instanceof ForbiddenException))
         .verify();
     // call secured service
     final String req = "echo";
-    StepVerifier.create(
-        clientService.requestOne(req, null))
+    StepVerifier.create(clientService.requestOne(req, null))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -118,8 +115,7 @@ public class WebsocketLocalGatewayAuthTest {
 
   @Test
   void testCallSecuredMethod_notAuthenticatedRequestStream() {
-    StepVerifier.create(
-        clientService.requestN(10, null))
+    StepVerifier.create(clientService.requestN(10, null))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -135,8 +131,7 @@ public class WebsocketLocalGatewayAuthTest {
     extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class).block(TIMEOUT);
     // call secured service
     Integer times = 10;
-    StepVerifier.create(
-        clientService.requestN(times, null))
+    StepVerifier.create(clientService.requestN(times, null))
         .expectNextCount(10)
         .expectComplete()
         .verify();

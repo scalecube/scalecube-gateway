@@ -1,5 +1,3 @@
 package io.scalecube.services.gateway.rsocket;
 
-public class RSocketLocalGwAuthTest {
-
-}
+public class RSocketLocalGwAuthTest {}

@@ -50,8 +50,7 @@ public class RSocketLocalGatewayAuthTest {
 
   @Test
   void testCreateSession_succ() {
-    StepVerifier.create(
-        extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class))
+    StepVerifier.create(extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class))
         .expectNextCount(1)
         .expectComplete()
         .verify();
@@ -60,7 +59,7 @@ public class RSocketLocalGatewayAuthTest {
   @Test
   void testCreateSession_forbiddenUser() {
     StepVerifier.create(
-        extension.client().requestOne(createSessionReq("fake" + ALLOWED_USER), String.class))
+            extension.client().requestOne(createSessionReq("fake" + ALLOWED_USER), String.class))
         .expectErrorSatisfies(
             th -> {
               ForbiddenException e = (ForbiddenException) th;
@@ -72,8 +71,7 @@ public class RSocketLocalGatewayAuthTest {
 
   @Test
   void testCallSecuredMethod_notAuthenticated() {
-    StepVerifier.create(
-        clientService.requestOne("echo", null))
+    StepVerifier.create(clientService.requestOne("echo", null))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -89,8 +87,7 @@ public class RSocketLocalGatewayAuthTest {
     extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class).block(TIMEOUT);
     // call secured service
     final String req = "echo";
-    StepVerifier.create(
-        clientService.requestOne(req, null))
+    StepVerifier.create(clientService.requestOne(req, null))
         .expectNextMatches(resp -> resp.equals(ALLOWED_USER + "@" + req))
         .expectComplete()
         .verify();
@@ -100,13 +97,12 @@ public class RSocketLocalGatewayAuthTest {
   void testCallSecuredMethod_authenticatedInvalidUser() {
     // authenticate session
     StepVerifier.create(
-        extension.client().requestOne(createSessionReq("fake" + ALLOWED_USER), String.class))
+            extension.client().requestOne(createSessionReq("fake" + ALLOWED_USER), String.class))
         .expectErrorSatisfies(th -> assertTrue(th instanceof ForbiddenException))
         .verify();
     // call secured service
     final String req = "echo";
-    StepVerifier.create(
-        clientService.requestOne(req, null))
+    StepVerifier.create(clientService.requestOne(req, null))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -115,6 +111,4 @@ public class RSocketLocalGatewayAuthTest {
             })
         .verify();
   }
-
-
 }

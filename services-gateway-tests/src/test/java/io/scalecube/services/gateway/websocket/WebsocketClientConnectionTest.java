@@ -8,7 +8,6 @@ import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.TestService;
 import io.scalecube.services.gateway.TestServiceImpl;
@@ -77,9 +76,9 @@ class WebsocketClientConnectionTest extends BaseTest {
   @AfterEach
   void afterEach() {
     Flux.concat(
-        Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
-        Mono.justOrEmpty(gateway).map(Microservices::shutdown),
-        Mono.justOrEmpty(service).map(Microservices::shutdown))
+            Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
+            Mono.justOrEmpty(gateway).map(Microservices::shutdown),
+            Mono.justOrEmpty(service).map(Microservices::shutdown))
         .then()
         .block();
   }
@@ -137,7 +136,8 @@ class WebsocketClientConnectionTest extends BaseTest {
     TestService service =
         new ServiceCall()
             .transport(new GatewayClientTransport(client))
-            .router(new StaticAddressRouter(gatewayAddress)).api(TestService.class);
+            .router(new StaticAddressRouter(gatewayAddress))
+            .api(TestService.class);
 
     service.one("one").block(TIMEOUT);
     sessionEventHandler.connLatch.await(3, TimeUnit.SECONDS);

@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway.rsocket;
 
-import io.rsocket.exceptions.ApplicationErrorException;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.examples.EmptyGreetingRequest;
