@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway.transport.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
@@ -18,7 +17,7 @@ import reactor.netty.resources.LoopResources;
 
 public final class WebsocketGatewayClient implements GatewayClient {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketClientTransport.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayClient.class);
 
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
