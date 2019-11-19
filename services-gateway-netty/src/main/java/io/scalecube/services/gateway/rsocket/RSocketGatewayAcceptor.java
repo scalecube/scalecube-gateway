@@ -45,14 +45,14 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
     // Prepare message codec together with headers from metainfo
     HeadersCodec headersCodec = HeadersCodec.getInstance(setup.metadataMimeType());
     ServiceMessageCodec messageCodec = new ServiceMessageCodec(headersCodec);
-    final RSocketGatewaySession resultRsocketSession =
+    final RSocketGatewaySession gatewaySession =
         new RSocketGatewaySession(
             serviceCall, metrics, messageCodec, sessionEventHandler::mapMessage);
 
     try {
-      sessionEventHandler.onSessionOpen(resultRsocketSession);
+      sessionEventHandler.onSessionOpen(gatewaySession);
     } catch (Exception e) {
-      return Mono.error(new ConnectionErrorException(e.getMessage()));
+      return Mono.error(new ConnectionErrorException("connection error", e));
     }
 
     rsocket
@@ -60,10 +60,10 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
         .doOnTerminate(
             () -> {
               LOGGER.info("Client disconnected: {}", rsocket);
-              sessionEventHandler.onSessionClose(resultRsocketSession);
+              sessionEventHandler.onSessionClose(gatewaySession);
             })
         .subscribe(null, th -> LOGGER.error("Exception on closing rsocket: {}", th.toString()));
 
-    return Mono.just(resultRsocketSession);
+    return Mono.just(gatewaySession);
   }
 }
