@@ -22,6 +22,12 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
   private final GatewayMetrics metrics;
   private final SessionEventsHandler<ServiceMessage> sessionEventsHandler;
 
+  /**
+   * Creates new acceptor for RS gateway.
+   * @param serviceCall to call remote service
+   * @param metrics to report events
+   * @param sessionEventsHandler handler for session events
+   */
   public RSocketGatewayAcceptor(
       ServiceCall serviceCall,
       GatewayMetrics metrics,

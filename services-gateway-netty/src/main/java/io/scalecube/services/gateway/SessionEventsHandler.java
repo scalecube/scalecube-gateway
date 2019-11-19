@@ -5,14 +5,14 @@ import io.scalecube.services.gateway.ws.GatewayMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public interface SessionEventsHandler<MESSAGE> {
+public interface SessionEventsHandler<M> {
 
   Logger LOGGER = LoggerFactory.getLogger(SessionEventsHandler.class);
 
-  SessionEventsHandler<GatewayMessage> DEFAULT_WS_INSTANCE = new SessionEventsHandler<GatewayMessage>() {
-  };
-  SessionEventsHandler<ServiceMessage> DEFAULT_RS_INSTANCE = new SessionEventsHandler<ServiceMessage>() {
-  };
+  SessionEventsHandler<GatewayMessage> DEFAULT_WS_INSTANCE =
+      new SessionEventsHandler<GatewayMessage>() {};
+  SessionEventsHandler<ServiceMessage> DEFAULT_RS_INSTANCE =
+      new SessionEventsHandler<ServiceMessage>() {};
 
   /**
    * Message mapper function.
@@ -21,7 +21,7 @@ public interface SessionEventsHandler<MESSAGE> {
    * @param req request message (not null)
    * @return message
    */
-  default MESSAGE mapMessage(GatewaySession session, MESSAGE req) {
+  default M mapMessage(GatewaySession session, M req) {
     return req;
   }
 
@@ -33,8 +33,7 @@ public interface SessionEventsHandler<MESSAGE> {
    * @param req request message (optional)
    * @param resp response message (optional)
    */
-  default void onError(
-      GatewaySession session, Throwable throwable, MESSAGE req, MESSAGE resp) {
+  default void onError(GatewaySession session, Throwable throwable, M req, M resp) {
     LOGGER.error(
         "Exception occurred on session={}, on request: {}, on response: {}, cause:",
         session.sessionId(),
@@ -60,5 +59,4 @@ public interface SessionEventsHandler<MESSAGE> {
   default void onSessionClose(GatewaySession session) {
     LOGGER.info("Session closed: " + session);
   }
-
 }

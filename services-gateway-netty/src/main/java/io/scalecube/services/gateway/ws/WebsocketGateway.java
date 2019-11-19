@@ -37,7 +37,8 @@ public class WebsocketGateway extends GatewayTemplate {
    * @param options options
    * @param gatewayHandler gateway handler
    */
-  public WebsocketGateway(GatewayOptions options, SessionEventsHandler<GatewayMessage> gatewayHandler) {
+  public WebsocketGateway(
+      GatewayOptions options, SessionEventsHandler<GatewayMessage> gatewayHandler) {
     super(options);
     this.gatewayHandler = gatewayHandler;
   }
