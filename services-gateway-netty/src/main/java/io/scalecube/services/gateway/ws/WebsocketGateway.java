@@ -21,22 +21,11 @@ public class WebsocketGateway extends GatewayTemplate {
   private DisposableServer server;
   private LoopResources loopResources;
 
-  /**
-   * Constructor.
-   *
-   * @param options options
-   */
   public WebsocketGateway(GatewayOptions options) {
     super(options);
     this.gatewayHandler = SessionEventHandler.DEFAULT_WS_INSTANCE;
   }
 
-  /**
-   * Constructor.
-   *
-   * @param options options
-   * @param gatewayHandler gateway handler
-   */
   public WebsocketGateway(
       GatewayOptions options, SessionEventHandler<GatewayMessage> gatewayHandler) {
     super(options);

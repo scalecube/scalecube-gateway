@@ -23,6 +23,7 @@ import reactor.netty.resources.LoopResources;
 public class RSocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGateway.class);
+
   private final SessionEventHandler<ServiceMessage> sessionEventHandler;
   private CloseableChannel server;
   private LoopResources loopResources;
@@ -32,8 +33,8 @@ public class RSocketGateway extends GatewayTemplate {
     this.sessionEventHandler = SessionEventHandler.DEFAULT_RS_INSTANCE;
   }
 
-  public RSocketGateway(GatewayOptions options,
-      SessionEventHandler<ServiceMessage> sessionEventHandler) {
+  public RSocketGateway(
+      GatewayOptions options, SessionEventHandler<ServiceMessage> sessionEventHandler) {
     super(options);
     this.sessionEventHandler = sessionEventHandler;
   }
@@ -44,8 +45,8 @@ public class RSocketGateway extends GatewayTemplate {
         () -> {
           ServiceCall serviceCall =
               options.call().requestReleaser(ReferenceCountUtil::safestRelease);
-          RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(serviceCall, gatewayMetrics,
-              sessionEventHandler);
+          RSocketGatewayAcceptor acceptor =
+              new RSocketGatewayAcceptor(serviceCall, gatewayMetrics, sessionEventHandler);
 
           loopResources = LoopResources.create("rsocket-gateway");
 
