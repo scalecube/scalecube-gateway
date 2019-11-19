@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 public final class RSocketGatewaySession extends AbstractRSocket implements GatewaySession {
 
   private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
+
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
   private final ServiceMessageCodec messageCodec;
@@ -44,7 +45,7 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
     this.metrics = metrics;
     this.messageCodec = messageCodec;
     this.messageMapper = messageMapper;
-    this.sessionId = "" + SESSION_ID_GENERATOR.incrementAndGet();
+    this.sessionId = Long.toHexString(SESSION_ID_GENERATOR.incrementAndGet());
   }
 
   @Override

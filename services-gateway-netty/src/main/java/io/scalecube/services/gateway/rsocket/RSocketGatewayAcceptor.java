@@ -24,6 +24,7 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
 
   /**
    * Creates new acceptor for RS gateway.
+   *
    * @param serviceCall to call remote service
    * @param metrics to report events
    * @param sessionEventHandler handler for session events
