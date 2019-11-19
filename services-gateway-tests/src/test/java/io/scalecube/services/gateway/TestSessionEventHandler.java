@@ -2,7 +2,7 @@ package io.scalecube.services.gateway;
 
 import java.util.concurrent.CountDownLatch;
 
-public class TestSessionEventHandler implements SessionEventsHandler {
+public class TestSessionEventHandler implements SessionEventHandler {
 
   public final CountDownLatch msgLatch = new CountDownLatch(1);
   public final CountDownLatch connLatch = new CountDownLatch(1);

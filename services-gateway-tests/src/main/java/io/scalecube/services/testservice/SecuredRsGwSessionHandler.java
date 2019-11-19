@@ -2,9 +2,9 @@ package io.scalecube.services.testservice;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewaySession;
-import io.scalecube.services.gateway.SessionEventsHandler;
+import io.scalecube.services.gateway.SessionEventHandler;
 
-public class SecuredRsGwSessionHandler implements SessionEventsHandler<ServiceMessage> {
+public class SecuredRsGwSessionHandler implements SessionEventHandler<ServiceMessage> {
   private final AuthRegistry authRegistry;
 
   public SecuredRsGwSessionHandler(AuthRegistry authRegistry) {

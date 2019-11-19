@@ -1,10 +1,10 @@
 package io.scalecube.services.testservice;
 
 import io.scalecube.services.gateway.GatewaySession;
-import io.scalecube.services.gateway.SessionEventsHandler;
+import io.scalecube.services.gateway.SessionEventHandler;
 import io.scalecube.services.gateway.ws.GatewayMessage;
 
-public class SecuredWsGwSessionManager implements SessionEventsHandler<GatewayMessage> {
+public class SecuredWsGwSessionManager implements SessionEventHandler<GatewayMessage> {
   private final AuthRegistry authRegistry;
 
   public SecuredWsGwSessionManager(AuthRegistry authRegistry) {
