@@ -2,12 +2,16 @@ package io.scalecube.services.testservice;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewaySession;
-import io.scalecube.services.gateway.SessionEventHandler;
+import io.scalecube.services.gateway.GatewaySessionHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class SecuredRsGwSessionHandler implements SessionEventHandler<ServiceMessage> {
+public class SecuredRsGwGatewaySessionHandler implements GatewaySessionHandler<ServiceMessage> {
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(SecuredRsGwGatewaySessionHandler.class);
   private final AuthRegistry authRegistry;
 
-  public SecuredRsGwSessionHandler(AuthRegistry authRegistry) {
+  public SecuredRsGwGatewaySessionHandler(AuthRegistry authRegistry) {
     this.authRegistry = authRegistry;
   }
 
@@ -18,12 +22,12 @@ public class SecuredRsGwSessionHandler implements SessionEventHandler<ServiceMes
 
   @Override
   public void onSessionOpen(GatewaySession s) {
-    System.out.println("Session opened: " + s);
+    LOGGER.info("Session opened: {}", s);
   }
 
   @Override
   public void onSessionClose(GatewaySession session) {
-    System.out.println("Session removed:" + session);
+    LOGGER.info("Session removed: {}", session);
     authRegistry.removeAuth(session.sessionId());
   }
 }

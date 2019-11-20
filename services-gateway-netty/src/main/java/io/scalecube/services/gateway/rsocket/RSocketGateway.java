@@ -9,9 +9,9 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
+import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.gateway.SessionEventHandler;
 import java.net.InetSocketAddress;
 import java.util.StringJoiner;
 import org.slf4j.Logger;
@@ -24,19 +24,19 @@ public class RSocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGateway.class);
 
-  private final SessionEventHandler<ServiceMessage> sessionEventHandler;
+  private final GatewaySessionHandler<ServiceMessage> gatewaySessionHandler;
   private CloseableChannel server;
   private LoopResources loopResources;
 
   public RSocketGateway(GatewayOptions options) {
     super(options);
-    this.sessionEventHandler = SessionEventHandler.DEFAULT_RS_INSTANCE;
+    this.gatewaySessionHandler = GatewaySessionHandler.DEFAULT_RS_INSTANCE;
   }
 
   public RSocketGateway(
-      GatewayOptions options, SessionEventHandler<ServiceMessage> sessionEventHandler) {
+      GatewayOptions options, GatewaySessionHandler<ServiceMessage> gatewaySessionHandler) {
     super(options);
-    this.sessionEventHandler = sessionEventHandler;
+    this.gatewaySessionHandler = gatewaySessionHandler;
   }
 
   @Override
@@ -46,7 +46,7 @@ public class RSocketGateway extends GatewayTemplate {
           ServiceCall serviceCall =
               options.call().requestReleaser(ReferenceCountUtil::safestRelease);
           RSocketGatewayAcceptor acceptor =
-              new RSocketGatewayAcceptor(serviceCall, gatewayMetrics, sessionEventHandler);
+              new RSocketGatewayAcceptor(serviceCall, gatewayMetrics, gatewaySessionHandler);
 
           loopResources = LoopResources.create("rsocket-gateway");
 

@@ -11,7 +11,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.TestService;
 import io.scalecube.services.gateway.TestServiceImpl;
-import io.scalecube.services.gateway.TestSessionEventHandler;
+import io.scalecube.services.gateway.TestGatewaySessionHandler;
 import io.scalecube.services.gateway.TestUtils;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
@@ -43,11 +43,11 @@ class WebsocketClientConnectionTest extends BaseTest {
   private Address gatewayAddress;
   private Microservices service;
   private GatewayClient client;
-  private TestSessionEventHandler sessionEventHandler;
+  private TestGatewaySessionHandler sessionEventHandler;
 
   @BeforeEach
   void beforEach() {
-    this.sessionEventHandler = new TestSessionEventHandler();
+    this.sessionEventHandler = new TestGatewaySessionHandler();
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)

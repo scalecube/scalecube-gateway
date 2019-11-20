@@ -11,7 +11,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.TestService;
 import io.scalecube.services.gateway.TestServiceImpl;
-import io.scalecube.services.gateway.TestSessionEventHandler;
+import io.scalecube.services.gateway.TestGatewaySessionHandler;
 import io.scalecube.services.gateway.TestUtils;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
@@ -41,12 +41,12 @@ class RsocketClientConnectionTest extends BaseTest {
   private Microservices gateway;
   private Address gatewayAddress;
   private Microservices service;
-  private TestSessionEventHandler sessionEventHandler;
+  private TestGatewaySessionHandler sessionEventHandler;
   private GatewayClient client;
 
   @BeforeEach
   void beforEach() {
-    sessionEventHandler = new TestSessionEventHandler();
+    sessionEventHandler = new TestGatewaySessionHandler();
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)

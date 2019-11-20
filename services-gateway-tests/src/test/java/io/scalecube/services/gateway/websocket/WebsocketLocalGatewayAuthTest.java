@@ -1,8 +1,5 @@
 package io.scalecube.services.gateway.websocket;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -10,14 +7,18 @@ import io.scalecube.services.testservice.AuthRegistry;
 import io.scalecube.services.testservice.SecuredAuthenticator;
 import io.scalecube.services.testservice.SecuredService;
 import io.scalecube.services.testservice.SecuredServiceImpl;
-import java.time.Duration;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class WebsocketLocalGatewayAuthTest {
 
@@ -87,8 +88,7 @@ public class WebsocketLocalGatewayAuthTest {
     extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class).block(TIMEOUT);
     // call secured service
     final String req = "echo";
-    StepVerifier.create(
-            clientService.requestOne(req, null).doOnNext(n -> System.out.println(">>>" + n)))
+    StepVerifier.create(clientService.requestOne(req, null))
         .expectNextMatches(resp -> resp.equals(ALLOWED_USER + "@" + req))
         .expectComplete()
         .verify();

@@ -6,10 +6,14 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import java.util.Optional;
 import java.util.stream.IntStream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class SecuredServiceImpl implements SecuredService {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SecuredServiceImpl.class);
 
   private final AuthRegistry authRegistry;
 
@@ -36,7 +40,7 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Mono<String> requestOne(String req, @Principal String auth) {
-    System.out.println("User " + auth + " accessed secured call");
+    LOGGER.info("User {} has accessed secured call", auth);
     return Mono.just(auth + "@" + req);
   }
 

@@ -4,9 +4,9 @@ import io.scalecube.net.Address;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
+import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.gateway.SessionEventHandler;
 import java.net.InetSocketAddress;
 import java.util.StringJoiner;
 import reactor.core.publisher.Flux;
@@ -16,18 +16,18 @@ import reactor.netty.resources.LoopResources;
 
 public class WebsocketGateway extends GatewayTemplate {
 
-  private final SessionEventHandler<GatewayMessage> gatewayHandler;
+  private final GatewaySessionHandler<GatewayMessage> gatewayHandler;
 
   private DisposableServer server;
   private LoopResources loopResources;
 
   public WebsocketGateway(GatewayOptions options) {
     super(options);
-    this.gatewayHandler = SessionEventHandler.DEFAULT_WS_INSTANCE;
+    this.gatewayHandler = GatewaySessionHandler.DEFAULT_WS_INSTANCE;
   }
 
   public WebsocketGateway(
-      GatewayOptions options, SessionEventHandler<GatewayMessage> gatewayHandler) {
+      GatewayOptions options, GatewaySessionHandler<GatewayMessage> gatewayHandler) {
     super(options);
     this.gatewayHandler = gatewayHandler;
   }

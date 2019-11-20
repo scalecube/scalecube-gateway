@@ -27,8 +27,8 @@ public class GatewayHandlerTest {
 
     // Given:
     // Start service with 2 gateways and create clients
-    TestSessionEventHandler rsHandler = new TestSessionEventHandler();
-    TestSessionEventHandler wsHandler = new TestSessionEventHandler();
+    TestGatewaySessionHandler rsHandler = new TestGatewaySessionHandler();
+    TestGatewaySessionHandler wsHandler = new TestGatewaySessionHandler();
     Function<GatewayOptions, Gateway> rsGw =
         opts -> new RSocketGateway(opts.id(RSGW).port(RS_PORT), rsHandler);
     Function<GatewayOptions, Gateway> wsGw =
