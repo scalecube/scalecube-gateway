@@ -3,7 +3,6 @@ package io.scalecube.services.gateway.rsocket;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
-import io.rsocket.exceptions.ConnectionErrorException;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewayMetrics;
@@ -48,13 +47,7 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
     final RSocketGatewaySession gatewaySession =
         new RSocketGatewaySession(
             serviceCall, metrics, messageCodec, gatewaySessionHandler::mapMessage);
-
-    try {
-      gatewaySessionHandler.onSessionOpen(gatewaySession);
-    } catch (Exception e) {
-      return Mono.error(new ConnectionErrorException("connection error", e));
-    }
-
+    gatewaySessionHandler.onSessionOpen(gatewaySession);
     rsocket
         .onClose()
         .doOnTerminate(

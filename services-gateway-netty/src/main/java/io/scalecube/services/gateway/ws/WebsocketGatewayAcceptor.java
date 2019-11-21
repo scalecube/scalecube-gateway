@@ -20,6 +20,7 @@ import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
+
 public class WebsocketGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
@@ -35,7 +36,8 @@ public class WebsocketGatewayAcceptor
    * @param gatewayHandler gateway handler
    */
   public WebsocketGatewayAcceptor(
-      ServiceCall serviceCall, GatewayMetrics metrics,
+      ServiceCall serviceCall,
+      GatewayMetrics metrics,
       GatewaySessionHandler<GatewayMessage> gatewayHandler) {
     this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
     this.metrics = Objects.requireNonNull(metrics, "metrics");
@@ -50,11 +52,7 @@ public class WebsocketGatewayAcceptor
   }
 
   private Mono<Void> onConnect(WebsocketGatewaySession session) {
-    try {
-      gatewayHandler.onSessionOpen(session);
-    } catch (Exception e) {
-      return session.close(e.getMessage());
-    }
+    gatewayHandler.onSessionOpen(session);
 
     session
         .receive()
@@ -137,8 +135,7 @@ public class WebsocketGatewayAcceptor
       Builder builder = GatewayMessage.builder();
       Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
       GatewayMessage response = builder.signal(Signal.COMPLETE).build();
-      session.send(response)
-          .subscribe(null, ex -> gatewayHandler.onError(session, ex, req, null));
+      session.send(response).subscribe(null, ex -> gatewayHandler.onError(session, ex, req, null));
     }
   }
 
