@@ -9,6 +9,7 @@ public class GatewayClientSettings {
 
   private static final String DEFAULT_HOST = "localhost";
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
+  private static final long DEFAULT_KEEPALIVE_INTERVAL = 30_000;
 
   private final String host;
   private final int port;
@@ -16,6 +17,7 @@ public class GatewayClientSettings {
   private final boolean followRedirect;
   private final SslProvider sslProvider;
   private final ServiceClientErrorMapper errorMapper;
+  private final long keepaliveIntervalMs;
 
   private GatewayClientSettings(Builder builder) {
     this.host = builder.host;
@@ -24,6 +26,7 @@ public class GatewayClientSettings {
     this.followRedirect = builder.followRedirect;
     this.sslProvider = builder.sslProvider;
     this.errorMapper = builder.errorMapper;
+    this.keepaliveIntervalMs = builder.keepaliveIntervalMs;
   }
 
   public String host() {
@@ -50,6 +53,10 @@ public class GatewayClientSettings {
     return errorMapper;
   }
 
+  public long keepaliveIntervalMs() {
+    return this.keepaliveIntervalMs;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -65,6 +72,7 @@ public class GatewayClientSettings {
     sb.append(", port=").append(port);
     sb.append(", contentType='").append(contentType).append('\'');
     sb.append(", followRedirect=").append(followRedirect);
+    sb.append(", keepaliveIntervalMs=").append(keepaliveIntervalMs);
     sb.append(", sslProvider=").append(sslProvider);
     sb.append('}');
     return sb.toString();
@@ -78,9 +86,9 @@ public class GatewayClientSettings {
     private boolean followRedirect = true;
     private SslProvider sslProvider;
     private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
+    private long keepaliveIntervalMs = DEFAULT_KEEPALIVE_INTERVAL;
 
     private Builder() {
-      
     }
 
     private Builder(GatewayClientSettings originalSettings) {
@@ -140,6 +148,18 @@ public class GatewayClientSettings {
      */
     public Builder secure(SslProvider sslProvider) {
       this.sslProvider = sslProvider;
+      return this;
+    }
+
+    /**
+     * Keepalive interval in ms. If client's channel doesn't have any activity at channel during
+     * this period, it will send a keepalive message to the server.
+     *
+     * @param keepaliveIntervalMs keepalive interval in milliseconds.
+     * @return builder
+     */
+    public Builder keepaliveIntervalMs(long keepaliveIntervalMs) {
+      this.keepaliveIntervalMs = keepaliveIntervalMs;
       return this;
     }
 
