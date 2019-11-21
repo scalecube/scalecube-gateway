@@ -22,6 +22,7 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 public class WebsocketGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
+  private static final String KEEPALIVE_Q = "io.scalecube.services/keepalive";
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
@@ -80,6 +81,10 @@ public class WebsocketGatewayAcceptor
   }
 
   private void handleMessage(WebsocketSession session, GatewayMessage request) {
+    if (request.qualifier().equals(KEEPALIVE_Q)) {
+      //TODO: Ignore keepalive. Possibly - handle keepalives in gatewaySessionHandler
+      return;
+    }
     Long sid = request.streamId();
 
     AtomicBoolean receivedError = new AtomicBoolean(false);

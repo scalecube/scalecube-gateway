@@ -123,6 +123,23 @@ class WebsocketClientConnectionTest extends BaseTest {
     }
   }
 
+  @Test
+  void testKeepalive() {
+    client =
+        new WebsocketGatewayClient(
+            GatewayClientSettings.builder().address(gatewayAddress).keepaliveIntervalMs(500).build(), CLIENT_CODEC);
+
+    ServiceCall serviceCall =
+        new ServiceCall()
+            .transport(new GatewayClientTransport(client))
+            .router(new StaticAddressRouter(gatewayAddress));
+
+    StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
+        .thenAwait(Duration.ofSeconds(100))
+        .expectComplete()
+        .verify(Duration.ofSeconds(10));
+  }
+
   @Service
   public interface TestService {
 
