@@ -2,6 +2,7 @@ package io.scalecube.services.gateway.websocket;
 
 import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.net.Address;
@@ -9,6 +10,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.TestUtils;
@@ -23,6 +25,7 @@ import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,12 +38,10 @@ class WebsocketClientConnectionTest extends BaseTest {
 
   public static final GatewayClientCodec<ByteBuf> CLIENT_CODEC =
       GatewayClientTransports.WEBSOCKET_CLIENT_CODEC;
-
+  private static final AtomicInteger onCloseCounter = new AtomicInteger();
   private Microservices gateway;
   private Address gatewayAddress;
   private Microservices service;
-
-  private static final AtomicInteger onCloseCounter = new AtomicInteger();
   private GatewayClient client;
 
   @BeforeEach
@@ -124,23 +125,37 @@ class WebsocketClientConnectionTest extends BaseTest {
   }
 
   @Test
-  void testKeepalive() {
+  void testKeepalive() throws InterruptedException {
+    int expectedKeepalives = 3;
+    long keepalivePeriod = 3000;
+    CountDownLatch keepaliveLatch = new CountDownLatch(expectedKeepalives);
     client =
         new WebsocketGatewayClient(
-            GatewayClientSettings.builder().address(gatewayAddress).keepaliveIntervalMs(500).build(), CLIENT_CODEC);
+            GatewayClientSettings.builder()
+                .address(gatewayAddress)
+                .keepaliveIntervalMs(keepalivePeriod)
+                .build(),
+            CLIENT_CODEC);
 
     ServiceCall serviceCall =
         new ServiceCall()
             .transport(new GatewayClientTransport(client))
             .router(new StaticAddressRouter(gatewayAddress));
 
-    StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
-        .thenAwait(Duration.ofSeconds(100))
-        .expectComplete()
-        .verify(Duration.ofSeconds(10));
+    serviceCall
+        .requestMany(ServiceMessage.builder().qualifier("/test/manyNever").build())
+        .doOnNext(
+            n -> {
+              keepaliveLatch.countDown();
+              System.out.println("Keepalive response");
+            })
+        .take(expectedKeepalives)
+        .blockLast(Duration.ofMillis(keepalivePeriod * (expectedKeepalives + 1)));
+
+    assertTrue(keepaliveLatch.getCount() == 0);
   }
 
-  @Service
+  @Service("test")
   public interface TestService {
 
     @ServiceMethod("manyNever")
