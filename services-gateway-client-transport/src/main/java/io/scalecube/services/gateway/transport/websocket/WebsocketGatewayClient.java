@@ -1,11 +1,11 @@
 package io.scalecube.services.gateway.transport.websocket;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
-import io.scalecube.services.gateway.transport.KeepaliveSender;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
-import reactor.netty.Connection;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -26,8 +25,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   private static final AtomicReferenceFieldUpdater<WebsocketGatewayClient, Mono>
       websocketMonoUpdater =
-          AtomicReferenceFieldUpdater.newUpdater(
-              WebsocketGatewayClient.class, Mono.class, "websocketMono");
+      AtomicReferenceFieldUpdater.newUpdater(
+          WebsocketGatewayClient.class, Mono.class, "websocketMono");
 
   private final GatewayClientCodec<ByteBuf> codec;
   private final GatewayClientSettings settings;
@@ -36,7 +35,6 @@ public final class WebsocketGatewayClient implements GatewayClient {
   private final LoopResources loopResources;
   private final MonoProcessor<Void> close = MonoProcessor.create();
   private final MonoProcessor<Void> onClose = MonoProcessor.create();
-  private final KeepaliveSender keepaliveSender;
 
   @SuppressWarnings("unused")
   private volatile Mono<?> websocketMono;
@@ -45,7 +43,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
    * Creates instance of websocket client transport.
    *
    * @param settings client settings
-   * @param codec client codec.
+   * @param codec    client codec.
    */
   public WebsocketGatewayClient(GatewayClientSettings settings, GatewayClientCodec<ByteBuf> codec) {
     this.settings = settings;
@@ -70,8 +68,6 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .doOnTerminate(() -> LOGGER.info("Closed WebsocketGatewayClient resources"))
         .subscribe(
             null, ex -> LOGGER.warn("Exception occurred on WebsocketGatewayClient close: " + ex));
-
-    this.keepaliveSender = new KeepaliveSender(this);
   }
 
   @Override
@@ -148,10 +144,21 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .uri("/")
         .connect()
         .map(
-            connection -> {
-              Connection conn = connection
-                  .onReadIdle(settings.keepaliveIntervalMs(), keepaliveSender)
-                  .onWriteIdle(settings.keepaliveIntervalMs(), keepaliveSender);
+            c ->
+                c.onReadIdle(
+                    settings.keepaliveInterval().toMillis(),
+                    () -> {
+                      LOGGER.debug("Keepalive on readIdle");
+                      c.outbound().sendObject(new PingWebSocketFrame());
+                    })
+                    .onWriteIdle(
+                        settings.keepaliveInterval().toMillis(),
+                        () -> {
+                          LOGGER.debug("Keepalive on writeIdle");
+                          c.outbound().sendObject(new PingWebSocketFrame());
+                        }))
+        .map(
+            conn -> {
               WebsocketSession session = new WebsocketSession(codec, conn);
               LOGGER.info("Created {} on {}:{}", session, settings.host(), settings.port());
               // setup shutdown hook

@@ -3,13 +3,14 @@ package io.scalecube.services.gateway.transport;
 import io.scalecube.net.Address;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
+import java.time.Duration;
 import reactor.netty.tcp.SslProvider;
 
 public class GatewayClientSettings {
 
   private static final String DEFAULT_HOST = "localhost";
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
-  private static final long DEFAULT_KEEPALIVE_INTERVAL = 30_000;
+  private static final Duration DEFAULT_KEEPALIVE_INTERVAL = Duration.ofSeconds(30);
 
   private final String host;
   private final int port;
@@ -17,7 +18,7 @@ public class GatewayClientSettings {
   private final boolean followRedirect;
   private final SslProvider sslProvider;
   private final ServiceClientErrorMapper errorMapper;
-  private final long keepaliveIntervalMs;
+  private final Duration keepaliveInterval;
 
   private GatewayClientSettings(Builder builder) {
     this.host = builder.host;
@@ -26,7 +27,7 @@ public class GatewayClientSettings {
     this.followRedirect = builder.followRedirect;
     this.sslProvider = builder.sslProvider;
     this.errorMapper = builder.errorMapper;
-    this.keepaliveIntervalMs = builder.keepaliveIntervalMs;
+    this.keepaliveInterval = builder.keepaliveInterval;
   }
 
   public String host() {
@@ -53,8 +54,8 @@ public class GatewayClientSettings {
     return errorMapper;
   }
 
-  public long keepaliveIntervalMs() {
-    return this.keepaliveIntervalMs;
+  public Duration keepaliveInterval() {
+    return this.keepaliveInterval;
   }
 
   public static Builder builder() {
@@ -72,7 +73,7 @@ public class GatewayClientSettings {
     sb.append(", port=").append(port);
     sb.append(", contentType='").append(contentType).append('\'');
     sb.append(", followRedirect=").append(followRedirect);
-    sb.append(", keepaliveIntervalMs=").append(keepaliveIntervalMs);
+    sb.append(", keepaliveInterval=").append(keepaliveInterval);
     sb.append(", sslProvider=").append(sslProvider);
     sb.append('}');
     return sb.toString();
@@ -86,7 +87,7 @@ public class GatewayClientSettings {
     private boolean followRedirect = true;
     private SslProvider sslProvider;
     private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
-    private long keepaliveIntervalMs = DEFAULT_KEEPALIVE_INTERVAL;
+    private Duration keepaliveInterval = DEFAULT_KEEPALIVE_INTERVAL;
 
     private Builder() {
     }
@@ -98,6 +99,7 @@ public class GatewayClientSettings {
       this.followRedirect = originalSettings.followRedirect;
       this.sslProvider = originalSettings.sslProvider;
       this.errorMapper = originalSettings.errorMapper;
+      this.keepaliveInterval = originalSettings.keepaliveInterval;
     }
 
     public Builder host(String host) {
@@ -158,8 +160,8 @@ public class GatewayClientSettings {
      * @param keepaliveIntervalMs keepalive interval in milliseconds.
      * @return builder
      */
-    public Builder keepaliveIntervalMs(long keepaliveIntervalMs) {
-      this.keepaliveIntervalMs = keepaliveIntervalMs;
+    public Builder keepaliveIntervalMs(Duration keepaliveIntervalMs) {
+      this.keepaliveInterval = keepaliveIntervalMs;
       return this;
     }
 

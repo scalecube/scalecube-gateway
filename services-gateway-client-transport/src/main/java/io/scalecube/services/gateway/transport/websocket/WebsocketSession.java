@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.transport.websocket;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
@@ -43,7 +44,8 @@ final class WebsocketSession {
   WebsocketSession(GatewayClientCodec<ByteBuf> codec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
-    this.connection = connection;
+    this.connection = connection
+        .onReadIdle(3000, () -> connection.outbound().sendObject(new PingWebSocketFrame()));
     this.outbound = (WebsocketOutbound) connection.outbound().options(SendOptions::flushOnEach);
 
     WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
@@ -133,10 +135,9 @@ final class WebsocketSession {
   }
 
   /**
-   * Close the websocket session with <i>normal</i> status. <a
-   * href="https://tools.ietf.org/html/rfc6455#section-7.4.1">Defined Status Codes:</a> <i>1000
-   * indicates a normal closure, meaning that the purpose for which the connection was established
-   * has been fulfilled.</i>
+   * Close the websocket session with <i>normal</i> status. <a href="https://tools.ietf.org/html/rfc6455#section-7.4.1">Defined
+   * Status Codes:</a> <i>1000 indicates a normal closure, meaning that the purpose for which the
+   * connection was established has been fulfilled.</i>
    *
    * @return mono void
    */
