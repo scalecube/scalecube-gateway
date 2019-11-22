@@ -13,6 +13,7 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
+import java.util.function.Function;
 import reactor.core.publisher.Hooks;
 
 public class GatewayClientTransports {
@@ -45,7 +46,7 @@ public class GatewayClientTransports {
    * @return client transport
    */
   public static ClientTransport rsocketGatewayClientTransport(GatewayClientSettings cs) {
-    final java.util.function.Function<GatewayClientSettings, GatewayClient> function =
+    final Function<GatewayClientSettings, GatewayClient> function =
         settings -> new RSocketGatewayClient(settings, RSOCKET_CLIENT_CODEC);
     return new GatewayClientTransport(function.apply(cs));
   }
@@ -57,7 +58,7 @@ public class GatewayClientTransports {
    * @return client transport
    */
   public static ClientTransport websocketGatewayClientTransport(GatewayClientSettings cs) {
-    final java.util.function.Function<GatewayClientSettings, GatewayClient> function =
+    final Function<GatewayClientSettings, GatewayClient> function =
         settings -> new WebsocketGatewayClient(settings, WEBSOCKET_CLIENT_CODEC);
     return new GatewayClientTransport(function.apply(cs));
   }
@@ -69,7 +70,7 @@ public class GatewayClientTransports {
    * @return client transport
    */
   public static ClientTransport httpGatewayClientTransport(GatewayClientSettings cs) {
-    final java.util.function.Function<GatewayClientSettings, GatewayClient> function =
+    final Function<GatewayClientSettings, GatewayClient> function =
         settings -> new HttpGatewayClient(settings, HTTP_CLIENT_CODEC);
     return new GatewayClientTransport(function.apply(cs));
   }
