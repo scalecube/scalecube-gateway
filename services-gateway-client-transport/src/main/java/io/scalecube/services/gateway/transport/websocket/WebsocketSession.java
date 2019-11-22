@@ -25,7 +25,7 @@ import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
-final class WebsocketSession {
+public final class WebsocketSession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
 
@@ -44,8 +44,7 @@ final class WebsocketSession {
   WebsocketSession(GatewayClientCodec<ByteBuf> codec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
-    this.connection = connection
-        .onReadIdle(3000, () -> connection.outbound().sendObject(new PingWebSocketFrame()));
+    this.connection = connection;
     this.outbound = (WebsocketOutbound) connection.outbound().options(SendOptions::flushOnEach);
 
     WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
