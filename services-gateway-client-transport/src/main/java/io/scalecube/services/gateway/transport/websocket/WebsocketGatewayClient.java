@@ -5,6 +5,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.transport.KeepaliveSender;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
+import reactor.netty.Connection;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -34,6 +36,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
   private final LoopResources loopResources;
   private final MonoProcessor<Void> close = MonoProcessor.create();
   private final MonoProcessor<Void> onClose = MonoProcessor.create();
+  private final KeepaliveSender keepaliveSender;
 
   @SuppressWarnings("unused")
   private volatile Mono<?> websocketMono;
@@ -67,6 +70,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .doOnTerminate(() -> LOGGER.info("Closed WebsocketGatewayClient resources"))
         .subscribe(
             null, ex -> LOGGER.warn("Exception occurred on WebsocketGatewayClient close: " + ex));
+
+    this.keepaliveSender = new KeepaliveSender(this);
   }
 
   @Override
@@ -144,7 +149,10 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .connect()
         .map(
             connection -> {
-              WebsocketSession session = new WebsocketSession(codec, connection);
+              Connection conn = connection
+                  .onReadIdle(settings.keepaliveIntervalMs(), keepaliveSender)
+                  .onWriteIdle(settings.keepaliveIntervalMs(), keepaliveSender);
+              WebsocketSession session = new WebsocketSession(codec, conn);
               LOGGER.info("Created {} on {}:{}", session, settings.host(), settings.port());
               // setup shutdown hook
               session
