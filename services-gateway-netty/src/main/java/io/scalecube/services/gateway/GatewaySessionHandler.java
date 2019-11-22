@@ -1,13 +1,18 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway;
 
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.gateway.ws.GatewayMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public interface WebsocketGatewayHandler {
+public interface GatewaySessionHandler<M> {
 
-  Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayHandler.class);
+  Logger LOGGER = LoggerFactory.getLogger(GatewaySessionHandler.class);
 
-  WebsocketGatewayHandler DEFAULT_INSTANCE = new WebsocketGatewayHandler() {};
+  GatewaySessionHandler<GatewayMessage> DEFAULT_WS_INSTANCE =
+      new GatewaySessionHandler<GatewayMessage>() {};
+  GatewaySessionHandler<ServiceMessage> DEFAULT_RS_INSTANCE =
+      new GatewaySessionHandler<ServiceMessage>() {};
 
   /**
    * Message mapper function.
@@ -16,7 +21,7 @@ public interface WebsocketGatewayHandler {
    * @param req request message (not null)
    * @return message
    */
-  default GatewayMessage mapMessage(WebsocketSession session, GatewayMessage req) {
+  default M mapMessage(GatewaySession session, M req) {
     return req;
   }
 
@@ -28,11 +33,10 @@ public interface WebsocketGatewayHandler {
    * @param req request message (optional)
    * @param resp response message (optional)
    */
-  default void onError(
-      WebsocketSession session, Throwable throwable, GatewayMessage req, GatewayMessage resp) {
+  default void onError(GatewaySession session, Throwable throwable, M req, M resp) {
     LOGGER.error(
         "Exception occurred on session={}, on request: {}, on response: {}, cause:",
-        session.id(),
+        session.sessionId(),
         req,
         resp,
         throwable);
@@ -43,7 +47,7 @@ public interface WebsocketGatewayHandler {
    *
    * @param session websocket session (not null)
    */
-  default void onSessionOpen(WebsocketSession session) {
+  default void onSessionOpen(GatewaySession session) {
     LOGGER.info("Session opened: " + session);
   }
 
@@ -52,7 +56,7 @@ public interface WebsocketGatewayHandler {
    *
    * @param session websocket session (not null)
    */
-  default void onSessionClose(WebsocketSession session) {
+  default void onSessionClose(GatewaySession session) {
     LOGGER.info("Session closed: " + session);
   }
 }
