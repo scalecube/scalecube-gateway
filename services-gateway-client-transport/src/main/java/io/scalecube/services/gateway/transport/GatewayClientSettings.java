@@ -157,11 +157,11 @@ public class GatewayClientSettings {
      * Keepalive interval in ms. If client's channel doesn't have any activity at channel during
      * this period, it will send a keepalive message to the server.
      *
-     * @param keepaliveIntervalMs keepalive interval in milliseconds.
+     * @param keepaliveInterval keepalive interval.
      * @return builder
      */
-    public Builder keepaliveIntervalMs(Duration keepaliveIntervalMs) {
-      this.keepaliveInterval = keepaliveIntervalMs;
+    public Builder keepaliveInterval(Duration keepaliveInterval) {
+      this.keepaliveInterval = keepaliveInterval;
       return this;
     }
 

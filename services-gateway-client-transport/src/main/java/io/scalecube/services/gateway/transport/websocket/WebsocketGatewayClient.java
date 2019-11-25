@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
+import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -43,7 +44,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
    * Creates instance of websocket client transport.
    *
    * @param settings client settings
-   * @param codec    client codec.
+   * @param codec client codec.
    */
   public WebsocketGatewayClient(GatewayClientSettings settings, GatewayClientCodec<ByteBuf> codec) {
     this.settings = settings;
@@ -58,7 +59,11 @@ public final class WebsocketGatewayClient implements GatewayClient {
                   if (settings.sslProvider() != null) {
                     tcpClient = tcpClient.secure(settings.sslProvider());
                   }
-                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
+                  return tcpClient
+                      .wiretap(true)
+                      .runOn(loopResources)
+                      .host(settings.host())
+                      .port(settings.port());
                 });
 
     // Setup cleanup
@@ -149,13 +154,21 @@ public final class WebsocketGatewayClient implements GatewayClient {
                     settings.keepaliveInterval().toMillis(),
                     () -> {
                       LOGGER.debug("Keepalive on readIdle");
-                      c.outbound().sendObject(new PingWebSocketFrame());
+                      c.outbound()
+                          .options(SendOptions::flushOnEach)
+                          .sendObject(new PingWebSocketFrame())
+                          .then()
+                          .subscribe(avoid -> System.out.println("SENT PING"));
                     })
                     .onWriteIdle(
                         settings.keepaliveInterval().toMillis(),
                         () -> {
                           LOGGER.debug("Keepalive on writeIdle");
-                          c.outbound().sendObject(new PingWebSocketFrame());
+                          c.outbound()
+                              .options(SendOptions::flushOnEach)
+                              .sendObject(new PingWebSocketFrame())
+                              .then()
+                              .subscribe(avoid -> System.out.println("SENT PING"));
                         }))
         .map(
             conn -> {

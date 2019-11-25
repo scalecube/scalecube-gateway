@@ -4,10 +4,12 @@ import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.TestGatewaySessionHandler;
@@ -83,9 +85,9 @@ class WebsocketClientConnectionTest extends BaseTest {
   @AfterEach
   void afterEach() {
     Flux.concat(
-        Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
-        Mono.justOrEmpty(gateway).map(Microservices::shutdown),
-        Mono.justOrEmpty(service).map(Microservices::shutdown))
+            Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
+            Mono.justOrEmpty(gateway).map(Microservices::shutdown),
+            Mono.justOrEmpty(service).map(Microservices::shutdown))
         .then()
         .block();
   }
@@ -160,32 +162,40 @@ class WebsocketClientConnectionTest extends BaseTest {
 
   @Test
   void testKeepalive()
-      throws InterruptedException, NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+      throws InterruptedException, NoSuchFieldException, IllegalAccessException,
+          NoSuchMethodException, InvocationTargetException {
+
     int expectedKeepalives = 3;
-    Duration keepaliveInterval = Duration.ofSeconds(3);
+    Duration keepaliveInterval = Duration.ofSeconds(1);
     CountDownLatch keepaliveLatch = new CountDownLatch(expectedKeepalives);
     client =
         new WebsocketGatewayClient(
             GatewayClientSettings.builder()
                 .address(gatewayAddress)
-                .keepaliveIntervalMs(keepaliveInterval)
+                .keepaliveInterval(keepaliveInterval)
                 .build(),
             CLIENT_CODEC);
 
     Method getorConn = WebsocketGatewayClient.class.getDeclaredMethod("getOrConnect");
     getorConn.setAccessible(true);
-    WebsocketSession session = ((Mono<WebsocketSession>) getorConn.invoke(client))
-        .block(TIMEOUT);
+    WebsocketSession session = ((Mono<WebsocketSession>) getorConn.invoke(client)).block(TIMEOUT);
     Field connectionField = WebsocketSession.class.getDeclaredField("connection");
     connectionField.setAccessible(true);
     Connection connection = (Connection) connectionField.get(session);
-    connection.inbound().receive().aggregate().subscribe(n -> keepaliveLatch.countDown());
+    connection.addHandler(
+        new ChannelInboundHandlerAdapter() {
+          @Override
+          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            if (msg instanceof PongWebSocketFrame) {
+              keepaliveLatch.countDown();
+            }
+            super.channelRead(ctx, msg);
+          }
+        });
 
-    client.requestStream(ServiceMessage.builder().qualifier("/test/manyNever").build());
+    keepaliveLatch.await(
+        keepaliveInterval.toMillis() * (expectedKeepalives + 1), TimeUnit.MILLISECONDS);
 
-    keepaliveLatch
-        .await(keepaliveInterval.toMillis() * (expectedKeepalives + 1), TimeUnit.MILLISECONDS);
-
-//    assertEquals(0, keepaliveLatch.getCount());
+    assertEquals(0, keepaliveLatch.getCount());
   }
 }
