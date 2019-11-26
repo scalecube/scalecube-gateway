@@ -6,6 +6,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
@@ -26,8 +27,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   private static final AtomicReferenceFieldUpdater<WebsocketGatewayClient, Mono>
       websocketMonoUpdater =
-      AtomicReferenceFieldUpdater.newUpdater(
-          WebsocketGatewayClient.class, Mono.class, "websocketMono");
+          AtomicReferenceFieldUpdater.newUpdater(
+              WebsocketGatewayClient.class, Mono.class, "websocketMono");
 
   private final GatewayClientCodec<ByteBuf> codec;
   private final GatewayClientSettings settings;
@@ -149,30 +150,35 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .uri("/")
         .connect()
         .map(
-            c ->
-                c.onReadIdle(
-                    settings.keepaliveInterval().toMillis(),
-                    () -> {
-                      LOGGER.debug("Keepalive on readIdle");
-                      c.outbound()
-                          .options(SendOptions::flushOnEach)
-                          .sendObject(new PingWebSocketFrame())
-                          .then()
-                          .subscribe(avoid -> System.out.println("SENT PING"));
-                    })
-                    .onWriteIdle(
-                        settings.keepaliveInterval().toMillis(),
-                        () -> {
-                          LOGGER.debug("Keepalive on writeIdle");
-                          c.outbound()
-                              .options(SendOptions::flushOnEach)
-                              .sendObject(new PingWebSocketFrame())
-                              .then()
-                              .subscribe(avoid -> System.out.println("SENT PING"));
-                        }))
+            connection ->
+                settings.keepaliveInterval() != Duration.ZERO
+                    ? connection
+                        .onReadIdle(
+                            settings.keepaliveInterval().toMillis(),
+                            () -> {
+                              LOGGER.debug("Sending keepalive on readIdle");
+                              connection
+                                  .outbound()
+                                  .options(SendOptions::flushOnEach)
+                                  .sendObject(new PingWebSocketFrame())
+                                  .then()
+                                  .subscribe(avoid -> {});
+                            })
+                        .onWriteIdle(
+                            settings.keepaliveInterval().toMillis(),
+                            () -> {
+                              LOGGER.debug("Sending keepalive on writeIdle");
+                              connection
+                                  .outbound()
+                                  .options(SendOptions::flushOnEach)
+                                  .sendObject(new PingWebSocketFrame())
+                                  .then()
+                                  .subscribe(avoid -> {});
+                            })
+                    : connection)
         .map(
-            conn -> {
-              WebsocketSession session = new WebsocketSession(codec, conn);
+            connection -> {
+              WebsocketSession session = new WebsocketSession(codec, connection);
               LOGGER.info("Created {} on {}:{}", session, settings.host(), settings.port());
               // setup shutdown hook
               session
