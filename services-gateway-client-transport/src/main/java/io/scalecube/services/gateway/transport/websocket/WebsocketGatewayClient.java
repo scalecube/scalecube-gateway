@@ -61,7 +61,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                     tcpClient = tcpClient.secure(settings.sslProvider());
                   }
                   return tcpClient
-                      .wiretap(true)
+                      .wiretap(settings.wiretap())
                       .runOn(loopResources)
                       .host(settings.host())
                       .port(settings.port());
