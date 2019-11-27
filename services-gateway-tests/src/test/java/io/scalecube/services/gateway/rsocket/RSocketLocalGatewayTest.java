@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway.rsocket;
 
-import io.rsocket.exceptions.ApplicationErrorException;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.examples.EmptyGreetingRequest;
@@ -9,6 +8,7 @@ import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
+import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.gateway.BaseTest;
 import java.time.Duration;
 import java.util.List;
@@ -102,7 +102,7 @@ class RSocketLocalGatewayTest extends BaseTest {
     Mono<String> result = service.failingOne(req);
 
     StepVerifier.create(result)
-        .expectErrorMatches(throwable -> throwable instanceof ApplicationErrorException)
+        .expectErrorMatches(throwable -> throwable instanceof InternalServiceException)
         .verify(TIMEOUT);
   }
 

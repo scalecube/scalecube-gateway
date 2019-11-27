@@ -1,11 +1,12 @@
 package io.scalecube.services.gateway.transport.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
@@ -13,12 +14,14 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
+import reactor.netty.Connection;
+import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
 public final class WebsocketGatewayClient implements GatewayClient {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketClientTransport.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayClient.class);
 
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
@@ -58,7 +61,11 @@ public final class WebsocketGatewayClient implements GatewayClient {
                   if (settings.sslProvider() != null) {
                     tcpClient = tcpClient.secure(settings.sslProvider());
                   }
-                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
+                  return tcpClient
+                      .wiretap(settings.wiretap())
+                      .runOn(loopResources)
+                      .host(settings.host())
+                      .port(settings.port());
                 });
 
     // Setup cleanup
@@ -139,10 +146,19 @@ public final class WebsocketGatewayClient implements GatewayClient {
       return prev;
     }
 
+    Duration keepAliveInterval = settings.keepAliveInterval();
+
     return httpClient
         .websocket()
         .uri("/")
         .connect()
+        .map(
+            connection ->
+                keepAliveInterval != Duration.ZERO
+                    ? connection
+                        .onReadIdle(keepAliveInterval.toMillis(), () -> onReadIdle(connection))
+                        .onWriteIdle(keepAliveInterval.toMillis(), () -> onWriteIdle(connection))
+                    : connection)
         .map(
             connection -> {
               WebsocketSession session = new WebsocketSession(codec, connection);
@@ -172,6 +188,26 @@ public final class WebsocketGatewayClient implements GatewayClient {
               websocketMonoUpdater.getAndSet(this, null); // clear reference
             })
         .cache();
+  }
+
+  private void onWriteIdle(Connection connection) {
+    LOGGER.debug("Sending keepalive on writeIdle");
+    connection
+        .outbound()
+        .options(SendOptions::flushOnEach)
+        .sendObject(new PingWebSocketFrame())
+        .then()
+        .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on writeIdle: " + ex));
+  }
+
+  private void onReadIdle(Connection connection) {
+    LOGGER.debug("Sending keepalive on readIdle");
+    connection
+        .outbound()
+        .options(SendOptions::flushOnEach)
+        .sendObject(new PingWebSocketFrame())
+        .then()
+        .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
   }
 
   private void handleCancel(long sid, WebsocketSession session) {

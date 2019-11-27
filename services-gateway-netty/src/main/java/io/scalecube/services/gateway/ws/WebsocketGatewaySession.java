@@ -3,6 +3,7 @@ package io.scalecube.services.gateway.ws;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.scalecube.services.gateway.GatewaySession;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -18,9 +19,9 @@ import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
-public final class WebsocketSession {
+public final class WebsocketGatewaySession implements GatewaySession {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewaySession.class);
 
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
@@ -32,7 +33,7 @@ public final class WebsocketSession {
   private final WebsocketOutbound outbound;
   private final GatewayMessageCodec codec;
 
-  private final String id;
+  private final String sessionId;
   private final String contentType;
 
   /**
@@ -43,25 +44,24 @@ public final class WebsocketSession {
    * @param inbound - Websocket inbound
    * @param outbound - Websocket outbound
    */
-  public WebsocketSession(
+  public WebsocketGatewaySession(
       GatewayMessageCodec codec,
       HttpServerRequest httpRequest,
       WebsocketInbound inbound,
       WebsocketOutbound outbound) {
     this.codec = codec;
-    this.id = "" + SESSION_ID_GENERATOR.incrementAndGet();
+    this.sessionId = Long.toHexString(SESSION_ID_GENERATOR.incrementAndGet());
 
     String contentType = httpRequest.requestHeaders().get(HttpHeaderNames.CONTENT_TYPE);
     this.contentType = Optional.ofNullable(contentType).orElse(DEFAULT_CONTENT_TYPE);
-
     this.inbound =
         (WebsocketInbound) inbound.withConnection(c -> c.onDispose(this::clearSubscriptions));
-
     this.outbound = (WebsocketOutbound) outbound.options(SendOptions::flushOnEach);
   }
 
-  public String id() {
-    return id;
+  @Override
+  public String sessionId() {
+    return sessionId;
   }
 
   public String contentType() {
@@ -96,9 +96,9 @@ public final class WebsocketSession {
 
   private void logSend(GatewayMessage response, Throwable th) {
     if (th == null) {
-      LOGGER.debug("<< SEND success: {}, session={}", response, id);
+      LOGGER.debug("<< SEND success: {}, session={}", response, sessionId);
     } else {
-      LOGGER.warn("<< SEND failed: {}, session={}, cause: {}", response, id, th);
+      LOGGER.warn("<< SEND failed: {}, session={}, cause: {}", response, sessionId, th);
     }
   }
 
@@ -149,7 +149,7 @@ public final class WebsocketSession {
       Disposable disposable = subscriptions.remove(streamId);
       result = disposable != null;
       if (result) {
-        LOGGER.debug("Dispose subscription by sid={}, session={}", streamId, id);
+        LOGGER.debug("Dispose subscription by sid={}, session={}", streamId, sessionId);
         disposable.dispose();
       }
     }
@@ -174,16 +174,16 @@ public final class WebsocketSession {
       result = subscriptions.putIfAbsent(streamId, disposable) == null;
     }
     if (result) {
-      LOGGER.debug("Registered subscription with sid={}, session={}", streamId, id);
+      LOGGER.debug("Registered subscription with sid={}, session={}", streamId, sessionId);
     }
     return result;
   }
 
   private void clearSubscriptions() {
     if (subscriptions.size() > 1) {
-      LOGGER.debug("Clear all {} subscriptions on session={}", subscriptions.size(), id);
+      LOGGER.debug("Clear all {} subscriptions on session={}", subscriptions.size(), sessionId);
     } else if (subscriptions.size() == 1) {
-      LOGGER.debug("Clear 1 subscription on session={}", id);
+      LOGGER.debug("Clear 1 subscription on session={}", sessionId);
     }
     subscriptions.forEach((sid, disposable) -> disposable.dispose());
     subscriptions.clear();
@@ -191,8 +191,8 @@ public final class WebsocketSession {
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", WebsocketSession.class.getSimpleName() + "[", "]")
-        .add("id=" + id)
+    return new StringJoiner(", ", WebsocketGatewaySession.class.getSimpleName() + "[", "]")
+        .add(sessionId)
         .toString();
   }
 }
