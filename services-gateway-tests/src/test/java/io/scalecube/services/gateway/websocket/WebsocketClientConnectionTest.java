@@ -57,6 +57,7 @@ class WebsocketClientConnectionTest extends BaseTest {
   @BeforeEach
   void beforEach() {
     this.sessionEventHandler = new TestGatewaySessionHandler();
+    //noinspection unchecked
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
@@ -166,18 +167,19 @@ class WebsocketClientConnectionTest extends BaseTest {
           NoSuchMethodException, InvocationTargetException {
 
     int expectedKeepalives = 3;
-    Duration keepaliveInterval = Duration.ofSeconds(1);
+    Duration keepAliveInterval = Duration.ofSeconds(1);
     CountDownLatch keepaliveLatch = new CountDownLatch(expectedKeepalives);
     client =
         new WebsocketGatewayClient(
             GatewayClientSettings.builder()
                 .address(gatewayAddress)
-                .keepaliveInterval(keepaliveInterval)
+                .keepAliveInterval(keepAliveInterval)
                 .build(),
             CLIENT_CODEC);
 
     Method getorConn = WebsocketGatewayClient.class.getDeclaredMethod("getOrConnect");
     getorConn.setAccessible(true);
+    //noinspection unchecked
     WebsocketSession session = ((Mono<WebsocketSession>) getorConn.invoke(client)).block(TIMEOUT);
     Field connectionField = WebsocketSession.class.getDeclaredField("connection");
     connectionField.setAccessible(true);
@@ -194,7 +196,7 @@ class WebsocketClientConnectionTest extends BaseTest {
         });
 
     keepaliveLatch.await(
-        keepaliveInterval.toMillis() * (expectedKeepalives + 1), TimeUnit.MILLISECONDS);
+        keepAliveInterval.toMillis() * (expectedKeepalives + 1), TimeUnit.MILLISECONDS);
 
     assertEquals(0, keepaliveLatch.getCount());
   }

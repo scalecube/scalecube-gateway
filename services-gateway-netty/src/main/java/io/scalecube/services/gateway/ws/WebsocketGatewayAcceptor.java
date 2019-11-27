@@ -81,6 +81,7 @@ public class WebsocketGatewayAcceptor
 
   private void handleMessage(WebsocketGatewaySession session, GatewayMessage request) {
     Long sid = request.streamId();
+
     AtomicBoolean receivedError = new AtomicBoolean(false);
 
     final Flux<ServiceMessage> serviceStream =

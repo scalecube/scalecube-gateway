@@ -151,10 +151,10 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .connect()
         .map(
             connection ->
-                settings.keepaliveInterval() != Duration.ZERO
+                settings.keepAliveInterval() != Duration.ZERO
                     ? connection
                         .onReadIdle(
-                            settings.keepaliveInterval().toMillis(),
+                            settings.keepAliveInterval().toMillis(),
                             () -> {
                               LOGGER.debug("Sending keepalive on readIdle");
                               connection
@@ -162,10 +162,12 @@ public final class WebsocketGatewayClient implements GatewayClient {
                                   .options(SendOptions::flushOnEach)
                                   .sendObject(new PingWebSocketFrame())
                                   .then()
-                                  .subscribe(avoid -> {});
+                                  .subscribe(
+                                      avoid -> {},
+                                      ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
                             })
                         .onWriteIdle(
-                            settings.keepaliveInterval().toMillis(),
+                            settings.keepAliveInterval().toMillis(),
                             () -> {
                               LOGGER.debug("Sending keepalive on writeIdle");
                               connection
@@ -173,7 +175,10 @@ public final class WebsocketGatewayClient implements GatewayClient {
                                   .options(SendOptions::flushOnEach)
                                   .sendObject(new PingWebSocketFrame())
                                   .then()
-                                  .subscribe(avoid -> {});
+                                  .subscribe(
+                                      avoid -> {},
+                                      ex ->
+                                          LOGGER.warn("Can't send keepalive on writeIdle: " + ex));
                             })
                     : connection)
         .map(

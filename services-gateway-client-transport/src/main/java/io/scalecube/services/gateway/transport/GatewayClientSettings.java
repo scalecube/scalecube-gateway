@@ -18,7 +18,7 @@ public class GatewayClientSettings {
   private final boolean followRedirect;
   private final SslProvider sslProvider;
   private final ServiceClientErrorMapper errorMapper;
-  private final Duration keepaliveInterval;
+  private final Duration keepAliveInterval;
   private final boolean wiretap;
 
   private GatewayClientSettings(Builder builder) {
@@ -28,7 +28,7 @@ public class GatewayClientSettings {
     this.followRedirect = builder.followRedirect;
     this.sslProvider = builder.sslProvider;
     this.errorMapper = builder.errorMapper;
-    this.keepaliveInterval = builder.keepaliveInterval;
+    this.keepAliveInterval = builder.keepAliveInterval;
     this.wiretap = builder.wiretap;
   }
 
@@ -56,8 +56,8 @@ public class GatewayClientSettings {
     return errorMapper;
   }
 
-  public Duration keepaliveInterval() {
-    return this.keepaliveInterval;
+  public Duration keepAliveInterval() {
+    return this.keepAliveInterval;
   }
 
   public boolean wiretap() {
@@ -79,7 +79,7 @@ public class GatewayClientSettings {
     sb.append(", port=").append(port);
     sb.append(", contentType='").append(contentType).append('\'');
     sb.append(", followRedirect=").append(followRedirect);
-    sb.append(", keepaliveInterval=").append(keepaliveInterval);
+    sb.append(", keepAliveInterval=").append(keepAliveInterval);
     sb.append(", wiretap=").append(wiretap);
     sb.append(", sslProvider=").append(sslProvider);
     sb.append('}');
@@ -94,7 +94,7 @@ public class GatewayClientSettings {
     private boolean followRedirect = true;
     private SslProvider sslProvider;
     private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
-    private Duration keepaliveInterval = DEFAULT_KEEPALIVE_INTERVAL;
+    private Duration keepAliveInterval = DEFAULT_KEEPALIVE_INTERVAL;
     private boolean wiretap = false;
 
     private Builder() {
@@ -107,7 +107,7 @@ public class GatewayClientSettings {
       this.followRedirect = originalSettings.followRedirect;
       this.sslProvider = originalSettings.sslProvider;
       this.errorMapper = originalSettings.errorMapper;
-      this.keepaliveInterval = originalSettings.keepaliveInterval;
+      this.keepAliveInterval = originalSettings.keepAliveInterval;
       this.wiretap = originalSettings.wiretap;
     }
 
@@ -166,11 +166,11 @@ public class GatewayClientSettings {
      * Keepalive interval. If client's channel doesn't have any activity at channel during this
      * period, it will send a keepalive message to the server.
      *
-     * @param keepaliveInterval keepalive interval.
+     * @param keepAliveInterval keepalive interval.
      * @return builder
      */
-    public Builder keepaliveInterval(Duration keepaliveInterval) {
-      this.keepaliveInterval = keepaliveInterval;
+    public Builder keepAliveInterval(Duration keepAliveInterval) {
+      this.keepAliveInterval = keepAliveInterval;
       return this;
     }
 
