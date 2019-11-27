@@ -1,6 +1,8 @@
 package io.scalecube.services.gateway.transport.websocket;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
@@ -24,7 +26,7 @@ import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
-final class WebsocketSession {
+public final class WebsocketSession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
 
@@ -49,8 +51,9 @@ final class WebsocketSession {
     WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
     inbound
         .aggregateFrames()
-        .receive()
-        .retain()
+        .receiveFrames()
+        .filter(f -> !(f instanceof PongWebSocketFrame || f instanceof PingWebSocketFrame))
+        .map(f -> f.retain().content())
         .subscribe(
             byteBuf -> {
               // decode message
@@ -88,7 +91,7 @@ final class WebsocketSession {
     return id;
   }
 
-  public MonoProcessor<ServiceMessage> newMonoProcessor(long sid) {
+  MonoProcessor<ServiceMessage> newMonoProcessor(long sid) {
     return (MonoProcessor<ServiceMessage>)
         inboundProcessors.computeIfAbsent(
             sid,
@@ -98,7 +101,7 @@ final class WebsocketSession {
             });
   }
 
-  public UnicastProcessor<ServiceMessage> newUnicastProcessor(long sid) {
+  UnicastProcessor<ServiceMessage> newUnicastProcessor(long sid) {
     return (UnicastProcessor<ServiceMessage>)
         inboundProcessors.computeIfAbsent(
             sid,
@@ -108,13 +111,13 @@ final class WebsocketSession {
             });
   }
 
-  public void removeProcessor(long sid) {
+  void removeProcessor(long sid) {
     if (inboundProcessors.remove(sid) != null) {
       LOGGER.debug("Removed sid={}, session={}", sid, id);
     }
   }
 
-  public Mono<Void> send(ByteBuf byteBuf, long sid) {
+  Mono<Void> send(ByteBuf byteBuf, long sid) {
     return Mono.defer(
         () -> {
           // send with publisher (defer buffer cleanup to netty)

@@ -4,14 +4,17 @@ import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.BaseTest;
+import io.scalecube.services.gateway.TestGatewaySessionHandler;
 import io.scalecube.services.gateway.TestService;
 import io.scalecube.services.gateway.TestServiceImpl;
-import io.scalecube.services.gateway.TestGatewaySessionHandler;
 import io.scalecube.services.gateway.TestUtils;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
@@ -20,10 +23,15 @@ import io.scalecube.services.gateway.transport.GatewayClientTransport;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
+import io.scalecube.services.gateway.transport.websocket.WebsocketSession;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.Connection;
 import reactor.test.StepVerifier;
 
 class WebsocketClientConnectionTest extends BaseTest {
@@ -48,6 +57,7 @@ class WebsocketClientConnectionTest extends BaseTest {
   @BeforeEach
   void beforEach() {
     this.sessionEventHandler = new TestGatewaySessionHandler();
+    //noinspection unchecked
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
@@ -149,5 +159,45 @@ class WebsocketClientConnectionTest extends BaseTest {
     client.close();
     sessionEventHandler.disconnLatch.await(3, TimeUnit.SECONDS);
     Assertions.assertEquals(0, sessionEventHandler.disconnLatch.getCount());
+  }
+
+  @Test
+  void testKeepalive()
+      throws InterruptedException, NoSuchFieldException, IllegalAccessException,
+          NoSuchMethodException, InvocationTargetException {
+
+    int expectedKeepalives = 3;
+    Duration keepAliveInterval = Duration.ofSeconds(1);
+    CountDownLatch keepaliveLatch = new CountDownLatch(expectedKeepalives);
+    client =
+        new WebsocketGatewayClient(
+            GatewayClientSettings.builder()
+                .address(gatewayAddress)
+                .keepAliveInterval(keepAliveInterval)
+                .build(),
+            CLIENT_CODEC);
+
+    Method getorConn = WebsocketGatewayClient.class.getDeclaredMethod("getOrConnect");
+    getorConn.setAccessible(true);
+    //noinspection unchecked
+    WebsocketSession session = ((Mono<WebsocketSession>) getorConn.invoke(client)).block(TIMEOUT);
+    Field connectionField = WebsocketSession.class.getDeclaredField("connection");
+    connectionField.setAccessible(true);
+    Connection connection = (Connection) connectionField.get(session);
+    connection.addHandler(
+        new ChannelInboundHandlerAdapter() {
+          @Override
+          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            if (msg instanceof PongWebSocketFrame) {
+              keepaliveLatch.countDown();
+            }
+            super.channelRead(ctx, msg);
+          }
+        });
+
+    keepaliveLatch.await(
+        keepAliveInterval.toMillis() * (expectedKeepalives + 1), TimeUnit.MILLISECONDS);
+
+    assertEquals(0, keepaliveLatch.getCount());
   }
 }
