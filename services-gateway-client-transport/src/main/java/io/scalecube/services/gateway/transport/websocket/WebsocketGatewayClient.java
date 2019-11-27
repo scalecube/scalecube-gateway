@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
+import reactor.netty.Connection;
 import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
@@ -145,41 +146,18 @@ public final class WebsocketGatewayClient implements GatewayClient {
       return prev;
     }
 
+    Duration keepAliveInterval = settings.keepAliveInterval();
+
     return httpClient
         .websocket()
         .uri("/")
         .connect()
         .map(
             connection ->
-                settings.keepAliveInterval() != Duration.ZERO
+                keepAliveInterval != Duration.ZERO
                     ? connection
-                        .onReadIdle(
-                            settings.keepAliveInterval().toMillis(),
-                            () -> {
-                              LOGGER.debug("Sending keepalive on readIdle");
-                              connection
-                                  .outbound()
-                                  .options(SendOptions::flushOnEach)
-                                  .sendObject(new PingWebSocketFrame())
-                                  .then()
-                                  .subscribe(
-                                      avoid -> {},
-                                      ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
-                            })
-                        .onWriteIdle(
-                            settings.keepAliveInterval().toMillis(),
-                            () -> {
-                              LOGGER.debug("Sending keepalive on writeIdle");
-                              connection
-                                  .outbound()
-                                  .options(SendOptions::flushOnEach)
-                                  .sendObject(new PingWebSocketFrame())
-                                  .then()
-                                  .subscribe(
-                                      avoid -> {},
-                                      ex ->
-                                          LOGGER.warn("Can't send keepalive on writeIdle: " + ex));
-                            })
+                        .onReadIdle(keepAliveInterval.toMillis(), () -> onReadIdle(connection))
+                        .onWriteIdle(keepAliveInterval.toMillis(), () -> onWriteIdle(connection))
                     : connection)
         .map(
             connection -> {
@@ -210,6 +188,26 @@ public final class WebsocketGatewayClient implements GatewayClient {
               websocketMonoUpdater.getAndSet(this, null); // clear reference
             })
         .cache();
+  }
+
+  private void onWriteIdle(Connection connection) {
+    LOGGER.debug("Sending keepalive on writeIdle");
+    connection
+        .outbound()
+        .options(SendOptions::flushOnEach)
+        .sendObject(new PingWebSocketFrame())
+        .then()
+        .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on writeIdle: " + ex));
+  }
+
+  private void onReadIdle(Connection connection) {
+    LOGGER.debug("Sending keepalive on readIdle");
+    connection
+        .outbound()
+        .options(SendOptions::flushOnEach)
+        .sendObject(new PingWebSocketFrame())
+        .then()
+        .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
   }
 
   private void handleCancel(long sid, WebsocketSession session) {
