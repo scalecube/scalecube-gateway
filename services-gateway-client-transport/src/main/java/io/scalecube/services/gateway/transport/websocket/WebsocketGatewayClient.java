@@ -15,7 +15,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.netty.Connection;
-import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -194,7 +193,6 @@ public final class WebsocketGatewayClient implements GatewayClient {
     LOGGER.debug("Sending keepalive on writeIdle");
     connection
         .outbound()
-        .options(SendOptions::flushOnEach)
         .sendObject(new PingWebSocketFrame())
         .then()
         .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on writeIdle: " + ex));
@@ -204,7 +202,6 @@ public final class WebsocketGatewayClient implements GatewayClient {
     LOGGER.debug("Sending keepalive on readIdle");
     connection
         .outbound()
-        .options(SendOptions::flushOnEach)
         .sendObject(new PingWebSocketFrame())
         .then()
         .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));

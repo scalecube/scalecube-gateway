@@ -22,7 +22,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.Connection;
-import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
@@ -46,7 +45,7 @@ public final class WebsocketSession {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
     this.connection = connection;
-    this.outbound = (WebsocketOutbound) connection.outbound().options(SendOptions::flushOnEach);
+    this.outbound = (WebsocketOutbound) connection.outbound();
 
     WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
     inbound
