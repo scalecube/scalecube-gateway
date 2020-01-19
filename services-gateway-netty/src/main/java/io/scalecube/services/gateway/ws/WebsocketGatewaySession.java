@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
@@ -56,7 +55,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
     this.contentType = Optional.ofNullable(contentType).orElse(DEFAULT_CONTENT_TYPE);
     this.inbound =
         (WebsocketInbound) inbound.withConnection(c -> c.onDispose(this::clearSubscriptions));
-    this.outbound = (WebsocketOutbound) outbound.options(SendOptions::flushOnEach);
+    this.outbound = outbound;
   }
 
   @Override
@@ -88,7 +87,8 @@ public final class WebsocketGatewaySession implements GatewaySession {
         () -> {
           // send with publisher (defer buffer cleanup to netty)
           return outbound
-              .sendObject(Mono.just(response).map(codec::encode).map(TextWebSocketFrame::new))
+              .sendObject(
+                  Mono.just(response).map(codec::encode).map(TextWebSocketFrame::new), f -> true)
               .then()
               .doOnSuccessOrError((avoid, th) -> logSend(response, th));
         });

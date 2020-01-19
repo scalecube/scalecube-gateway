@@ -15,7 +15,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.netty.Connection;
-import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -26,6 +25,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
 
+  @SuppressWarnings("rawtypes")
   private static final AtomicReferenceFieldUpdater<WebsocketGatewayClient, Mono>
       websocketMonoUpdater =
           AtomicReferenceFieldUpdater.newUpdater(
@@ -194,8 +194,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
     LOGGER.debug("Sending keepalive on writeIdle");
     connection
         .outbound()
-        .options(SendOptions::flushOnEach)
-        .sendObject(new PingWebSocketFrame())
+        .sendObject(Mono.just(new PingWebSocketFrame()), f -> true)
         .then()
         .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on writeIdle: " + ex));
   }
@@ -204,8 +203,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
     LOGGER.debug("Sending keepalive on readIdle");
     connection
         .outbound()
-        .options(SendOptions::flushOnEach)
-        .sendObject(new PingWebSocketFrame())
+        .sendObject(Mono.just(new PingWebSocketFrame()), f -> true)
         .then()
         .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
   }
