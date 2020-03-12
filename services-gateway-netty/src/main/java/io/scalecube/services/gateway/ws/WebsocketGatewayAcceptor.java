@@ -143,22 +143,6 @@ public class WebsocketGatewayAcceptor
     }
   }
 
-  private GatewayMessage validateQualifier(GatewayMessage msg) {
-    if (msg.qualifier() == null) {
-      throw WebsocketContextException.badRequest("qualifier is missing", msg);
-    }
-    return msg;
-  }
-
-  private GatewayMessage validateSid(WebsocketGatewaySession session, GatewayMessage msg) {
-    if (session.containsSid(msg.streamId())) {
-      throw WebsocketContextException.badRequest(
-          "sid=" + msg.streamId() + " is already registered", msg);
-    } else {
-      return msg;
-    }
-  }
-
   private Mono<?> onCancel(WebsocketGatewaySession session, GatewayMessage msg) {
     if (!msg.hasSignal(Signal.CANCEL)) {
       return Mono.just(msg);
@@ -173,6 +157,22 @@ public class WebsocketGatewayAcceptor
     GatewayMessage cancelAck =
         GatewayMessage.builder().streamId(msg.streamId()).signal(Signal.CANCEL).build();
     return session.send(cancelAck); // no need to subscribe here since flatMap will do
+  }
+
+  private GatewayMessage validateQualifier(GatewayMessage msg) {
+    if (msg.qualifier() == null) {
+      throw WebsocketContextException.badRequest("qualifier is missing", msg);
+    }
+    return msg;
+  }
+
+  private GatewayMessage validateSid(WebsocketGatewaySession session, GatewayMessage msg) {
+    if (session.containsSid(msg.streamId())) {
+      throw WebsocketContextException.badRequest(
+          "sid=" + msg.streamId() + " is already registered", msg);
+    } else {
+      return msg;
+    }
   }
 
   private GatewayMessage validateSid(GatewayMessage msg) {
