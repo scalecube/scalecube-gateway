@@ -33,6 +33,11 @@ public class WebsocketContextException extends RuntimeException {
     return response;
   }
 
+  /**
+   * Releases request data if any.
+   *
+   * @return self
+   */
   public WebsocketContextException releaseRequest() {
     Optional.ofNullable(request)
         .map(GatewayMessage::data)

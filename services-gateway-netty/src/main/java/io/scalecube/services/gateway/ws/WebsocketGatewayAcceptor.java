@@ -1,5 +1,6 @@
 package io.scalecube.services.gateway.ws;
 
+import io.netty.buffer.ByteBuf;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -61,35 +62,37 @@ public class WebsocketGatewayAcceptor
         .doOnError(th -> gatewayHandler.onSessionError(session, th))
         .subscribe(
             byteBuf ->
-                Mono.deferWithContext(
-                        context ->
-                            Mono.fromCallable(() -> messageCodec.decode(byteBuf))
-                                .doOnNext(message -> metrics.markRequest())
-                                .map(this::vaildateSid)
-                                .flatMap(msg -> onCancel(session, msg))
-                                .map(msg -> validateSid(session, (GatewayMessage) msg))
-                                .map(this::vaildateQualifier)
-                                .map(msg -> gatewayHandler.mapMessage(session, msg))
-                                .doOnNext(request -> onMessage(session, request, context))
-                                .doOnError(
-                                    th -> {
-                                      if (!(th instanceof WebsocketContextException)) {
-                                        // decode failed at this point
-                                        gatewayHandler.onError(session, th, context);
-                                        return;
-                                      }
-
-                                      WebsocketContextException wex =
-                                          (WebsocketContextException) th;
-                                      wex.releaseRequest(); // release
-
-                                      onError(session, wex.request(), wex.getCause(), context);
-                                    }))
+                Mono.deferWithContext(context -> onRequest(session, byteBuf, context))
                     .subscriberContext(
-                        context -> gatewayHandler.mapRequest(session, byteBuf, context))
+                        context -> gatewayHandler.onRequest(session, byteBuf, context))
                     .subscribe());
 
     return session.onClose(() -> gatewayHandler.onSessionClose(session));
+  }
+
+  private Mono<GatewayMessage> onRequest(
+      WebsocketGatewaySession session, ByteBuf byteBuf, Context context) {
+    return Mono.fromCallable(() -> messageCodec.decode(byteBuf))
+        .doOnNext(message -> metrics.markRequest())
+        .map(this::validateSid)
+        .flatMap(msg -> onCancel(session, msg))
+        .map(msg -> validateSid(session, (GatewayMessage) msg))
+        .map(this::validateQualifier)
+        .map(msg -> gatewayHandler.mapMessage(session, msg))
+        .doOnNext(request -> onMessage(session, request, context))
+        .doOnError(
+            th -> {
+              if (!(th instanceof WebsocketContextException)) {
+                // decode failed at this point
+                gatewayHandler.onError(session, th, context);
+                return;
+              }
+
+              WebsocketContextException wex = (WebsocketContextException) th;
+              wex.releaseRequest(); // release
+
+              onError(session, wex.request(), wex.getCause(), context);
+            });
   }
 
   private void onMessage(WebsocketGatewaySession session, GatewayMessage request, Context context) {
@@ -140,7 +143,7 @@ public class WebsocketGatewayAcceptor
     }
   }
 
-  private GatewayMessage vaildateQualifier(GatewayMessage msg) {
+  private GatewayMessage validateQualifier(GatewayMessage msg) {
     if (msg.qualifier() == null) {
       throw WebsocketContextException.badRequest("qualifier is missing", msg);
     }
@@ -172,7 +175,7 @@ public class WebsocketGatewayAcceptor
     return session.send(cancelAck); // no need to subscribe here since flatMap will do
   }
 
-  private GatewayMessage vaildateSid(GatewayMessage msg) {
+  private GatewayMessage validateSid(GatewayMessage msg) {
     if (msg.streamId() == null) {
       throw WebsocketContextException.badRequest("sid is missing", msg);
     } else {

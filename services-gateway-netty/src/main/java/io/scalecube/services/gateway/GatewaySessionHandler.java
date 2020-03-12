@@ -35,7 +35,7 @@ public interface GatewaySessionHandler<M> {
    * @param context subscriber context
    * @return context
    */
-  default Context mapRequest(GatewaySession session, ByteBuf byteBuf, Context context) {
+  default Context onRequest(GatewaySession session, ByteBuf byteBuf, Context context) {
     return context;
   }
 
