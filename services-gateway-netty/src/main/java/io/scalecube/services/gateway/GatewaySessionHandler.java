@@ -1,9 +1,11 @@
 package io.scalecube.services.gateway;
 
+import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ws.GatewayMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.util.context.Context;
 
 public interface GatewaySessionHandler<M> {
 
@@ -26,20 +28,53 @@ public interface GatewaySessionHandler<M> {
   }
 
   /**
+   * Request mapper function.
+   *
+   * @param session session
+   * @param byteBuf request buffer
+   * @param context subscriber context
+   * @return context
+   */
+  default Context mapRequest(GatewaySession session, ByteBuf byteBuf, Context context) {
+    return context;
+  }
+
+  /**
+   * On response handler.
+   *
+   * @param session session
+   * @param byteBuf response buffer
+   * @param message response message
+   * @param context subscriber context
+   */
+  default void onResponse(
+      GatewaySession session, ByteBuf byteBuf, GatewayMessage message, Context context) {
+    // no-op
+  }
+
+  /**
    * Error handler function.
    *
    * @param session webscoket session (not null)
    * @param throwable an exception that occurred (not null)
-   * @param req request message (optional)
-   * @param resp response message (optional)
+   * @param context subscriber context
    */
-  default void onError(GatewaySession session, Throwable throwable, M req, M resp) {
+  default void onError(GatewaySession session, Throwable throwable, Context context) {
     LOGGER.error(
-        "Exception occurred on session={}, on request: {}, on response: {}, cause:",
+        "Exception occurred on session: {}, on context: {}, cause:",
         session.sessionId(),
-        req,
-        resp,
+        context,
         throwable);
+  }
+
+  /**
+   * On session error.
+   *
+   * @param session webscoket session (not null)
+   * @param throwable an exception that occurred (not null)
+   */
+  default void onSessionError(GatewaySession session, Throwable throwable) {
+    LOGGER.error("Exception occurred on session: {}, cause:", session.sessionId(), throwable);
   }
 
   /**
@@ -48,7 +83,7 @@ public interface GatewaySessionHandler<M> {
    * @param session websocket session (not null)
    */
   default void onSessionOpen(GatewaySession session) {
-    LOGGER.info("Session opened: " + session);
+    LOGGER.info("Session opened: {}", session);
   }
 
   /**
@@ -57,6 +92,6 @@ public interface GatewaySessionHandler<M> {
    * @param session websocket session (not null)
    */
   default void onSessionClose(GatewaySession session) {
-    LOGGER.info("Session closed: " + session);
+    LOGGER.info("Session closed: {}", session);
   }
 }

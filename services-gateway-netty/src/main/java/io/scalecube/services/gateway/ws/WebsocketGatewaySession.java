@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.gateway.GatewaySession;
+import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -28,6 +29,8 @@ public final class WebsocketGatewaySession implements GatewaySession {
 
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
 
+  private final GatewaySessionHandler<GatewayMessage> gatewayHandler;
+
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
   private final GatewayMessageCodec codec;
@@ -42,12 +45,14 @@ public final class WebsocketGatewaySession implements GatewaySession {
    * @param httpRequest - Init session HTTP request
    * @param inbound - Websocket inbound
    * @param outbound - Websocket outbound
+   * @param gatewayHandler - gateway handler
    */
   public WebsocketGatewaySession(
       GatewayMessageCodec codec,
       HttpServerRequest httpRequest,
       WebsocketInbound inbound,
-      WebsocketOutbound outbound) {
+      WebsocketOutbound outbound,
+      GatewaySessionHandler<GatewayMessage> gatewayHandler) {
     this.codec = codec;
     this.sessionId = Long.toHexString(SESSION_ID_GENERATOR.incrementAndGet());
 
@@ -56,6 +61,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
     this.inbound =
         (WebsocketInbound) inbound.withConnection(c -> c.onDispose(this::clearSubscriptions));
     this.outbound = outbound;
+    this.gatewayHandler = gatewayHandler;
   }
 
   @Override
@@ -83,23 +89,21 @@ public final class WebsocketGatewaySession implements GatewaySession {
    * @return mono void
    */
   public Mono<Void> send(GatewayMessage response) {
-    return Mono.defer(
-        () -> {
+    return Mono.deferWithContext(
+        context -> {
           // send with publisher (defer buffer cleanup to netty)
           return outbound
               .sendObject(
-                  Mono.just(response).map(codec::encode).map(TextWebSocketFrame::new), f -> true)
+                  Mono.just(response)
+                      .map(codec::encode)
+                      .map(TextWebSocketFrame::new)
+                      .doOnNext(
+                          frame ->
+                              gatewayHandler.onResponse(this, frame.content(), response, context)),
+                  f -> true)
               .then()
-              .doOnSuccessOrError((avoid, th) -> logSend(response, th));
+              .doOnError(th -> gatewayHandler.onError(this, th, context));
         });
-  }
-
-  private void logSend(GatewayMessage response, Throwable th) {
-    if (th == null) {
-      LOGGER.debug("<< SEND success: {}, session={}", response, sessionId);
-    } else {
-      LOGGER.warn("<< SEND failed: {}, session={}, cause: {}", response, sessionId, th);
-    }
   }
 
   /**
