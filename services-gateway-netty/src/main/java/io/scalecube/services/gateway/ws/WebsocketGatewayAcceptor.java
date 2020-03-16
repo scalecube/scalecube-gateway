@@ -108,10 +108,10 @@ public class WebsocketGatewayAcceptor
             .orElse(serviceStream)
             .map(response -> prepareResponse(sid, response, receivedError))
             .doOnNext(response -> metrics.markServiceResponse())
-            .doFinally(signalType -> session.dispose(sid))
             .flatMap(session::send)
             .doOnError(th -> onError(session, request, th, context))
             .doOnComplete(() -> onComplete(session, request, receivedError, context))
+            .doFinally(signalType -> session.dispose(sid))
             .subscriberContext(context)
             .subscribe();
 
