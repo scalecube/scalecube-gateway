@@ -13,7 +13,7 @@ public class AuthRegistry {
   /** Preconfigured userName-s that are allowed to be authenticated. */
   private final Set<String> allowedUsers;
 
-  private ConcurrentMap<String, String> loggedInUsers = new ConcurrentHashMap<>();
+  private ConcurrentMap<Long, String> loggedInUsers = new ConcurrentHashMap<>();
 
   public AuthRegistry(Set<String> allowedUsers) {
     this.allowedUsers = allowedUsers;
@@ -25,7 +25,7 @@ public class AuthRegistry {
    * @param sessionId session id to get auth info for
    * @return auth info for given session if exists
    */
-  public Optional<String> getAuth(String sessionId) {
+  public Optional<String> getAuth(long sessionId) {
     return Optional.ofNullable(loggedInUsers.get(sessionId));
   }
 
@@ -36,7 +36,7 @@ public class AuthRegistry {
    * @param auth auth info for given session id
    * @return auth info added for session id or empty if auth info is invalid
    */
-  public Optional<String> addAuth(String sessionId, String auth) {
+  public Optional<String> addAuth(long sessionId, String auth) {
     if (allowedUsers.contains(auth)) {
       loggedInUsers.putIfAbsent(sessionId, auth);
       return Optional.of(auth);
@@ -52,7 +52,7 @@ public class AuthRegistry {
    * @param sessionId session id to be removed from registry
    * @return true if session had auth info, false - otherwise
    */
-  public String removeAuth(String sessionId) {
+  public String removeAuth(long sessionId) {
     return loggedInUsers.remove(sessionId);
   }
 }

@@ -7,7 +7,6 @@ import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.util.Map;
 import java.util.Optional;
-import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
@@ -35,7 +34,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   private final WebsocketOutbound outbound;
   private final GatewayMessageCodec codec;
 
-  private final String sessionId;
+  private final long sessionId;
   private final String contentType;
 
   /**
@@ -54,7 +53,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
       WebsocketOutbound outbound,
       GatewaySessionHandler<GatewayMessage> gatewayHandler) {
     this.codec = codec;
-    this.sessionId = Long.toHexString(SESSION_ID_GENERATOR.incrementAndGet());
+    this.sessionId = SESSION_ID_GENERATOR.incrementAndGet();
 
     String contentType = httpRequest.requestHeaders().get(HttpHeaderNames.CONTENT_TYPE);
     this.contentType = Optional.ofNullable(contentType).orElse(DEFAULT_CONTENT_TYPE);
@@ -65,7 +64,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   }
 
   @Override
-  public String sessionId() {
+  public long sessionId() {
     return sessionId;
   }
 
@@ -195,8 +194,6 @@ public final class WebsocketGatewaySession implements GatewaySession {
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", WebsocketGatewaySession.class.getSimpleName() + "[", "]")
-        .add(sessionId)
-        .toString();
+    return "WebsocketGatewaySession[" + sessionId + ']';
   }
 }

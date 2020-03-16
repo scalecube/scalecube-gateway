@@ -9,7 +9,6 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.ServiceMessageCodec;
-import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Flux;
@@ -27,7 +26,7 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
   private final ServiceMessageCodec messageCodec;
-  private final String sessionId;
+  private final long sessionId;
   private final BiFunction<GatewaySession, ServiceMessage, ServiceMessage> messageMapper;
 
   /**
@@ -46,11 +45,11 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
     this.metrics = metrics;
     this.messageCodec = messageCodec;
     this.messageMapper = messageMapper;
-    this.sessionId = Long.toHexString(SESSION_ID_GENERATOR.incrementAndGet());
+    this.sessionId = SESSION_ID_GENERATOR.incrementAndGet();
   }
 
   @Override
-  public String sessionId() {
+  public long sessionId() {
     return this.sessionId;
   }
 
@@ -105,8 +104,6 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", RSocketGatewaySession.class.getSimpleName() + "[", "]")
-        .add(sessionId)
-        .toString();
+    return "RSocketGatewaySession[" + sessionId + ']';
   }
 }
