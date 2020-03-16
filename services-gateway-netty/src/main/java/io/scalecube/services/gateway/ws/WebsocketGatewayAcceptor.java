@@ -78,7 +78,7 @@ public class WebsocketGatewayAcceptor
         .flatMap(msg -> onCancel(session, msg))
         .map(msg -> validateSid(session, (GatewayMessage) msg))
         .map(this::validateQualifier)
-        .map(msg -> gatewayHandler.mapMessage(session, msg))
+        .map(msg -> gatewayHandler.mapMessage(session, msg, context))
         .doOnNext(request -> onMessage(session, request, context))
         .doOnError(
             th -> {
@@ -108,10 +108,10 @@ public class WebsocketGatewayAcceptor
             .orElse(serviceStream)
             .map(response -> prepareResponse(sid, response, receivedError))
             .doOnNext(response -> metrics.markServiceResponse())
-            .doFinally(signalType -> session.dispose(sid))
             .flatMap(session::send)
             .doOnError(th -> onError(session, request, th, context))
             .doOnComplete(() -> onComplete(session, request, receivedError, context))
+            .doFinally(signalType -> session.dispose(sid))
             .subscriberContext(context)
             .subscribe();
 
