@@ -7,5 +7,5 @@ public interface GatewaySession {
    *
    * @return session id
    */
-  String sessionId();
+  long sessionId();
 }
