@@ -12,6 +12,7 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 public class RSocketGatewayAcceptor implements SocketAcceptor {
 
@@ -46,7 +47,10 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
     ServiceMessageCodec messageCodec = new ServiceMessageCodec(headersCodec);
     final RSocketGatewaySession gatewaySession =
         new RSocketGatewaySession(
-            serviceCall, metrics, messageCodec, gatewaySessionHandler::mapMessage);
+            serviceCall,
+            metrics,
+            messageCodec,
+            (session, req) -> gatewaySessionHandler.mapMessage(session, req, Context.empty()));
     gatewaySessionHandler.onSessionOpen(gatewaySession);
     rsocket
         .onClose()

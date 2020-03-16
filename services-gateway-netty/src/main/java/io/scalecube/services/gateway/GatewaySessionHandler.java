@@ -23,7 +23,7 @@ public interface GatewaySessionHandler<M> {
    * @param req request message (not null)
    * @return message
    */
-  default M mapMessage(GatewaySession session, M req) {
+  default M mapMessage(GatewaySession session, M req, Context context) {
     return req;
   }
 

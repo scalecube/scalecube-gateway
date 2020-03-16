@@ -78,7 +78,7 @@ public class WebsocketGatewayAcceptor
         .flatMap(msg -> onCancel(session, msg))
         .map(msg -> validateSid(session, (GatewayMessage) msg))
         .map(this::validateQualifier)
-        .map(msg -> gatewayHandler.mapMessage(session, msg))
+        .map(msg -> gatewayHandler.mapMessage(session, msg, context))
         .doOnNext(request -> onMessage(session, request, context))
         .doOnError(
             th -> {
