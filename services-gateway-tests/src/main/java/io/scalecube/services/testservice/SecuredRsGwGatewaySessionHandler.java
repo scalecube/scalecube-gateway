@@ -17,7 +17,7 @@ public class SecuredRsGwGatewaySessionHandler implements GatewaySessionHandler<S
 
   @Override
   public ServiceMessage mapMessage(GatewaySession session, ServiceMessage req) {
-    return ServiceMessage.from(req).header(AuthRegistry.SESSION_ID, session).build();
+    return ServiceMessage.from(req).header(AuthRegistry.SESSION_ID, session.sessionId()).build();
   }
 
   @Override

@@ -17,7 +17,7 @@ public class SecuredWsGwGatewaySessionManager implements GatewaySessionHandler<G
 
   @Override
   public GatewayMessage mapMessage(GatewaySession session, GatewayMessage req) {
-    return GatewayMessage.from(req).header(AuthRegistry.SESSION_ID, session).build();
+    return GatewayMessage.from(req).header(AuthRegistry.SESSION_ID, session.sessionId()).build();
   }
 
   @Override
