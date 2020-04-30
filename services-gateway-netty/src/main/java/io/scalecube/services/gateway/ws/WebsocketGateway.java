@@ -42,6 +42,13 @@ public class WebsocketGateway extends GatewayTemplate {
     this(options, Duration.ZERO, gatewayHandler);
   }
 
+  /**
+   * Constructor.
+   *
+   * @param options gateway options
+   * @param keepAliveInterval keep alive interval
+   * @param gatewayHandler gateway handler
+   */
   public WebsocketGateway(
       GatewayOptions options,
       Duration keepAliveInterval,
