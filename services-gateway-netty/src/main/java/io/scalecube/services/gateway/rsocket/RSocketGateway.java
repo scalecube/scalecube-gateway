@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.rsocket;
 
-import io.rsocket.RSocketFactory;
+import io.rsocket.core.RSocketServer;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
@@ -54,12 +54,11 @@ public class RSocketGateway extends GatewayTemplate {
               WebsocketServerTransport.create(
                   prepareHttpServer(loopResources, options.port(), gatewayMetrics));
 
-          return RSocketFactory.receive()
-              .frameDecoder(PayloadDecoder.DEFAULT)
-              .errorConsumer(th -> LOGGER.warn("Exception occurred at rsocket gateway: " + th))
+          return RSocketServer.create()
               .acceptor(acceptor)
-              .transport(rsocketTransport)
-              .start()
+              .payloadDecoder(PayloadDecoder.DEFAULT)
+              .errorConsumer(th -> LOGGER.warn("Exception occurred at rsocket gateway: " + th))
+              .bind(rsocketTransport)
               .doOnSuccess(server -> this.server = server)
               .thenReturn(this);
         });
