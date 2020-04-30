@@ -194,7 +194,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
     LOGGER.debug("Sending keepalive on writeIdle");
     connection
         .outbound()
-        .sendObject(Mono.just(new PingWebSocketFrame()), f -> true)
+        .sendObject(new PingWebSocketFrame())
         .then()
         .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on writeIdle: " + ex));
   }
@@ -203,7 +203,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
     LOGGER.debug("Sending keepalive on readIdle");
     connection
         .outbound()
-        .sendObject(Mono.just(new PingWebSocketFrame()), f -> true)
+        .sendObject(new PingWebSocketFrame())
         .then()
         .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
   }
