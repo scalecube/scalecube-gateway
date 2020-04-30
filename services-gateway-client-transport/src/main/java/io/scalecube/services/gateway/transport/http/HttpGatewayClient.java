@@ -7,12 +7,16 @@ import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import java.util.function.BiFunction;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
+import reactor.netty.NettyOutbound;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.http.client.HttpClientRequest;
 import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
@@ -58,23 +62,25 @@ public final class HttpGatewayClient implements GatewayClient {
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     return Mono.defer(
-        () ->
-            httpClient
-                .post()
-                .uri(request.qualifier())
-                .send(
-                    (httpRequest, out) -> {
-                      LOGGER.debug("Sending request {}", request);
-                      // prepare request headers
-                      request.headers().forEach(httpRequest::header);
-                      // send with publisher (defer buffer cleanup to netty)
-                      return out.sendObject(Mono.just(codec.encode(request))).then();
-                    })
-                .responseSingle(
-                    (httpResponse, bbMono) ->
-                        bbMono
-                            .map(ByteBuf::retain)
-                            .map(content -> toMessage(httpResponse, content))));
+        () -> {
+          BiFunction<HttpClientRequest, NettyOutbound, Publisher<Void>> sender =
+              (httpRequest, out) -> {
+                LOGGER.debug("Sending request {}", request);
+                // prepare request headers
+                request.headers().forEach(httpRequest::header);
+                // send with publisher (defer buffer cleanup to netty)
+                return out.sendObject(Mono.just(codec.encode(request))).then();
+              };
+          return httpClient
+              .post()
+              .uri(request.qualifier())
+              .send(sender)
+              .responseSingle(
+                  (httpResponse, bbMono) ->
+                      bbMono
+                          .map(ByteBuf::retain)
+                          .map(content -> toMessage(httpResponse, content)));
+        });
   }
 
   @Override

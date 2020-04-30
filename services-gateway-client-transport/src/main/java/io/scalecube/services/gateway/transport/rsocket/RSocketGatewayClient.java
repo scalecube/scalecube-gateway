@@ -2,7 +2,8 @@ package io.scalecube.services.gateway.transport.rsocket;
 
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
-import io.rsocket.RSocketFactory;
+import io.rsocket.core.RSocketConnector;
+import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
@@ -134,10 +135,10 @@ public final class RSocketGatewayClient implements GatewayClient {
       return prev;
     }
 
-    return RSocketFactory.connect()
+    return RSocketConnector.create()
+        .payloadDecoder(PayloadDecoder.DEFAULT)
         .metadataMimeType(settings.contentType())
-        .transport(createRSocketTransport(settings))
-        .start()
+        .connect(createRSocketTransport(settings))
         .doOnSuccess(
             rsocket -> {
               LOGGER.info("Connected successfully on {}:{}", settings.host(), settings.port());

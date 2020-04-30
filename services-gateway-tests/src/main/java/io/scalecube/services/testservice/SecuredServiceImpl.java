@@ -6,7 +6,6 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import java.util.Optional;
 import java.util.stream.IntStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -29,7 +28,7 @@ public class SecuredServiceImpl implements SecuredService {
       });
     }
     String req = request.data();
-    Optional<String> authResult = authRegistry.addAuth(sessionId, req);
+    Optional<String> authResult = authRegistry.addAuth(Long.parseLong(sessionId), req);
     if (authResult.isPresent()) {
       return Mono.just(req);
     } else {

@@ -20,7 +20,7 @@ public class SecuredAuthenticator implements Authenticator<String> {
     return sessionId == null
         ? Mono.error(new BadRequestException("No session id provided in request"))
         : authRegistry
-            .getAuth(sessionId)
+            .getAuth(Long.parseLong(sessionId))
             .map(Mono::just)
             .orElse(Mono.error(new ForbiddenException("Session is not authenticated")));
   }

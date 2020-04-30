@@ -10,6 +10,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.UUID;
 
 /** Syntethic router for returning preconstructed static service reference with given address. */
 public class StaticAddressRouter implements Router {
@@ -24,10 +25,10 @@ public class StaticAddressRouter implements Router {
   public StaticAddressRouter(Address address) {
     this.staticServiceReference =
         new ServiceReference(
-            new ServiceMethodDefinition("StaticAddressRouter"),
+            new ServiceMethodDefinition(UUID.randomUUID().toString()),
             new ServiceRegistration(
-                "StaticAddressRouter", Collections.emptyMap(), Collections.emptyList()),
-            ServiceEndpoint.builder().address(address).build());
+                UUID.randomUUID().toString(), Collections.emptyMap(), Collections.emptyList()),
+            ServiceEndpoint.builder().id(UUID.randomUUID().toString()).address(address).build());
   }
 
   @Override
