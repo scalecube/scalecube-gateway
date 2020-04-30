@@ -108,7 +108,7 @@ public class WebsocketGateway extends GatewayTemplate {
   }
 
   private void onWriteIdle(Connection connection) {
-    LOGGER.info("Sending keepalive on writeIdle");
+    LOGGER.debug("Sending keepalive on writeIdle");
     connection
         .outbound()
         .sendObject(new PingWebSocketFrame())
@@ -117,7 +117,7 @@ public class WebsocketGateway extends GatewayTemplate {
   }
 
   private void onReadIdle(Connection connection) {
-    LOGGER.info("Sending keepalive on readIdle");
+    LOGGER.debug("Sending keepalive on readIdle");
     connection
         .outbound()
         .sendObject(new PingWebSocketFrame())
