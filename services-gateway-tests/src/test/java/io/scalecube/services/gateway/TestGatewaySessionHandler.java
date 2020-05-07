@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway;
 
 import java.util.concurrent.CountDownLatch;
+import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 public class TestGatewaySessionHandler implements GatewaySessionHandler {
@@ -16,12 +17,12 @@ public class TestGatewaySessionHandler implements GatewaySessionHandler {
   }
 
   @Override
-  public void onSessionOpen(GatewaySession s) {
-    connLatch.countDown();
+  public Mono<Void> onSessionOpen(GatewaySession s) {
+    return Mono.fromRunnable(connLatch::countDown);
   }
 
   @Override
-  public void onSessionClose(GatewaySession s) {
-    disconnLatch.countDown();
+  public Mono<Void> onSessionClose(GatewaySession s) {
+    return Mono.fromRunnable(disconnLatch::countDown);
   }
 }
