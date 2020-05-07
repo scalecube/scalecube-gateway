@@ -1,14 +1,14 @@
 package io.scalecube.services.gateway.ws;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
@@ -24,8 +24,6 @@ public final class WebsocketGatewaySession implements GatewaySession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewaySession.class);
 
-  private static final String DEFAULT_CONTENT_TYPE = "application/json";
-
   private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
@@ -37,7 +35,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   private final GatewayMessageCodec codec;
 
   private final long sessionId;
-  private final String contentType;
+  private final HttpHeaders headers;
 
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
@@ -57,8 +55,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
     this.codec = codec;
     this.sessionId = SESSION_ID_GENERATOR.incrementAndGet();
 
-    String contentType = httpRequest.requestHeaders().get(HttpHeaderNames.CONTENT_TYPE);
-    this.contentType = Optional.ofNullable(contentType).orElse(DEFAULT_CONTENT_TYPE);
+    this.headers = httpRequest.requestHeaders();
     this.inbound =
         (WebsocketInbound) inbound.withConnection(c -> c.onDispose(this::clearSubscriptions));
     this.outbound = outbound;
@@ -70,8 +67,14 @@ public final class WebsocketGatewaySession implements GatewaySession {
     return sessionId;
   }
 
-  public String contentType() {
-    return contentType;
+  @Override
+  public String headerValue(String name) {
+    return headers.get(name);
+  }
+
+  @Override
+  public List<String> headerValues(String name) {
+    return headers.getAll(name);
   }
 
   /**
