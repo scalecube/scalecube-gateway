@@ -5,16 +5,15 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ws.GatewayMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 public interface GatewaySessionHandler<M> {
 
   Logger LOGGER = LoggerFactory.getLogger(GatewaySessionHandler.class);
 
-  GatewaySessionHandler<GatewayMessage> DEFAULT_WS_INSTANCE =
-      new GatewaySessionHandler<GatewayMessage>() {};
-  GatewaySessionHandler<ServiceMessage> DEFAULT_RS_INSTANCE =
-      new GatewaySessionHandler<ServiceMessage>() {};
+  GatewaySessionHandler<GatewayMessage> DEFAULT_WS_INSTANCE = new GatewaySessionHandler<>() {};
+  GatewaySessionHandler<ServiceMessage> DEFAULT_RS_INSTANCE = new GatewaySessionHandler<>() {};
 
   /**
    * Message mapper function.
@@ -81,17 +80,19 @@ public interface GatewaySessionHandler<M> {
    * On session open handler.
    *
    * @param session websocket session (not null)
+   * @return mono result
    */
-  default void onSessionOpen(GatewaySession session) {
-    LOGGER.info("Session opened: {}", session);
+  default Mono<Void> onSessionOpen(GatewaySession session) {
+    return Mono.fromRunnable(() -> LOGGER.info("Session opened: {}", session));
   }
 
   /**
    * On session close handler.
    *
    * @param session websocket session (not null)
+   * @return mono result
    */
-  default void onSessionClose(GatewaySession session) {
-    LOGGER.info("Session closed: {}", session);
+  default Mono<Void> onSessionClose(GatewaySession session) {
+    return Mono.fromRunnable(() -> LOGGER.info("Session closed: {}", session));
   }
 }

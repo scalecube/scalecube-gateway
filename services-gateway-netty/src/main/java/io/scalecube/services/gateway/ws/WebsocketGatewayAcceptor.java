@@ -55,8 +55,13 @@ public class WebsocketGatewayAcceptor
   }
 
   private Mono<Void> onConnect(WebsocketGatewaySession session) {
-    gatewayHandler.onSessionOpen(session);
+    return gatewayHandler
+        .onSessionOpen(session)
+        .then(Mono.fromRunnable(() -> setupOnReceive(session)))
+        .then(session.onClose(() -> gatewayHandler.onSessionClose(session).subscribe()));
+  }
 
+  private void setupOnReceive(WebsocketGatewaySession session) {
     session
         .receive()
         .doOnError(th -> gatewayHandler.onSessionError(session, th))
@@ -66,8 +71,6 @@ public class WebsocketGatewayAcceptor
                     .subscriberContext(
                         context -> gatewayHandler.onRequest(session, byteBuf, context))
                     .subscribe());
-
-    return session.onClose(() -> gatewayHandler.onSessionClose(session));
   }
 
   private Mono<GatewayMessage> onRequest(

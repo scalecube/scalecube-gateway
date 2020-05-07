@@ -5,11 +5,14 @@ import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 public class SecuredRsGwGatewaySessionHandler implements GatewaySessionHandler<ServiceMessage> {
+
   private static final Logger LOGGER =
       LoggerFactory.getLogger(SecuredRsGwGatewaySessionHandler.class);
+
   private final AuthRegistry authRegistry;
 
   public SecuredRsGwGatewaySessionHandler(AuthRegistry authRegistry) {
@@ -22,13 +25,16 @@ public class SecuredRsGwGatewaySessionHandler implements GatewaySessionHandler<S
   }
 
   @Override
-  public void onSessionOpen(GatewaySession s) {
-    LOGGER.info("Session opened: {}", s);
+  public Mono<Void> onSessionOpen(GatewaySession s) {
+    return Mono.fromRunnable(() -> LOGGER.info("Session opened: {}", s));
   }
 
   @Override
-  public void onSessionClose(GatewaySession session) {
-    LOGGER.info("Session removed: {}", session);
-    authRegistry.removeAuth(session.sessionId());
+  public Mono<Void> onSessionClose(GatewaySession session) {
+    return Mono.fromRunnable(
+        () -> {
+          LOGGER.info("Session removed: {}", session);
+          authRegistry.removeAuth(session.sessionId());
+        });
   }
 }
