@@ -45,32 +45,22 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
     // Prepare message codec together with headers from metainfo
     HeadersCodec headersCodec = HeadersCodec.getInstance(setup.metadataMimeType());
     ServiceMessageCodec messageCodec = new ServiceMessageCodec(headersCodec);
-    final RSocketGatewaySession session =
+    final RSocketGatewaySession gatewaySession =
         new RSocketGatewaySession(
             serviceCall,
             metrics,
             messageCodec,
-            (session1, req) -> gatewaySessionHandler.mapMessage(session1, req, Context.empty()));
-
-    return gatewaySessionHandler
-        .onSessionOpen(session)
-        .doOnSubscribe(s -> setupOnClose(rsocket, session))
-        .thenReturn(session);
-  }
-
-  private void setupOnClose(RSocket rsocket, RSocketGatewaySession session) {
+            (session, req) -> gatewaySessionHandler.mapMessage(session, req, Context.empty()));
+    gatewaySessionHandler.onSessionOpen(gatewaySession);
     rsocket
         .onClose()
-        .onErrorResume(
-            th ->
-                Mono.fromRunnable(
-                    () -> LOGGER.warn("Exception on closing rsocket: {}", th.toString())))
-        .then(
-            Mono.defer(
-                () -> {
-                  LOGGER.info("Client disconnected: {}", rsocket);
-                  return gatewaySessionHandler.onSessionClose(session);
-                }))
-        .subscribe();
+        .doOnTerminate(
+            () -> {
+              LOGGER.info("Client disconnected: {}", rsocket);
+              gatewaySessionHandler.onSessionClose(gatewaySession);
+            })
+        .subscribe(null, th -> LOGGER.error("Exception on closing rsocket: {}", th.toString()));
+
+    return Mono.just(gatewaySession);
   }
 }

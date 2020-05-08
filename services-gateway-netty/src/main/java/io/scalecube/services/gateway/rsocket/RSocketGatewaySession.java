@@ -9,7 +9,9 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.ServiceMessageCodec;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Flux;
@@ -55,13 +57,8 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
   }
 
   @Override
-  public String headerValue(String name) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public List<String> headerValues(String name) {
-    throw new UnsupportedOperationException();
+  public Map<String, List<String>> headers() {
+    return Collections.emptyMap();
   }
 
   @Override
