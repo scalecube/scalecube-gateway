@@ -1,12 +1,13 @@
 package io.scalecube.services.gateway.ws;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -16,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
@@ -35,27 +35,27 @@ public final class WebsocketGatewaySession implements GatewaySession {
   private final GatewayMessageCodec codec;
 
   private final long sessionId;
-  private final HttpHeaders headers;
+  private final Map<String, List<String>> headers;
 
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
    *
    * @param codec - msg codec
-   * @param httpRequest - Init session HTTP request
+   * @param headers - headers
    * @param inbound - Websocket inbound
    * @param outbound - Websocket outbound
    * @param gatewayHandler - gateway handler
    */
   public WebsocketGatewaySession(
       GatewayMessageCodec codec,
-      HttpServerRequest httpRequest,
+      Map<String, List<String>> headers,
       WebsocketInbound inbound,
       WebsocketOutbound outbound,
       GatewaySessionHandler<GatewayMessage> gatewayHandler) {
     this.codec = codec;
     this.sessionId = SESSION_ID_GENERATOR.incrementAndGet();
 
-    this.headers = httpRequest.requestHeaders();
+    this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
     this.inbound =
         (WebsocketInbound) inbound.withConnection(c -> c.onDispose(this::clearSubscriptions));
     this.outbound = outbound;
@@ -68,13 +68,8 @@ public final class WebsocketGatewaySession implements GatewaySession {
   }
 
   @Override
-  public String headerValue(String name) {
-    return headers.get(name);
-  }
-
-  @Override
-  public List<String> headerValues(String name) {
-    return headers.getAll(name);
+  public Map<String, List<String>> headers() {
+    return headers;
   }
 
   /**
