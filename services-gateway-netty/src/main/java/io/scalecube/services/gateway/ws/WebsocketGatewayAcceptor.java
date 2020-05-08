@@ -74,9 +74,16 @@ public class WebsocketGatewayAcceptor
         .onErrorResume(throwable -> Mono.empty());
   }
 
+  private static Map<String, List<String>> computeHeaders(HttpHeaders httpHeaders) {
+    Map<String, List<String>> headers = new HashMap<>();
+    for (String name : httpHeaders.names()) {
+      headers.put(name, httpHeaders.getAll(name));
+    }
+    return headers;
+  }
+
   private static int toStatusCode(Throwable throwable) {
     int status = DEFAULT_ERROR_CODE;
-
     if (throwable instanceof ServiceException) {
       if (throwable instanceof BadRequestException) {
         status = BadRequestException.ERROR_TYPE;
@@ -90,16 +97,7 @@ public class WebsocketGatewayAcceptor
         status = InternalServiceException.ERROR_TYPE;
       }
     }
-
     return status;
-  }
-
-  private static Map<String, List<String>> computeHeaders(HttpHeaders httpHeaders) {
-    Map<String, List<String>> headers = new HashMap<>();
-    for (String name : httpHeaders.names()) {
-      headers.put(name, httpHeaders.getAll(name));
-    }
-    return headers;
   }
 
   private Mono<Void> onConnect(WebsocketGatewaySession session) {
