@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import reactor.core.Disposable;
@@ -35,7 +36,9 @@ import reactor.util.context.Context;
 public class WebsocketGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
-  public static final int DEFAULT_ERROR_CODE = 500;
+  private static final int DEFAULT_ERROR_CODE = 500;
+
+  private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;
@@ -59,9 +62,11 @@ public class WebsocketGatewayAcceptor
 
   @Override
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    Map<String, List<String>> headers = computeHeaders(httpRequest.requestHeaders());
+    final Map<String, List<String>> headers = computeHeaders(httpRequest.requestHeaders());
+    final long sessionId = SESSION_ID_GENERATOR.incrementAndGet();
+
     return gatewayHandler
-        .onConnectionOpen(headers)
+        .onConnectionOpen(sessionId, headers)
         .doOnError(ex -> httpResponse.status(toStatusCode(ex)).send().subscribe())
         .then(
             Mono.defer(
@@ -70,7 +75,12 @@ public class WebsocketGatewayAcceptor
                         (WebsocketInbound inbound, WebsocketOutbound outbound) ->
                             onConnect(
                                 new WebsocketGatewaySession(
-                                    messageCodec, headers, inbound, outbound, gatewayHandler)))))
+                                    sessionId,
+                                    messageCodec,
+                                    headers,
+                                    inbound,
+                                    outbound,
+                                    gatewayHandler)))))
         .onErrorResume(throwable -> Mono.empty());
   }
 

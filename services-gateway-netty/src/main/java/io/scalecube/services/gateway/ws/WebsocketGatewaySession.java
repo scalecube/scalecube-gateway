@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +22,6 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 public final class WebsocketGatewaySession implements GatewaySession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewaySession.class);
-
-  private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
 
@@ -40,6 +37,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
    *
+   * @param sessionId - session id
    * @param codec - msg codec
    * @param headers - headers
    * @param inbound - Websocket inbound
@@ -47,13 +45,14 @@ public final class WebsocketGatewaySession implements GatewaySession {
    * @param gatewayHandler - gateway handler
    */
   public WebsocketGatewaySession(
+      long sessionId,
       GatewayMessageCodec codec,
       Map<String, List<String>> headers,
       WebsocketInbound inbound,
       WebsocketOutbound outbound,
       GatewaySessionHandler<GatewayMessage> gatewayHandler) {
+    this.sessionId = sessionId;
     this.codec = codec;
-    this.sessionId = SESSION_ID_GENERATOR.incrementAndGet();
 
     this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
     this.inbound =
