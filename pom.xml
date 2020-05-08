@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.0.21</version>
+    <version>0.1.1</version>
   </parent>
   <packaging>pom</packaging>
 
@@ -22,16 +22,17 @@
   </scm>
 
   <properties>
-    <jackson.version>2.10.0.pr1</jackson.version>
-    <scalecube-services.version>2.8.9</scalecube-services.version>
+    <scalecube-commons.version>1.0.2</scalecube-commons.version>
+    <scalecube-services.version>2.9.1-RC1</scalecube-services.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.3.11</scalecube-config.version>
-    <reactor.version>Californium-SR8</reactor.version>
-    <rsocket.version>0.11.21</rsocket.version>
+    <scalecube-config.version>0.4.3</scalecube-config.version>
+    <reactor.version>Dysprosium-SR7</reactor.version>
+    <rsocket.version>1.0.0-RC7</rsocket.version>
+    <netty.version>4.1.48.Final</netty.version>
+    <jackson.version>2.11.0</jackson.version>
     <metrics.version>3.1.2</metrics.version>
-    <netty.version>4.1.36.Final</netty.version>
-    <slf4j.version>1.7.7</slf4j.version>
-    <log4j.version>2.11.0</log4j.version>
+    <slf4j.version>1.7.30</slf4j.version>
+    <log4j.version>2.13.2</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
     <jsr305.version>3.0.2</jsr305.version>
     <jctools.version>2.1.2</jctools.version>
@@ -51,6 +52,14 @@
 
   <dependencyManagement>
     <dependencies>
+
+      <!-- Scalecube commons -->
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-commons</artifactId>
+        <version>${scalecube-commons.version}</version>
+      </dependency>
+
       <!-- Scalecube Config -->
       <dependency>
         <groupId>io.scalecube</groupId>
@@ -102,13 +111,10 @@
       </dependency>
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-slf4j-impl</artifactId>
+        <artifactId>log4j-bom</artifactId>
         <version>${log4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-core</artifactId>
-        <version>${log4j.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- Disruptor -->
@@ -121,37 +127,28 @@
       <!-- RSocket -->
       <dependency>
         <groupId>io.rsocket</groupId>
-        <artifactId>rsocket-core</artifactId>
+        <artifactId>rsocket-bom</artifactId>
         <version>${rsocket.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.rsocket</groupId>
-        <artifactId>rsocket-transport-netty</artifactId>
-        <version>${rsocket.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- Jackson -->
       <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
         <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.datatype</groupId>
-        <artifactId>jackson-datatype-jsr310</artifactId>
-        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- Netty -->
       <dependency>
         <groupId>io.netty</groupId>
-        <artifactId>netty-buffer</artifactId>
+        <artifactId>netty-bom</artifactId>
         <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- Scalecube benchmarks -->

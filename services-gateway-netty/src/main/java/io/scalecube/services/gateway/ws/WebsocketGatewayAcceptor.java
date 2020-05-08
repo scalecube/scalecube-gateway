@@ -1,12 +1,23 @@
 package io.scalecube.services.gateway.ws;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ForbiddenException;
+import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,10 +30,12 @@ import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
-
+import reactor.util.context.Context;
 
 public class WebsocketGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
+
+  public static final int DEFAULT_ERROR_CODE = 500;
 
   private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
   private final ServiceCall serviceCall;
@@ -46,9 +59,45 @@ public class WebsocketGatewayAcceptor
 
   @Override
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    return httpResponse.sendWebsocket(
-        (WebsocketInbound inbound, WebsocketOutbound outbound) ->
-            onConnect(new WebsocketGatewaySession(messageCodec, httpRequest, inbound, outbound)));
+    Map<String, List<String>> headers = computeHeaders(httpRequest.requestHeaders());
+    return gatewayHandler
+        .onConnectionOpen(headers)
+        .doOnError(ex -> httpResponse.status(toStatusCode(ex)).send().subscribe())
+        .then(
+            Mono.defer(
+                () ->
+                    httpResponse.sendWebsocket(
+                        (WebsocketInbound inbound, WebsocketOutbound outbound) ->
+                            onConnect(
+                                new WebsocketGatewaySession(
+                                    messageCodec, headers, inbound, outbound, gatewayHandler)))))
+        .onErrorResume(throwable -> Mono.empty());
+  }
+
+  private static Map<String, List<String>> computeHeaders(HttpHeaders httpHeaders) {
+    Map<String, List<String>> headers = new HashMap<>();
+    for (String name : httpHeaders.names()) {
+      headers.put(name, httpHeaders.getAll(name));
+    }
+    return headers;
+  }
+
+  private static int toStatusCode(Throwable throwable) {
+    int status = DEFAULT_ERROR_CODE;
+    if (throwable instanceof ServiceException) {
+      if (throwable instanceof BadRequestException) {
+        status = BadRequestException.ERROR_TYPE;
+      } else if (throwable instanceof UnauthorizedException) {
+        status = UnauthorizedException.ERROR_TYPE;
+      } else if (throwable instanceof ForbiddenException) {
+        status = ForbiddenException.ERROR_TYPE;
+      } else if (throwable instanceof ServiceUnavailableException) {
+        status = ServiceUnavailableException.ERROR_TYPE;
+      } else if (throwable instanceof InternalServiceException) {
+        status = InternalServiceException.ERROR_TYPE;
+      }
+    }
+    return status;
   }
 
   private Mono<Void> onConnect(WebsocketGatewaySession session) {
@@ -56,33 +105,45 @@ public class WebsocketGatewayAcceptor
 
     session
         .receive()
+        .doOnError(th -> gatewayHandler.onSessionError(session, th))
         .subscribe(
             byteBuf ->
-                Mono.fromCallable(() -> messageCodec.decode(byteBuf))
-                    .doOnNext(message -> metrics.markRequest())
-                    .map(this::checkSid)
-                    .flatMap(msg -> handleCancel(session, msg))
-                    .map(msg -> validateSid(session, (GatewayMessage) msg))
-                    .map(this::checkQualifier)
-                    .map(msg -> gatewayHandler.mapMessage(session, msg))
-                    .subscribe(
-                        request -> {
-                          try {
-                            handleMessage(session, request);
-                          } catch (Exception ex) {
-                            gatewayHandler.onError(session, ex, request, null);
-                          }
-                        },
-                        th -> handleError(session, th)),
-            th -> gatewayHandler.onError(session, th, null, null));
+                Mono.deferWithContext(context -> onRequest(session, byteBuf, context))
+                    .subscriberContext(
+                        context -> gatewayHandler.onRequest(session, byteBuf, context))
+                    .subscribe());
 
     return session.onClose(() -> gatewayHandler.onSessionClose(session));
   }
 
-  private void handleMessage(WebsocketGatewaySession session, GatewayMessage request) {
-    Long sid = request.streamId();
+  private Mono<GatewayMessage> onRequest(
+      WebsocketGatewaySession session, ByteBuf byteBuf, Context context) {
+    return Mono.fromCallable(() -> messageCodec.decode(byteBuf))
+        .doOnNext(message -> metrics.markRequest())
+        .map(this::validateSid)
+        .flatMap(msg -> onCancel(session, msg))
+        .map(msg -> validateSid(session, (GatewayMessage) msg))
+        .map(this::validateQualifier)
+        .map(msg -> gatewayHandler.mapMessage(session, msg, context))
+        .doOnNext(request -> onMessage(session, request, context))
+        .doOnError(
+            th -> {
+              if (!(th instanceof WebsocketContextException)) {
+                // decode failed at this point
+                gatewayHandler.onError(session, th, context);
+                return;
+              }
 
-    AtomicBoolean receivedError = new AtomicBoolean(false);
+              WebsocketContextException wex = (WebsocketContextException) th;
+              wex.releaseRequest(); // release
+
+              onError(session, wex.request(), wex.getCause(), context);
+            });
+  }
+
+  private void onMessage(WebsocketGatewaySession session, GatewayMessage request, Context context) {
+    final Long sid = request.streamId();
+    final AtomicBoolean receivedError = new AtomicBoolean(false);
 
     final Flux<ServiceMessage> serviceStream =
         serviceCall.requestMany(GatewayMessage.toServiceMessage(request));
@@ -93,69 +154,42 @@ public class WebsocketGatewayAcceptor
             .orElse(serviceStream)
             .map(response -> prepareResponse(sid, response, receivedError))
             .doOnNext(response -> metrics.markServiceResponse())
+            .flatMap(session::send)
+            .doOnError(th -> onError(session, request, th, context))
+            .doOnComplete(() -> onComplete(session, request, receivedError, context))
             .doFinally(signalType -> session.dispose(sid))
-            .subscribe(
-                response ->
-                    session
-                        .send(response)
-                        .subscribe(
-                            avoid -> metrics.markResponse(),
-                            th -> gatewayHandler.onError(session, th, request, response)),
-                th -> handleError(session, request, th),
-                () -> handleCompletion(session, request, receivedError));
+            .subscriberContext(context)
+            .subscribe();
 
     session.register(sid, disposable);
   }
 
-  private void handleError(WebsocketGatewaySession session, Throwable throwable) {
-    if (throwable instanceof WebsocketRequestException) {
-      WebsocketRequestException ex = (WebsocketRequestException) throwable;
-      ex.releaseRequest(); // release
-      handleError(session, ex.request(), ex.getCause());
-    } else {
-      gatewayHandler.onError(session, throwable, null, null);
-    }
-  }
-
-  private void handleError(WebsocketGatewaySession session, GatewayMessage req, Throwable th) {
-    gatewayHandler.onError(session, th, req, null);
+  private void onError(
+      WebsocketGatewaySession session, GatewayMessage req, Throwable th, Context context) {
 
     Builder builder = GatewayMessage.from(DefaultErrorMapper.INSTANCE.toMessage(th));
     Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
     GatewayMessage response = builder.signal(Signal.ERROR).build();
 
-    session
-        .send(response)
-        .subscribe(null, ex -> gatewayHandler.onError(session, ex, req, response));
+    session.send(response).subscriberContext(context).subscribe();
   }
 
-  private void handleCompletion(
-      WebsocketGatewaySession session, GatewayMessage req, AtomicBoolean receivedError) {
+  private void onComplete(
+      WebsocketGatewaySession session,
+      GatewayMessage req,
+      AtomicBoolean receivedError,
+      Context context) {
+
     if (!receivedError.get()) {
       Builder builder = GatewayMessage.builder();
       Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
       GatewayMessage response = builder.signal(Signal.COMPLETE).build();
-      session.send(response).subscribe(null, ex -> gatewayHandler.onError(session, ex, req, null));
+
+      session.send(response).subscriberContext(context).subscribe();
     }
   }
 
-  private GatewayMessage checkQualifier(GatewayMessage msg) {
-    if (msg.qualifier() == null) {
-      throw WebsocketRequestException.newBadRequest("qualifier is missing", msg);
-    }
-    return msg;
-  }
-
-  private GatewayMessage validateSid(WebsocketGatewaySession session, GatewayMessage msg) {
-    if (session.containsSid(msg.streamId())) {
-      throw WebsocketRequestException.newBadRequest(
-          "sid=" + msg.streamId() + " is already registered", msg);
-    } else {
-      return msg;
-    }
-  }
-
-  private Mono<?> handleCancel(WebsocketGatewaySession session, GatewayMessage msg) {
+  private Mono<?> onCancel(WebsocketGatewaySession session, GatewayMessage msg) {
     if (!msg.hasSignal(Signal.CANCEL)) {
       return Mono.just(msg);
     }
@@ -171,9 +205,25 @@ public class WebsocketGatewayAcceptor
     return session.send(cancelAck); // no need to subscribe here since flatMap will do
   }
 
-  private GatewayMessage checkSid(GatewayMessage msg) {
+  private GatewayMessage validateQualifier(GatewayMessage msg) {
+    if (msg.qualifier() == null) {
+      throw WebsocketContextException.badRequest("qualifier is missing", msg);
+    }
+    return msg;
+  }
+
+  private GatewayMessage validateSid(WebsocketGatewaySession session, GatewayMessage msg) {
+    if (session.containsSid(msg.streamId())) {
+      throw WebsocketContextException.badRequest(
+          "sid=" + msg.streamId() + " is already registered", msg);
+    } else {
+      return msg;
+    }
+  }
+
+  private GatewayMessage validateSid(GatewayMessage msg) {
     if (msg.streamId() == null) {
-      throw WebsocketRequestException.newBadRequest("sid is missing", msg);
+      throw WebsocketContextException.badRequest("sid is missing", msg);
     } else {
       return msg;
     }

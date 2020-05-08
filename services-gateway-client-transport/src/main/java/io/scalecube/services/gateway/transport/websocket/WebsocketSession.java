@@ -22,7 +22,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.Connection;
-import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
@@ -36,7 +35,6 @@ public final class WebsocketSession {
   private final String id; // keep id for tracing
   private final GatewayClientCodec<ByteBuf> codec;
   private final Connection connection;
-  private final WebsocketOutbound outbound;
 
   // processor by sid mapping
   private final Map<Long, Processor<ServiceMessage, ServiceMessage>> inboundProcessors =
@@ -46,7 +44,6 @@ public final class WebsocketSession {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
     this.connection = connection;
-    this.outbound = (WebsocketOutbound) connection.outbound().options(SendOptions::flushOnEach);
 
     WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
     inbound
@@ -121,8 +118,9 @@ public final class WebsocketSession {
     return Mono.defer(
         () -> {
           // send with publisher (defer buffer cleanup to netty)
-          return outbound
-              .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new))
+          return connection
+              .outbound()
+              .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new), f -> true)
               .then()
               .doOnError(
                   th -> {
@@ -144,7 +142,7 @@ public final class WebsocketSession {
    * @return mono void
    */
   public Mono<Void> close() {
-    return outbound.sendClose().then();
+    return ((WebsocketOutbound) connection.outbound()).sendClose().then();
   }
 
   public Mono<Void> onClose() {

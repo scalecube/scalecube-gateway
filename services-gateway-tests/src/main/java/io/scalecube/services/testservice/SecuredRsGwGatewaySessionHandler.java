@@ -5,10 +5,13 @@ import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.util.context.Context;
 
 public class SecuredRsGwGatewaySessionHandler implements GatewaySessionHandler<ServiceMessage> {
+
   private static final Logger LOGGER =
       LoggerFactory.getLogger(SecuredRsGwGatewaySessionHandler.class);
+
   private final AuthRegistry authRegistry;
 
   public SecuredRsGwGatewaySessionHandler(AuthRegistry authRegistry) {
@@ -16,8 +19,8 @@ public class SecuredRsGwGatewaySessionHandler implements GatewaySessionHandler<S
   }
 
   @Override
-  public ServiceMessage mapMessage(GatewaySession session, ServiceMessage req) {
-    return ServiceMessage.from(req).header(AuthRegistry.SESSION_ID, session).build();
+  public ServiceMessage mapMessage(GatewaySession session, ServiceMessage req, Context context) {
+    return ServiceMessage.from(req).header(AuthRegistry.SESSION_ID, session.sessionId()).build();
   }
 
   @Override
