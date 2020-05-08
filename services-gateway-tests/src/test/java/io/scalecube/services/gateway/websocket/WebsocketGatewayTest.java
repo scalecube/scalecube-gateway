@@ -161,8 +161,8 @@ class WebsocketGatewayTest extends BaseTest {
   public void testManyStreamBlockFirst() {
     for (int i = 0; i < 100; i++) {
       //noinspection ConstantConditions
-      long first = service.manyStream(30L).filter(k -> k != 0).take(1).blockFirst();
-      assertEquals(1, first);
+      long first = service.manyStream(30L).take(1).blockFirst();
+      assertEquals(0, first);
     }
   }
 }
