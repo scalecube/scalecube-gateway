@@ -69,7 +69,7 @@ public interface GatewaySessionHandler<M> {
   }
 
   /**
-   * On session error.
+   * Error handler function.
    *
    * @param session webscoket session (not null)
    * @param throwable an exception that occurred (not null)
@@ -78,8 +78,18 @@ public interface GatewaySessionHandler<M> {
     LOGGER.error("Exception occurred on session: {}, cause:", session.sessionId(), throwable);
   }
 
-  default Mono<Void> onConnectionOpen(Map<String, List<String>> headers) {
-    return Mono.fromRunnable(() -> LOGGER.debug("Connection opened, headers({})", headers.size()));
+  /**
+   * On connection open handler.
+   *
+   * @param sessionId session id
+   * @param headers connection/session headers
+   * @return mono result
+   */
+  default Mono<Void> onConnectionOpen(long sessionId, Map<String, List<String>> headers) {
+    return Mono.fromRunnable(
+        () ->
+            LOGGER.debug(
+                "Connection opened, sessionId: {}, headers({})", sessionId, headers.size()));
   }
 
   /**
