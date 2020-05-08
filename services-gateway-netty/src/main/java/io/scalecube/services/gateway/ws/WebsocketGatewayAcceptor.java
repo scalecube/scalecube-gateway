@@ -4,7 +4,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ForbiddenException;
+import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.ReferenceCountUtil;
@@ -56,7 +62,7 @@ public class WebsocketGatewayAcceptor
     Map<String, List<String>> headers = computeHeaders(httpRequest.requestHeaders());
     return gatewayHandler
         .onConnectionOpen(headers)
-        .doOnError(throwable -> httpResponse.status(DEFAULT_ERROR_CODE).send().subscribe())
+        .doOnError(ex -> httpResponse.status(toStatusCode(ex)).send().subscribe())
         .then(
             Mono.defer(
                 () ->
@@ -66,6 +72,26 @@ public class WebsocketGatewayAcceptor
                                 new WebsocketGatewaySession(
                                     messageCodec, headers, inbound, outbound, gatewayHandler)))))
         .onErrorResume(throwable -> Mono.empty());
+  }
+
+  private static int toStatusCode(Throwable throwable) {
+    int status = DEFAULT_ERROR_CODE;
+
+    if (throwable instanceof ServiceException) {
+      if (throwable instanceof BadRequestException) {
+        status = BadRequestException.ERROR_TYPE;
+      } else if (throwable instanceof UnauthorizedException) {
+        status = UnauthorizedException.ERROR_TYPE;
+      } else if (throwable instanceof ForbiddenException) {
+        status = ForbiddenException.ERROR_TYPE;
+      } else if (throwable instanceof ServiceUnavailableException) {
+        status = ServiceUnavailableException.ERROR_TYPE;
+      } else if (throwable instanceof InternalServiceException) {
+        status = InternalServiceException.ERROR_TYPE;
+      }
+    }
+
+    return status;
   }
 
   private static Map<String, List<String>> computeHeaders(HttpHeaders httpHeaders) {
