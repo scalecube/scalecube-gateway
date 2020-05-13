@@ -5,7 +5,6 @@ import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
@@ -19,23 +18,18 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGatewayAcceptor.class);
 
   private final ServiceCall serviceCall;
-  private final GatewayMetrics metrics;
-  private final GatewaySessionHandler<ServiceMessage> gatewaySessionHandler;
+  private final GatewaySessionHandler<ServiceMessage> sessionHandler;
 
   /**
    * Creates new acceptor for RS gateway.
    *
    * @param serviceCall to call remote service
-   * @param metrics to report events
-   * @param gatewaySessionHandler handler for session events
+   * @param sessionHandler handler for session events
    */
   public RSocketGatewayAcceptor(
-      ServiceCall serviceCall,
-      GatewayMetrics metrics,
-      GatewaySessionHandler<ServiceMessage> gatewaySessionHandler) {
+      ServiceCall serviceCall, GatewaySessionHandler<ServiceMessage> sessionHandler) {
     this.serviceCall = serviceCall;
-    this.metrics = metrics;
-    this.gatewaySessionHandler = gatewaySessionHandler;
+    this.sessionHandler = sessionHandler;
   }
 
   @Override
@@ -48,16 +42,15 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
     final RSocketGatewaySession gatewaySession =
         new RSocketGatewaySession(
             serviceCall,
-            metrics,
             messageCodec,
-            (session, req) -> gatewaySessionHandler.mapMessage(session, req, Context.empty()));
-    gatewaySessionHandler.onSessionOpen(gatewaySession);
+            (session, req) -> sessionHandler.mapMessage(session, req, Context.empty()));
+    sessionHandler.onSessionOpen(gatewaySession);
     rsocket
         .onClose()
         .doOnTerminate(
             () -> {
               LOGGER.info("Client disconnected: {}", rsocket);
-              gatewaySessionHandler.onSessionClose(gatewaySession);
+              sessionHandler.onSessionClose(gatewaySession);
             })
         .subscribe(null, th -> LOGGER.error("Exception on closing rsocket: {}", th.toString()));
 

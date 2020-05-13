@@ -26,11 +26,9 @@ public abstract class GatewayTemplate implements Gateway {
   }
 
   protected final GatewayOptions options;
-  protected final GatewayMetrics gatewayMetrics;
 
   protected GatewayTemplate(GatewayOptions options) {
     this.options = new GatewayOptions(options);
-    this.gatewayMetrics = new GatewayMetrics(this.options.id(), this.options.metrics());
   }
 
   @Override
@@ -43,26 +41,16 @@ public abstract class GatewayTemplate implements Gateway {
    *
    * @param loopResources loop resources
    * @param port listen port
-   * @param metrics gateway metrics
    * @return http server
    */
-  protected HttpServer prepareHttpServer(
-      LoopResources loopResources, int port, GatewayMetrics metrics) {
+  protected HttpServer prepareHttpServer(LoopResources loopResources, int port) {
     return HttpServer.create()
         .tcpConfiguration(
             tcpServer -> {
               if (loopResources != null) {
                 tcpServer = tcpServer.runOn(loopResources);
               }
-              if (metrics != null) {
-                tcpServer =
-                    tcpServer.doOnConnection(
-                        connection -> {
-                          metrics.incConnection();
-                          connection.onDispose(metrics::decConnection);
-                        });
-              }
-              return tcpServer.addressSupplier(() -> new InetSocketAddress(port));
+              return tcpServer.bindAddress(() -> new InetSocketAddress(port));
             });
   }
 

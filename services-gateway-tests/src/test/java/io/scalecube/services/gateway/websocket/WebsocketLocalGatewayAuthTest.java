@@ -72,7 +72,7 @@ public class WebsocketLocalGatewayAuthTest {
 
   @Test
   void testCallSecuredMethod_notAuthenticated() {
-    StepVerifier.create(clientService.requestOne("echo", null))
+    StepVerifier.create(clientService.requestOne("echo"))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -88,7 +88,7 @@ public class WebsocketLocalGatewayAuthTest {
     extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class).block(TIMEOUT);
     // call secured service
     final String req = "echo";
-    StepVerifier.create(clientService.requestOne(req, null))
+    StepVerifier.create(clientService.requestOne(req))
         .expectNextMatches(resp -> resp.equals(ALLOWED_USER + "@" + req))
         .expectComplete()
         .verify();
@@ -103,7 +103,7 @@ public class WebsocketLocalGatewayAuthTest {
         .verify();
     // call secured service
     final String req = "echo";
-    StepVerifier.create(clientService.requestOne(req, null))
+    StepVerifier.create(clientService.requestOne(req))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -115,7 +115,7 @@ public class WebsocketLocalGatewayAuthTest {
 
   @Test
   void testCallSecuredMethod_notAuthenticatedRequestStream() {
-    StepVerifier.create(clientService.requestN(10, null))
+    StepVerifier.create(clientService.requestN(10))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -131,7 +131,7 @@ public class WebsocketLocalGatewayAuthTest {
     extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class).block(TIMEOUT);
     // call secured service
     Integer times = 10;
-    StepVerifier.create(clientService.requestN(times, null))
+    StepVerifier.create(clientService.requestN(times))
         .expectNextCount(10)
         .expectComplete()
         .verify();

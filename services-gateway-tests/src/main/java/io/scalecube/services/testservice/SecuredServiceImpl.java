@@ -38,13 +38,16 @@ public class SecuredServiceImpl implements SecuredService {
   }
 
   @Override
-  public Mono<String> requestOne(String req, @Principal String auth) {
-    LOGGER.info("User {} has accessed secured call", auth);
-    return Mono.just(auth + "@" + req);
+  public Mono<String> requestOne(String req) {
+    return Mono.deferWithContext(context -> Mono.just(context.get(String.class)))
+        .flatMap(auth -> {
+          LOGGER.info("User {} has accessed secured call", auth);
+          return Mono.just(auth + "@" + req);
+        });
   }
 
   @Override
-  public Flux<String> requestN(Integer times, String auth) {
+  public Flux<String> requestN(Integer times) {
     if (times <= 0) {
       return Flux.empty();
     }

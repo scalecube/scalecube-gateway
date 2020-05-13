@@ -6,8 +6,8 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
-import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewaySession;
+import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +27,6 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
   private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 
   private final ServiceCall serviceCall;
-  private final GatewayMetrics metrics;
   private final ServiceMessageCodec messageCodec;
   private final long sessionId;
   private final BiFunction<GatewaySession, ServiceMessage, ServiceMessage> messageMapper;
@@ -36,16 +35,13 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
    * Constructor for gateway rsocket.
    *
    * @param serviceCall service call coming from microservices.
-   * @param metrics gateway metrics.
    * @param messageCodec message messageCodec.
    */
   public RSocketGatewaySession(
       ServiceCall serviceCall,
-      GatewayMetrics metrics,
       ServiceMessageCodec messageCodec,
       BiFunction<GatewaySession, ServiceMessage, ServiceMessage> messageMapper) {
     this.serviceCall = serviceCall;
-    this.metrics = metrics;
     this.messageCodec = messageCodec;
     this.messageMapper = messageMapper;
     this.sessionId = SESSION_ID_GENERATOR.incrementAndGet();
@@ -63,23 +59,19 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
 
   @Override
   public Mono<Void> fireAndForget(Payload payload) {
-    return Mono.defer(
-        () -> {
-          metrics.markRequest();
-          return serviceCall.oneWay(toMessage(payload));
-        });
+    return Mono.defer(() -> serviceCall.oneWay(toMessage(payload)));
   }
 
   @Override
   public Mono<Payload> requestResponse(Payload payload) {
     return Mono.defer(
         () -> {
-          metrics.markRequest();
+          ServiceMessage request = toMessage(payload);
           return serviceCall
-              .requestOne(toMessage(payload))
+              .requestOne(request)
+              .doOnError(th -> releaseRequestOnError(request))
               .onErrorResume(th -> Mono.just(DefaultErrorMapper.INSTANCE.toMessage(th)))
-              .map(this::toPayload)
-              .doOnNext(payload1 -> metrics.markServiceResponse());
+              .map(this::toPayload);
         });
   }
 
@@ -87,12 +79,12 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
   public Flux<Payload> requestStream(Payload payload) {
     return Flux.defer(
         () -> {
-          metrics.markRequest();
+          ServiceMessage request = toMessage(payload);
           return serviceCall
-              .requestMany(toMessage(payload))
+              .requestMany(request)
+              .doOnError(th -> releaseRequestOnError(request))
               .onErrorResume(th -> Mono.just(DefaultErrorMapper.INSTANCE.toMessage(th)))
-              .map(this::toPayload)
-              .doOnNext(payload1 -> metrics.markServiceResponse());
+              .map(this::toPayload);
         });
   }
 
@@ -108,6 +100,10 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
 
   private Payload toPayload(ServiceMessage message) {
     return messageCodec.encodeAndTransform(message, ByteBufPayload::create);
+  }
+
+  private void releaseRequestOnError(ServiceMessage request) {
+    ReferenceCountUtil.safestRelease(request.data());
   }
 
   @Override

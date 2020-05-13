@@ -2,12 +2,10 @@ package io.scalecube.services.gateway.ws;
 
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.scalecube.net.Address;
-import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.GatewayTemplate;
-import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.StringJoiner;
@@ -62,14 +60,12 @@ public class WebsocketGateway extends GatewayTemplate {
   public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
-          ServiceCall serviceCall =
-              options.call().requestReleaser(ReferenceCountUtil::safestRelease);
           WebsocketGatewayAcceptor acceptor =
-              new WebsocketGatewayAcceptor(serviceCall, gatewayMetrics, gatewayHandler);
+              new WebsocketGatewayAcceptor(options.call(), gatewayHandler);
 
           loopResources = LoopResources.create("websocket-gateway");
 
-          return prepareHttpServer(loopResources, options.port(), gatewayMetrics)
+          return prepareHttpServer(loopResources, options.port())
               .tcpConfiguration(tcpServer -> tcpServer.doOnConnection(this::setupKeepAlive))
               .handle(acceptor)
               .bind()
