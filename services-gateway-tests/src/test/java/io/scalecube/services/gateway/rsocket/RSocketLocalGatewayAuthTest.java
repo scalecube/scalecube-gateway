@@ -1,10 +1,12 @@
 package io.scalecube.services.gateway.rsocket;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.testservice.AuthRegistry;
-import io.scalecube.services.testservice.SecuredAuthenticator;
 import io.scalecube.services.testservice.SecuredService;
 import io.scalecube.services.testservice.SecuredServiceImpl;
 import java.time.Duration;
@@ -12,12 +14,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RSocketLocalGatewayAuthTest {
 
@@ -31,8 +31,7 @@ public class RSocketLocalGatewayAuthTest {
 
   @RegisterExtension
   static RsLocalWithAuthExtension extension =
-      new RsLocalWithAuthExtension(
-          new SecuredServiceImpl(AUTH_REG), new SecuredAuthenticator(AUTH_REG), AUTH_REG);
+      new RsLocalWithAuthExtension(new SecuredServiceImpl(AUTH_REG), AUTH_REG);
 
   private SecuredService clientService;
 
@@ -71,23 +70,23 @@ public class RSocketLocalGatewayAuthTest {
 
   @Test
   void testCallSecuredMethod_notAuthenticated() {
-    StepVerifier.create(clientService.requestOne("echo", null))
+    StepVerifier.create(clientService.requestOne("echo"))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
               assertEquals(403, e.errorCode(), "Session is not authenticated");
-              assertTrue(e.getMessage().equals("Session is not authenticated"));
+              assertEquals("Session is not authenticated", e.getMessage());
             })
         .verify();
   }
 
-  @Test
+  @Disabled("https://github.com/scalecube/scalecube-gateway/issues/121")
   void testCallSecuredMethod_authenticated() {
     // authenticate session
     extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class).block(TIMEOUT);
     // call secured service
     final String req = "echo";
-    StepVerifier.create(clientService.requestOne(req, null))
+    StepVerifier.create(clientService.requestOne(req))
         .expectNextMatches(resp -> resp.equals(ALLOWED_USER + "@" + req))
         .expectComplete()
         .verify();
@@ -102,7 +101,7 @@ public class RSocketLocalGatewayAuthTest {
         .verify();
     // call secured service
     final String req = "echo";
-    StepVerifier.create(clientService.requestOne(req, null))
+    StepVerifier.create(clientService.requestOne(req))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;

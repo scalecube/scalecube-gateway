@@ -1,7 +1,7 @@
 package io.scalecube.services.testservice;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Principal;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import java.util.Optional;
@@ -24,30 +24,38 @@ public class SecuredServiceImpl implements SecuredService {
   public Mono<String> createSession(ServiceMessage request) {
     String sessionId = request.header(AuthRegistry.SESSION_ID);
     if (sessionId == null) {
-      return Mono.error(new BadRequestException("session Id is not present in request") {
-      });
+      return Mono.error(new BadRequestException("session Id is not present in request") {});
     }
     String req = request.data();
     Optional<String> authResult = authRegistry.addAuth(Long.parseLong(sessionId), req);
     if (authResult.isPresent()) {
       return Mono.just(req);
     } else {
-      return Mono.error(
-          new ForbiddenException("User not allowed to use this service: " + req));
+      return Mono.error(new ForbiddenException("User not allowed to use this service: " + req));
     }
   }
 
   @Override
-  public Mono<String> requestOne(String req, @Principal String auth) {
-    LOGGER.info("User {} has accessed secured call", auth);
-    return Mono.just(auth + "@" + req);
+  public Mono<String> requestOne(String req) {
+    return Mono.deferWithContext(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
+        .cast(String.class)
+        .flatMap(
+            auth -> {
+              LOGGER.info("User {} has accessed secured call", auth);
+              return Mono.just(auth + "@" + req);
+            });
   }
 
   @Override
-  public Flux<String> requestN(Integer times, String auth) {
-    if (times <= 0) {
-      return Flux.empty();
-    }
-    return Flux.fromStream(IntStream.range(0, times).mapToObj(String::valueOf));
+  public Flux<String> requestN(Integer times) {
+    return Mono.deferWithContext(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
+        .cast(String.class)
+        .flatMapMany(
+            auth -> {
+              if (times <= 0) {
+                return Flux.empty();
+              }
+              return Flux.fromStream(IntStream.range(0, times).mapToObj(String::valueOf));
+            });
   }
 }
