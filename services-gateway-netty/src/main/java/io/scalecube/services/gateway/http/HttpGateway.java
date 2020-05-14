@@ -112,7 +112,7 @@ public class HttpGateway extends GatewayTemplate {
 
           loopResources = LoopResources.create("http-gateway");
 
-          return prepareHttpServer(loopResources, options.port() /*metrics*/)
+          return prepareHttpServer(loopResources, options.port())
               .handle(acceptor)
               .bind()
               .doOnSuccess(server -> this.server = server)
