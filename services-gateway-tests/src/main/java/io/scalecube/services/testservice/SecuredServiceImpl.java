@@ -48,9 +48,14 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Flux<String> requestN(Integer times) {
-    if (times <= 0) {
-      return Flux.empty();
-    }
-    return Flux.fromStream(IntStream.range(0, times).mapToObj(String::valueOf));
+    return Mono.deferWithContext(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
+        .cast(String.class)
+        .flatMapMany(
+            auth -> {
+              if (times <= 0) {
+                return Flux.empty();
+              }
+              return Flux.fromStream(IntStream.range(0, times).mapToObj(String::valueOf));
+            });
   }
 }
