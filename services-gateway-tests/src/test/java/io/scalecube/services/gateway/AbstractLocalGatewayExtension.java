@@ -3,6 +3,8 @@ package io.scalecube.services.gateway;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -14,15 +16,27 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
 
 public abstract class AbstractLocalGatewayExtension
     implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLocalGatewayExtension.class);
+
   private final Object serviceInstance;
   private final Function<GatewayOptions, Gateway> gatewaySupplier;
   private final Function<GatewayClientSettings, ClientTransport> clientSupplier;
+
+  public static final Authenticator<Object> createSessionAwareAuthenticator =
+      credentials ->
+          Mono.deferWithContext(
+              context -> {
+                if (!context.hasKey(Authenticator.AUTH_CONTEXT_KEY)) {
+                  throw new ForbiddenException("Session is not authenticated");
+                }
+                return context.get(Authenticator.AUTH_CONTEXT_KEY);
+              });
 
   private Microservices gateway;
   private LoopResources clientLoopResources;
