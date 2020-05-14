@@ -74,8 +74,8 @@ public class RSocketLocalGatewayAuthTest {
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(403, e.errorCode(), "Session is not authenticated");
-              assertEquals("Session is not authenticated", e.getMessage());
+              assertEquals(401, e.errorCode(), "Authentication failed");
+              assertEquals("Authentication failed", e.getMessage());
             })
         .verify();
   }
@@ -105,8 +105,8 @@ public class RSocketLocalGatewayAuthTest {
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(403, e.errorCode());
-              assertEquals("Session is not authenticated", e.getMessage());
+              assertEquals(401, e.errorCode());
+              assertEquals("Authentication failed", e.getMessage());
             })
         .verify();
   }
