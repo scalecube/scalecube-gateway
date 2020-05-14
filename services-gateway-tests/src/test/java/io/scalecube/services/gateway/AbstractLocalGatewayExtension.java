@@ -4,7 +4,7 @@ import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.auth.Authenticator;
-import io.scalecube.services.exceptions.ForbiddenException;
+import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -33,7 +33,7 @@ public abstract class AbstractLocalGatewayExtension
           Mono.deferWithContext(
               context -> {
                 if (!context.hasKey(Authenticator.AUTH_CONTEXT_KEY)) {
-                  throw new ForbiddenException("Session is not authenticated");
+                  throw new UnauthorizedException("Authentication failed");
                 }
                 return context.get(Authenticator.AUTH_CONTEXT_KEY);
               });
