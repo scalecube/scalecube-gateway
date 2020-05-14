@@ -24,10 +24,7 @@ public class WebsocketGatewaySessionHandler implements GatewaySessionHandler<Gat
   @Override
   public Context onRequest(GatewaySession session, ByteBuf byteBuf, Context context) {
     Optional<String> authData = authRegistry.getAuth(session.sessionId());
-    if (authData.isEmpty()) {
-      return context;
-    }
-    return Context.of(Authenticator.AUTH_CONTEXT_KEY, authData.get());
+    return authData.map(s -> context.put(Authenticator.AUTH_CONTEXT_KEY, s)).orElse(context);
   }
 
   @Override
