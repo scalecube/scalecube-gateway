@@ -1,6 +1,6 @@
-package io.scalecube.services.testservice;
+package io.scalecube.services.gateway;
 
-import static io.scalecube.services.testservice.SecuredService.NS;
+import static io.scalecube.services.gateway.SecuredService.NS;
 
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;

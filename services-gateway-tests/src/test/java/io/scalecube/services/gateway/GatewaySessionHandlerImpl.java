@@ -1,10 +1,8 @@
-package io.scalecube.services.testservice;
+package io.scalecube.services.gateway;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
-import io.scalecube.services.gateway.GatewaySession;
-import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.util.Optional;
 import reactor.util.context.Context;
 

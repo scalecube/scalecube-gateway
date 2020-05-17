@@ -1,4 +1,4 @@
-package io.scalecube.services.testservice;
+package io.scalecube.services.gateway;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;

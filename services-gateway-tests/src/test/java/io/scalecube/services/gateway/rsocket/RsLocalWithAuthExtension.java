@@ -3,8 +3,8 @@ package io.scalecube.services.gateway.rsocket;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
-import io.scalecube.services.testservice.AuthRegistry;
-import io.scalecube.services.testservice.GatewaySessionHandlerImpl;
+import io.scalecube.services.gateway.AuthRegistry;
+import io.scalecube.services.gateway.GatewaySessionHandlerImpl;
 
 public class RsLocalWithAuthExtension extends AbstractLocalGatewayExtension {
 
