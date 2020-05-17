@@ -1,23 +1,18 @@
 package io.scalecube.services.testservice;
 
 import io.netty.buffer.ByteBuf;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
-import io.scalecube.services.gateway.ws.GatewayMessage;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.util.context.Context;
 
-public class WebsocketGatewaySessionHandler implements GatewaySessionHandler<GatewayMessage> {
-
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(WebsocketGatewaySessionHandler.class);
+public class GatewaySessionHandlerImpl implements GatewaySessionHandler {
 
   private final AuthRegistry authRegistry;
 
-  public WebsocketGatewaySessionHandler(AuthRegistry authRegistry) {
+  public GatewaySessionHandlerImpl(AuthRegistry authRegistry) {
     this.authRegistry = authRegistry;
   }
 
@@ -28,9 +23,9 @@ public class WebsocketGatewaySessionHandler implements GatewaySessionHandler<Gat
   }
 
   @Override
-  public GatewayMessage mapMessage(
-      GatewaySession session, GatewayMessage message, Context context) {
-    return GatewayMessage.from(message)
+  public ServiceMessage mapMessage(
+      GatewaySession session, ServiceMessage message, Context context) {
+    return ServiceMessage.from(message)
         .header(AuthRegistry.SESSION_ID, session.sessionId())
         .build();
   }

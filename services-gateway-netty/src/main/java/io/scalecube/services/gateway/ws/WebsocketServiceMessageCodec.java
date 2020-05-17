@@ -1,11 +1,6 @@
 package io.scalecube.services.gateway.ws;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
-import static io.scalecube.services.gateway.ws.GatewayMessage.DATA_FIELD;
-import static io.scalecube.services.gateway.ws.GatewayMessage.INACTIVITY_FIELD;
-import static io.scalecube.services.gateway.ws.GatewayMessage.RATE_LIMIT_FIELD;
-import static io.scalecube.services.gateway.ws.GatewayMessage.SIGNAL_FIELD;
-import static io.scalecube.services.gateway.ws.GatewayMessage.STREAM_ID_FIELD;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -23,6 +18,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.io.InputStream;
@@ -32,8 +28,9 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GatewayMessageCodec {
-  private static final Logger LOGGER = LoggerFactory.getLogger(GatewayMessageCodec.class);
+public final class WebsocketServiceMessageCodec {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketServiceMessageCodec.class);
 
   private static final ObjectMapper objectMapper = objectMapper();
 
@@ -41,21 +38,21 @@ public class GatewayMessageCodec {
 
   private final boolean releaseDataOnEncode;
 
-  public GatewayMessageCodec() {
+  public WebsocketServiceMessageCodec() {
     this(true /*always release by default*/);
   }
 
-  public GatewayMessageCodec(boolean releaseDataOnEncode) {
+  public WebsocketServiceMessageCodec(boolean releaseDataOnEncode) {
     this.releaseDataOnEncode = releaseDataOnEncode;
   }
 
   /**
-   * Encode given {@code message} to given {@code byteBuf}.
+   * Encodes {@link ServiceMessage} to {@link ByteBuf}.
    *
-   * @param message - input message to be encoded.
-   * @throws MessageCodecException in case of issues during encoding.
+   * @param message - message to encode
+   * @throws MessageCodecException in case of error during encoding
    */
-  public ByteBuf encode(GatewayMessage message) throws MessageCodecException {
+  public ByteBuf encode(ServiceMessage message) throws MessageCodecException {
     ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
     try (JsonGenerator generator =
         jsonFactory.createGenerator(
@@ -67,10 +64,10 @@ public class GatewayMessageCodec {
         String fieldName = header.getKey();
         String value = header.getValue();
         switch (fieldName) {
-          case STREAM_ID_FIELD:
-          case SIGNAL_FIELD:
-          case INACTIVITY_FIELD:
-          case RATE_LIMIT_FIELD:
+          case GatewayMessages.STREAM_ID_FIELD:
+          case GatewayMessages.SIGNAL_FIELD:
+          case GatewayMessages.INACTIVITY_FIELD:
+          case GatewayMessages.RATE_LIMIT_FIELD:
             generator.writeNumberField(fieldName, Long.parseLong(value));
             break;
           default:
@@ -85,7 +82,7 @@ public class GatewayMessageCodec {
           ByteBuf dataBin = (ByteBuf) data;
           if (dataBin.isReadable()) {
             try {
-              generator.writeFieldName(DATA_FIELD);
+              generator.writeFieldName(GatewayMessages.DATA_FIELD);
               generator.writeRaw(":");
               generator.flush();
               byteBuf.writeBytes(dataBin);
@@ -96,7 +93,7 @@ public class GatewayMessageCodec {
             }
           }
         } else {
-          generator.writeObjectField(DATA_FIELD, data);
+          generator.writeObjectField(GatewayMessages.DATA_FIELD, data);
         }
       }
 
@@ -104,23 +101,23 @@ public class GatewayMessageCodec {
     } catch (Throwable ex) {
       ReferenceCountUtil.safestRelease(byteBuf);
       Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
-      LOGGER.error("Failed to encode message: {}", message, ex);
-      throw new MessageCodecException("Failed to encode message", ex);
+      LOGGER.error("Failed to encode gateway service message: {}", message, ex);
+      throw new MessageCodecException("Failed to encode gateway service message", ex);
     }
     return byteBuf;
   }
 
   /**
-   * Decodes {@link GatewayMessage} from given {@code byteBuf}.
+   * Decodes {@link ByteBuf} into {@link ServiceMessage}.
    *
-   * @param byteBuf - contains raw {@link GatewayMessage} to be decoded.
-   * @return Decoded {@link GatewayMessage}.
-   * @throws MessageCodecException - in case of issues during deserialization.
+   * @param byteBuf - buffer with gateway service message to be decoded
+   * @return decoded {@code ServiceMessage} instance
+   * @throws MessageCodecException - in case of issues during decoding
    */
-  public GatewayMessage decode(ByteBuf byteBuf) throws MessageCodecException {
+  public ServiceMessage decode(ByteBuf byteBuf) throws MessageCodecException {
     try (InputStream stream = new ByteBufInputStream(byteBuf, true)) {
       JsonParser jp = jsonFactory.createParser(stream);
-      GatewayMessage.Builder result = GatewayMessage.builder();
+      ServiceMessage.Builder result = ServiceMessage.builder();
 
       JsonToken current = jp.nextToken();
       if (current != JsonToken.START_OBJECT) {
@@ -135,7 +132,7 @@ public class GatewayMessageCodec {
           continue;
         }
 
-        if (fieldName.equals(DATA_FIELD)) {
+        if (fieldName.equals(GatewayMessages.DATA_FIELD)) {
           dataStart = jp.getTokenLocation().getByteOffset();
           if (current.isScalarValue()) {
             if (!current.isNumeric() && !current.isBoolean()) {
@@ -156,7 +153,7 @@ public class GatewayMessageCodec {
       }
       return result.build();
     } catch (Throwable ex) {
-      throw new MessageCodecException("Failed to decode message", ex);
+      throw new MessageCodecException("Failed to decode gateway service message", ex);
     }
   }
 

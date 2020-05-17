@@ -21,22 +21,21 @@ public class WebsocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGateway.class);
 
-  private final GatewaySessionHandler<GatewayMessage> gatewayHandler;
+  private final GatewaySessionHandler gatewayHandler;
   private final Duration keepAliveInterval;
 
   private DisposableServer server;
   private LoopResources loopResources;
 
   public WebsocketGateway(GatewayOptions options) {
-    this(options, Duration.ZERO, GatewaySessionHandler.DEFAULT_WS_INSTANCE);
+    this(options, Duration.ZERO, GatewaySessionHandler.DEFAULT_INSTANCE);
   }
 
   public WebsocketGateway(GatewayOptions options, Duration keepAliveInterval) {
-    this(options, keepAliveInterval, GatewaySessionHandler.DEFAULT_WS_INSTANCE);
+    this(options, keepAliveInterval, GatewaySessionHandler.DEFAULT_INSTANCE);
   }
 
-  public WebsocketGateway(
-      GatewayOptions options, GatewaySessionHandler<GatewayMessage> gatewayHandler) {
+  public WebsocketGateway(GatewayOptions options, GatewaySessionHandler gatewayHandler) {
     this(options, Duration.ZERO, gatewayHandler);
   }
 
@@ -48,9 +47,7 @@ public class WebsocketGateway extends GatewayTemplate {
    * @param gatewayHandler gateway handler
    */
   public WebsocketGateway(
-      GatewayOptions options,
-      Duration keepAliveInterval,
-      GatewaySessionHandler<GatewayMessage> gatewayHandler) {
+      GatewayOptions options, Duration keepAliveInterval, GatewaySessionHandler gatewayHandler) {
     super(options);
     this.keepAliveInterval = keepAliveInterval;
     this.gatewayHandler = gatewayHandler;

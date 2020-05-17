@@ -5,7 +5,7 @@ import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.testservice.AuthRegistry;
-import io.scalecube.services.testservice.WebsocketGatewaySessionHandler;
+import io.scalecube.services.testservice.GatewaySessionHandlerImpl;
 
 public class WsLocalWithAuthExtension extends AbstractLocalGatewayExtension {
 
@@ -18,7 +18,7 @@ public class WsLocalWithAuthExtension extends AbstractLocalGatewayExtension {
             .build(),
         opts ->
             new WebsocketGateway(
-                opts.id(GATEWAY_ALIAS_NAME), new WebsocketGatewaySessionHandler(authReg)),
+                opts.id(GATEWAY_ALIAS_NAME), new GatewaySessionHandlerImpl(authReg)),
         GatewayClientTransports::websocketGatewayClientTransport);
   }
 }

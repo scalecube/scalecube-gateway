@@ -4,7 +4,7 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.testservice.AuthRegistry;
-import io.scalecube.services.testservice.RSocketGatewaySessionHandler;
+import io.scalecube.services.testservice.GatewaySessionHandlerImpl;
 
 public class RsLocalWithAuthExtension extends AbstractLocalGatewayExtension {
 
@@ -16,8 +16,7 @@ public class RsLocalWithAuthExtension extends AbstractLocalGatewayExtension {
             .authenticator(createSessionAwareAuthenticator)
             .build(),
         opts ->
-            new RSocketGateway(
-                opts.id(GATEWAY_ALIAS_NAME), new RSocketGatewaySessionHandler(authReg)),
+            new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME), new GatewaySessionHandlerImpl(authReg)),
         GatewayClientTransports::rsocketGatewayClientTransport);
   }
 }
