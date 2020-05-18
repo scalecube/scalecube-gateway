@@ -4,7 +4,6 @@ import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
@@ -18,7 +17,7 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGatewayAcceptor.class);
 
   private final ServiceCall serviceCall;
-  private final GatewaySessionHandler<ServiceMessage> sessionHandler;
+  private final GatewaySessionHandler sessionHandler;
 
   /**
    * Creates new acceptor for RS gateway.
@@ -26,8 +25,7 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
    * @param serviceCall to call remote service
    * @param sessionHandler handler for session events
    */
-  public RSocketGatewayAcceptor(
-      ServiceCall serviceCall, GatewaySessionHandler<ServiceMessage> sessionHandler) {
+  public RSocketGatewayAcceptor(ServiceCall serviceCall, GatewaySessionHandler sessionHandler) {
     this.serviceCall = serviceCall;
     this.sessionHandler = sessionHandler;
   }

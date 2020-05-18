@@ -1,35 +1,36 @@
 package io.scalecube.services.gateway.ws;
 
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.util.Optional;
 
 public class WebsocketContextException extends RuntimeException {
 
-  private final GatewayMessage request;
-  private final GatewayMessage response;
+  private final ServiceMessage request;
+  private final ServiceMessage response;
 
   private WebsocketContextException(
-      Throwable cause, GatewayMessage request, GatewayMessage response) {
+      Throwable cause, ServiceMessage request, ServiceMessage response) {
     super(cause);
     this.request = request;
     this.response = response;
   }
 
-  public static WebsocketContextException badRequest(String errorMessage, GatewayMessage request) {
+  public static WebsocketContextException badRequest(String errorMessage, ServiceMessage request) {
     return new WebsocketContextException(
         new io.scalecube.services.exceptions.BadRequestException(errorMessage), request, null);
   }
 
   public static WebsocketContextException wrap(
-      Throwable th, GatewayMessage request, GatewayMessage response) {
+      Throwable th, ServiceMessage request, ServiceMessage response) {
     return new WebsocketContextException(th, request, response);
   }
 
-  public GatewayMessage request() {
+  public ServiceMessage request() {
     return request;
   }
 
-  public GatewayMessage response() {
+  public ServiceMessage response() {
     return response;
   }
 
@@ -40,7 +41,7 @@ public class WebsocketContextException extends RuntimeException {
    */
   public WebsocketContextException releaseRequest() {
     Optional.ofNullable(request)
-        .map(GatewayMessage::data)
+        .map(ServiceMessage::data)
         .ifPresent(ReferenceCountUtil::safestRelease);
     return this;
   }

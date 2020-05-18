@@ -5,7 +5,6 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.scalecube.net.Address;
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewaySessionHandler;
@@ -22,17 +21,16 @@ public class RSocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGateway.class);
 
-  private final GatewaySessionHandler<ServiceMessage> sessionHandler;
+  private final GatewaySessionHandler sessionHandler;
   private CloseableChannel server;
   private LoopResources loopResources;
 
   public RSocketGateway(GatewayOptions options) {
     super(options);
-    this.sessionHandler = GatewaySessionHandler.DEFAULT_RS_INSTANCE;
+    this.sessionHandler = GatewaySessionHandler.DEFAULT_INSTANCE;
   }
 
-  public RSocketGateway(
-      GatewayOptions options, GatewaySessionHandler<ServiceMessage> sessionHandler) {
+  public RSocketGateway(GatewayOptions options, GatewaySessionHandler sessionHandler) {
     super(options);
     this.sessionHandler = sessionHandler;
   }

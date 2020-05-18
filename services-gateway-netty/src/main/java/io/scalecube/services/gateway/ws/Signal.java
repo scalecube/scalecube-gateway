@@ -14,4 +14,23 @@ public enum Signal {
   public int code() {
     return code;
   }
+
+  /**
+   * Return appropriate instance of {@link Signal} for given signal code.
+   *
+   * @param code signal code
+   * @return signal instance
+   */
+  public static Signal from(int code) {
+    switch (code) {
+      case 1:
+        return COMPLETE;
+      case 2:
+        return ERROR;
+      case 3:
+        return CANCEL;
+      default:
+        throw new IllegalArgumentException("Unknown signal: " + code);
+    }
+  }
 }
