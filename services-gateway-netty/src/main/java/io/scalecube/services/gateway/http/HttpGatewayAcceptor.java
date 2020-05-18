@@ -63,7 +63,7 @@ public class HttpGatewayAcceptor
       ByteBuf content, HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
 
     ServiceMessage request =
-        ServiceMessage.builder().qualifier(httpRequest.uri()).data(content).build();
+        ServiceMessage.builder().qualifier(getQualifier(httpRequest)).data(content).build();
 
     return serviceCall
         .requestOne(request)
@@ -79,7 +79,11 @@ public class HttpGatewayAcceptor
   }
 
   private Mono<ServiceMessage> emptyMessage(HttpServerRequest httpRequest) {
-    return Mono.just(ServiceMessage.builder().qualifier(httpRequest.uri()).build());
+    return Mono.just(ServiceMessage.builder().qualifier(getQualifier(httpRequest)).build());
+  }
+
+  private static String getQualifier(HttpServerRequest httpRequest) {
+    return httpRequest.uri().substring(1);
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {

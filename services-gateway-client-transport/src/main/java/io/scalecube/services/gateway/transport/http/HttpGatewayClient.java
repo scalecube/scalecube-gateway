@@ -73,7 +73,7 @@ public final class HttpGatewayClient implements GatewayClient {
               };
           return httpClient
               .post()
-              .uri(request.qualifier())
+              .uri("/" + request.qualifier())
               .send(sender)
               .responseSingle(
                   (httpResponse, bbMono) ->
