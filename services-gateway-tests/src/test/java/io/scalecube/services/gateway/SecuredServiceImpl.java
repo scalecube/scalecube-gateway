@@ -14,6 +14,8 @@ import reactor.core.publisher.Mono;
 public class SecuredServiceImpl implements SecuredService {
   private static final Logger LOGGER = LoggerFactory.getLogger(SecuredServiceImpl.class);
 
+  private static final String ALLOWED_USER = "VASYA_PUPKIN";
+
   private final AuthRegistry authRegistry;
 
   public SecuredServiceImpl(AuthRegistry authRegistry) {
@@ -38,6 +40,7 @@ public class SecuredServiceImpl implements SecuredService {
   @Override
   public Mono<String> requestOne(String req) {
     return Mono.deferWithContext(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
+        .doOnNext(this::checkPermissions)
         .cast(String.class)
         .flatMap(
             auth -> {
@@ -49,6 +52,7 @@ public class SecuredServiceImpl implements SecuredService {
   @Override
   public Flux<String> requestN(Integer times) {
     return Mono.deferWithContext(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
+        .doOnNext(this::checkPermissions)
         .cast(String.class)
         .flatMapMany(
             auth -> {
@@ -57,5 +61,14 @@ public class SecuredServiceImpl implements SecuredService {
               }
               return Flux.fromStream(IntStream.range(0, times).mapToObj(String::valueOf));
             });
+  }
+
+  private void checkPermissions(Object authData) {
+    if (authData == null) {
+      throw new ForbiddenException("Not allowed (authData is null)");
+    }
+    if (!authData.equals(ALLOWED_USER)) {
+      throw new ForbiddenException("Not allowed (wrong user)");
+    }
   }
 }
