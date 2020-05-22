@@ -70,7 +70,8 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
           return serviceCall
               .requestOne(request)
               .doOnError(th -> releaseRequestOnError(request))
-              .onErrorResume(th -> Mono.just(DefaultErrorMapper.INSTANCE.toMessage(th)))
+              .onErrorResume(
+                  th -> Mono.just(DefaultErrorMapper.INSTANCE.toMessage(request.qualifier(), th)))
               .map(this::toPayload);
         });
   }
@@ -83,7 +84,8 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
           return serviceCall
               .requestMany(request)
               .doOnError(th -> releaseRequestOnError(request))
-              .onErrorResume(th -> Mono.just(DefaultErrorMapper.INSTANCE.toMessage(th)))
+              .onErrorResume(
+                  th -> Mono.just(DefaultErrorMapper.INSTANCE.toMessage(request.qualifier(), th)))
               .map(this::toPayload);
         });
   }
