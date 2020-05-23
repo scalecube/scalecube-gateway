@@ -4,6 +4,9 @@ import io.scalecube.net.Address;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import reactor.netty.tcp.SslProvider;
 
 public class GatewayClientSettings {
@@ -20,6 +23,7 @@ public class GatewayClientSettings {
   private final ServiceClientErrorMapper errorMapper;
   private final Duration keepAliveInterval;
   private final boolean wiretap;
+  private final Map<String, String> headers;
 
   private GatewayClientSettings(Builder builder) {
     this.host = builder.host;
@@ -30,6 +34,7 @@ public class GatewayClientSettings {
     this.errorMapper = builder.errorMapper;
     this.keepAliveInterval = builder.keepAliveInterval;
     this.wiretap = builder.wiretap;
+    this.headers = Collections.unmodifiableMap(builder.headers);
   }
 
   public String host() {
@@ -64,6 +69,10 @@ public class GatewayClientSettings {
     return this.wiretap;
   }
 
+  public Map<String, String> headers() {
+    return headers;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -96,9 +105,9 @@ public class GatewayClientSettings {
     private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
     private Duration keepAliveInterval = DEFAULT_KEEPALIVE_INTERVAL;
     private boolean wiretap = false;
+    private Map<String, String> headers = new HashMap<>();
 
-    private Builder() {
-    }
+    private Builder() {}
 
     private Builder(GatewayClientSettings originalSettings) {
       this.host = originalSettings.host;
@@ -109,6 +118,7 @@ public class GatewayClientSettings {
       this.errorMapper = originalSettings.errorMapper;
       this.keepAliveInterval = originalSettings.keepAliveInterval;
       this.wiretap = originalSettings.wiretap;
+      this.headers = Collections.unmodifiableMap(new HashMap<>(originalSettings.headers));
     }
 
     public Builder host(String host) {
@@ -188,6 +198,11 @@ public class GatewayClientSettings {
 
     public Builder errorMapper(ServiceClientErrorMapper errorMapper) {
       this.errorMapper = errorMapper;
+      return this;
+    }
+
+    public Builder headers(Map<String, String> headers) {
+      this.headers = new HashMap<>(headers);
       return this;
     }
 
