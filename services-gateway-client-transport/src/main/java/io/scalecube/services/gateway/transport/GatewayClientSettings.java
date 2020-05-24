@@ -33,7 +33,7 @@ public class GatewayClientSettings {
     this.errorMapper = builder.errorMapper;
     this.keepAliveInterval = builder.keepAliveInterval;
     this.wiretap = builder.wiretap;
-    this.headers = Collections.unmodifiableMap(builder.headers);
+    this.headers = builder.headers;
   }
 
   public String host() {
