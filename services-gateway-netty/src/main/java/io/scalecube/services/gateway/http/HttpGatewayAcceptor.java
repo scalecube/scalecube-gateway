@@ -31,6 +31,8 @@ public class HttpGatewayAcceptor
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayAcceptor.class);
 
+  private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
+
   private final ServiceCall serviceCall;
 
   HttpGatewayAcceptor(ServiceCall serviceCall) {
@@ -56,7 +58,8 @@ public class HttpGatewayAcceptor
         .switchIfEmpty(Mono.defer(() -> ByteBufMono.just(Unpooled.EMPTY_BUFFER)))
         .map(ByteBuf::retain)
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
-        .onErrorResume(t -> error(httpResponse, DefaultErrorMapper.INSTANCE.toMessage(t)));
+        .onErrorResume(
+            t -> error(httpResponse, DefaultErrorMapper.INSTANCE.toMessage(ERROR_NAMESPACE, t)));
   }
 
   private Mono<Void> handleRequest(
