@@ -42,6 +42,7 @@ public final class HttpGatewayClient implements GatewayClient {
 
     httpClient =
         HttpClient.create(ConnectionProvider.elastic("http-gateway-client"))
+            .headers(headers -> settings.headers().forEach(headers::add))
             .followRedirect(settings.followRedirect())
             .tcpConfiguration(
                 tcpClient -> {

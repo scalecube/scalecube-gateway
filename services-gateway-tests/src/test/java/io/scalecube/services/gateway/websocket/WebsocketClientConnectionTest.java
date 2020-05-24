@@ -31,6 +31,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -199,5 +201,32 @@ class WebsocketClientConnectionTest extends BaseTest {
         keepAliveInterval.toMillis() * (expectedKeepalives + 1), TimeUnit.MILLISECONDS);
 
     assertEquals(0, keepaliveLatch.getCount());
+  }
+
+  @Test
+  void testClintSettingsHeaders() {
+    String headerKey = "secret-token";
+    String headerValue = UUID.randomUUID().toString();
+    client =
+        new WebsocketGatewayClient(
+            GatewayClientSettings.builder()
+                .address(gatewayAddress)
+                .headers(Map.of(headerKey, headerValue))
+                .build(),
+            CLIENT_CODEC);
+    TestService service =
+        new ServiceCall()
+            .transport(new GatewayClientTransport(client))
+            .router(new StaticAddressRouter(gatewayAddress))
+            .api(TestService.class);
+
+    StepVerifier.create(
+            service.one("one").then(Mono.fromCallable(() -> sessionEventHandler.lastSession())))
+        .assertNext(
+            session -> {
+              assertEquals(headerValue, session.headers().get(headerKey).get(0));
+            })
+        .expectComplete()
+        .verify(TIMEOUT);
   }
 }

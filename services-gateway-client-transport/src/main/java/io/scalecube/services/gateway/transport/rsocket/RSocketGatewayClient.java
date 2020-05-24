@@ -5,6 +5,7 @@ import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import io.rsocket.util.EmptyPayload;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.gateway.transport.GatewayClient;
@@ -135,8 +136,14 @@ public final class RSocketGatewayClient implements GatewayClient {
       return prev;
     }
 
+    Payload setupPayload = EmptyPayload.INSTANCE;
+    if (!settings.headers().isEmpty()) {
+      setupPayload = codec.encode(ServiceMessage.builder().headers(settings.headers()).build());
+    }
+
     return RSocketConnector.create()
         .payloadDecoder(PayloadDecoder.DEFAULT)
+        .setupPayload(setupPayload)
         .metadataMimeType(settings.contentType())
         .connect(createRSocketTransport(settings))
         .doOnSuccess(
