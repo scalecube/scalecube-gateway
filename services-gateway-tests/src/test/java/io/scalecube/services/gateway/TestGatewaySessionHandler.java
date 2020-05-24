@@ -20,8 +20,6 @@ public class TestGatewaySessionHandler implements GatewaySessionHandler {
 
   @Override
   public void onSessionOpen(GatewaySession s) {
-    System.err.println(s);
-
     connLatch.countDown();
     lastSession.set(s);
   }

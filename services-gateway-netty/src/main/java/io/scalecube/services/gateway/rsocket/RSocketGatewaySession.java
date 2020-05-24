@@ -10,7 +10,6 @@ import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
@@ -53,7 +52,7 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
   }
 
   @Override
-  public Map<String, List<String>> headers() {
+  public Map<String, String> headers() {
     return Collections.emptyMap();
   }
 

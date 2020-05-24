@@ -2,7 +2,6 @@ package io.scalecube.services.gateway;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
-import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +83,7 @@ public interface GatewaySessionHandler {
    * @param headers connection/session headers
    * @return mono result
    */
-  default Mono<Void> onConnectionOpen(long sessionId, Map<String, List<String>> headers) {
+  default Mono<Void> onConnectionOpen(long sessionId, Map<String, String> headers) {
     return Mono.fromRunnable(
         () ->
             LOGGER.debug(

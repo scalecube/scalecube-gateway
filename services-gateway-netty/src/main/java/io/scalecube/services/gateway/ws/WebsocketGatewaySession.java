@@ -33,7 +33,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   private final WebsocketServiceMessageCodec codec;
 
   private final long sessionId;
-  private final Map<String, List<String>> headers;
+  private final Map<String, String> headers;
 
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
@@ -48,14 +48,14 @@ public final class WebsocketGatewaySession implements GatewaySession {
   public WebsocketGatewaySession(
       long sessionId,
       WebsocketServiceMessageCodec codec,
-      Map<String, List<String>> headers,
+      Map<String, String> headers,
       WebsocketInbound inbound,
       WebsocketOutbound outbound,
       GatewaySessionHandler gatewayHandler) {
     this.sessionId = sessionId;
     this.codec = codec;
 
-    this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
+    this.headers = Map.copyOf(headers);
     this.inbound =
         (WebsocketInbound) inbound.withConnection(c -> c.onDispose(this::clearSubscriptions));
     this.outbound = outbound;
@@ -68,7 +68,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   }
 
   @Override
-  public Map<String, List<String>> headers() {
+  public Map<String, String> headers() {
     return headers;
   }
 

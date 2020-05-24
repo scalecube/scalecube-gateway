@@ -222,10 +222,7 @@ class WebsocketClientConnectionTest extends BaseTest {
 
     StepVerifier.create(
             service.one("one").then(Mono.fromCallable(() -> sessionEventHandler.lastSession())))
-        .assertNext(
-            session -> {
-              assertEquals(headerValue, session.headers().get(headerKey).get(0));
-            })
+        .assertNext(session -> assertEquals(headerValue, session.headers().get(headerKey)))
         .expectComplete()
         .verify(TIMEOUT);
   }

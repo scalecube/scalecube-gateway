@@ -21,14 +21,14 @@ import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -63,7 +63,7 @@ public class WebsocketGatewayAcceptor
 
   @Override
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    final Map<String, List<String>> headers = computeHeaders(httpRequest.requestHeaders());
+    final Map<String, String> headers = computeHeaders(httpRequest.requestHeaders());
     final long sessionId = SESSION_ID_GENERATOR.incrementAndGet();
 
     return gatewayHandler
@@ -85,12 +85,9 @@ public class WebsocketGatewayAcceptor
         .onErrorResume(throwable -> Mono.empty());
   }
 
-  private static Map<String, List<String>> computeHeaders(HttpHeaders httpHeaders) {
-    Map<String, List<String>> headers = new HashMap<>();
-    for (String name : httpHeaders.names()) {
-      headers.put(name, httpHeaders.getAll(name));
-    }
-    return headers;
+  private static Map<String, String> computeHeaders(HttpHeaders httpHeaders) {
+    // exception will be thrown on duplicate
+    return httpHeaders.entries().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue));
   }
 
   private static int toStatusCode(Throwable throwable) {
