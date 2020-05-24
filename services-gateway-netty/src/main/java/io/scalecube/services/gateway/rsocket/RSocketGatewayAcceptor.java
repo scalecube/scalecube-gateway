@@ -7,6 +7,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -41,6 +42,7 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
         new RSocketGatewaySession(
             serviceCall,
             messageCodec,
+            headers(messageCodec, setup),
             (session, req) -> sessionHandler.mapMessage(session, req, Context.empty()));
     sessionHandler.onSessionOpen(gatewaySession);
     rsocket
@@ -53,5 +55,12 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
         .subscribe(null, th -> LOGGER.error("Exception on closing rsocket: {}", th.toString()));
 
     return Mono.just(gatewaySession);
+  }
+
+  private Map<String, String> headers(
+      ServiceMessageCodec messageCodec, ConnectionSetupPayload setup) {
+    return messageCodec
+        .decode(setup.sliceData().retain(), setup.sliceMetadata().retain())
+        .headers();
   }
 }

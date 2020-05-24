@@ -23,13 +23,13 @@ import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -153,13 +153,16 @@ class RsocketClientConnectionTest extends BaseTest {
   }
 
   @Test
-  @Disabled // todo implement passing headers to rsocket session
-  void testClintSettingsHeaders() {
+  void testClientSettingsHeaders() {
     String headerKey = "secret-token";
     String headerValue = UUID.randomUUID().toString();
     client =
         new RSocketGatewayClient(
-            GatewayClientSettings.builder().address(gatewayAddress).build(), CLIENT_CODEC);
+            GatewayClientSettings.builder()
+                .headers(Map.of(headerKey, headerValue))
+                .address(gatewayAddress)
+                .build(),
+            CLIENT_CODEC);
 
     TestService service =
         new ServiceCall()

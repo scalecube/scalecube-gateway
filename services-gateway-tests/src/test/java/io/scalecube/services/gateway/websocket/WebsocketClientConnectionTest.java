@@ -204,7 +204,7 @@ class WebsocketClientConnectionTest extends BaseTest {
   }
 
   @Test
-  void testClintSettingsHeaders() {
+  void testClientSettingsHeaders() {
     String headerKey = "secret-token";
     String headerValue = UUID.randomUUID().toString();
     client =
