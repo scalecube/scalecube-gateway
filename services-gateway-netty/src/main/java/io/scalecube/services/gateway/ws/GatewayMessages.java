@@ -26,7 +26,8 @@ final class GatewayMessages {
   }
 
   static ServiceMessage newErrorMessage(ServiceMessage message, Throwable th) {
-    ServiceMessage.Builder builder = ServiceMessage.from(DefaultErrorMapper.INSTANCE.toMessage(th));
+    ServiceMessage.Builder builder =
+        ServiceMessage.from(DefaultErrorMapper.INSTANCE.toMessage(message.qualifier(), th));
     Optional.ofNullable(GatewayMessages.getSidHeader(message))
         .ifPresent(s -> GatewayMessages.setSid(builder, s));
     GatewayMessages.setSignal(builder, Signal.ERROR);
