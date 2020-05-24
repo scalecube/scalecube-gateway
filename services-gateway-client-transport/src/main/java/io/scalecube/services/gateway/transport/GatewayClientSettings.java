@@ -5,6 +5,7 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import reactor.netty.tcp.SslProvider;
 
@@ -117,7 +118,7 @@ public class GatewayClientSettings {
       this.errorMapper = originalSettings.errorMapper;
       this.keepAliveInterval = originalSettings.keepAliveInterval;
       this.wiretap = originalSettings.wiretap;
-      this.headers = Map.copyOf(originalSettings.headers);
+      this.headers = Collections.unmodifiableMap(new HashMap<>(originalSettings.headers));
     }
 
     public Builder host(String host) {
@@ -201,7 +202,7 @@ public class GatewayClientSettings {
     }
 
     public Builder headers(Map<String, String> headers) {
-      this.headers = Map.copyOf(headers);
+      this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
       return this;
     }
 

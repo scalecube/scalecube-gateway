@@ -9,7 +9,6 @@ import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
@@ -55,7 +54,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
     this.sessionId = sessionId;
     this.codec = codec;
 
-    this.headers = Map.copyOf(headers);
+    this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
     this.inbound =
         (WebsocketInbound) inbound.withConnection(c -> c.onDispose(this::clearSubscriptions));
     this.outbound = outbound;

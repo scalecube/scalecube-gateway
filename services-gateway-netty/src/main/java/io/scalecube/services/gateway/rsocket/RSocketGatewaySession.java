@@ -9,6 +9,8 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.ServiceMessageCodec;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
@@ -45,7 +47,7 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
     this.messageCodec = messageCodec;
     this.messageMapper = messageMapper;
     this.sessionId = SESSION_ID_GENERATOR.incrementAndGet();
-    this.headers = Map.copyOf(headers);
+    this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
   }
 
   @Override
