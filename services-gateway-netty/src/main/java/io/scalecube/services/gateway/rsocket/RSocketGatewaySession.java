@@ -10,7 +10,7 @@ import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
@@ -30,6 +30,7 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
   private final ServiceMessageCodec messageCodec;
   private final long sessionId;
   private final BiFunction<GatewaySession, ServiceMessage, ServiceMessage> messageMapper;
+  private final Map<String, String> headers;
 
   /**
    * Constructor for gateway rsocket.
@@ -40,11 +41,13 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
   public RSocketGatewaySession(
       ServiceCall serviceCall,
       ServiceMessageCodec messageCodec,
+      Map<String, String> headers,
       BiFunction<GatewaySession, ServiceMessage, ServiceMessage> messageMapper) {
     this.serviceCall = serviceCall;
     this.messageCodec = messageCodec;
     this.messageMapper = messageMapper;
     this.sessionId = SESSION_ID_GENERATOR.incrementAndGet();
+    this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
   }
 
   @Override
@@ -53,8 +56,8 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
   }
 
   @Override
-  public Map<String, List<String>> headers() {
-    return Collections.emptyMap();
+  public Map<String, String> headers() {
+    return headers;
   }
 
   @Override

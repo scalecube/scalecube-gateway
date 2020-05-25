@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway;
 
-import java.util.List;
 import java.util.Map;
 
 public interface GatewaySession {
@@ -15,7 +14,7 @@ public interface GatewaySession {
   /**
    * Returns headers associated with session.
    *
-   * @return heades map
+   * @return headers map
    */
-  Map<String, List<String>> headers();
+  Map<String, String> headers();
 }

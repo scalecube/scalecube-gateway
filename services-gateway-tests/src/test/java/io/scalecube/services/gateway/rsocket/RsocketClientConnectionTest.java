@@ -23,6 +23,8 @@ import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -148,5 +150,30 @@ class RsocketClientConnectionTest extends BaseTest {
     client.close();
     sessionEventHandler.disconnLatch.await(3, TimeUnit.SECONDS);
     Assertions.assertEquals(0, sessionEventHandler.disconnLatch.getCount());
+  }
+
+  @Test
+  void testClientSettingsHeaders() {
+    String headerKey = "secret-token";
+    String headerValue = UUID.randomUUID().toString();
+    client =
+        new RSocketGatewayClient(
+            GatewayClientSettings.builder()
+                .headers(Map.of(headerKey, headerValue))
+                .address(gatewayAddress)
+                .build(),
+            CLIENT_CODEC);
+
+    TestService service =
+        new ServiceCall()
+            .transport(new GatewayClientTransport(client))
+            .router(new StaticAddressRouter(gatewayAddress))
+            .api(TestService.class);
+
+    StepVerifier.create(
+            service.one("one").then(Mono.fromCallable(() -> sessionEventHandler.lastSession())))
+        .assertNext(session -> assertEquals(headerValue, session.headers().get(headerKey)))
+        .expectComplete()
+        .verify(TIMEOUT);
   }
 }

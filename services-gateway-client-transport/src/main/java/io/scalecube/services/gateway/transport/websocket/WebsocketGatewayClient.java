@@ -55,6 +55,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
     httpClient =
         HttpClient.newConnection()
+            .headers(headers -> settings.headers().forEach(headers::add))
             .followRedirect(settings.followRedirect())
             .tcpConfiguration(
                 tcpClient -> {

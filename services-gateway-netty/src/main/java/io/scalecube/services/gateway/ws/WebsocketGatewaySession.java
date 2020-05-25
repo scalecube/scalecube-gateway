@@ -9,7 +9,6 @@ import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
@@ -33,7 +32,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   private final WebsocketServiceMessageCodec codec;
 
   private final long sessionId;
-  private final Map<String, List<String>> headers;
+  private final Map<String, String> headers;
 
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
@@ -48,7 +47,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   public WebsocketGatewaySession(
       long sessionId,
       WebsocketServiceMessageCodec codec,
-      Map<String, List<String>> headers,
+      Map<String, String> headers,
       WebsocketInbound inbound,
       WebsocketOutbound outbound,
       GatewaySessionHandler gatewayHandler) {
@@ -68,7 +67,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   }
 
   @Override
-  public Map<String, List<String>> headers() {
+  public Map<String, String> headers() {
     return headers;
   }
 
