@@ -1,8 +1,6 @@
 package io.scalecube.services.gateway.ws;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewaySession;
@@ -77,11 +75,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
    * @return flux websocket {@link ByteBuf}
    */
   public Flux<ByteBuf> receive() {
-    return inbound
-        .aggregateFrames()
-        .receiveFrames()
-        .filter(f -> !(f instanceof PongWebSocketFrame || f instanceof PingWebSocketFrame))
-        .map(f -> f.retain().content());
+    return inbound.receive().retain();
   }
 
   /**

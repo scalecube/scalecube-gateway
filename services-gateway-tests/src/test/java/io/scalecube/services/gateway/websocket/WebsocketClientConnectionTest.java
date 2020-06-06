@@ -23,7 +23,7 @@ import io.scalecube.services.gateway.transport.GatewayClientTransport;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
-import io.scalecube.services.gateway.transport.websocket.WebsocketSession;
+import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClientSession;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
@@ -59,7 +59,6 @@ class WebsocketClientConnectionTest extends BaseTest {
   @BeforeEach
   void beforEach() {
     this.sessionEventHandler = new TestGatewaySessionHandler();
-    //noinspection unchecked
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
@@ -179,11 +178,12 @@ class WebsocketClientConnectionTest extends BaseTest {
                 .build(),
             CLIENT_CODEC);
 
-    Method getorConn = WebsocketGatewayClient.class.getDeclaredMethod("getOrConnect");
-    getorConn.setAccessible(true);
+    Method getOrConnect = WebsocketGatewayClient.class.getDeclaredMethod("getOrConnect");
+    getOrConnect.setAccessible(true);
     //noinspection unchecked
-    WebsocketSession session = ((Mono<WebsocketSession>) getorConn.invoke(client)).block(TIMEOUT);
-    Field connectionField = WebsocketSession.class.getDeclaredField("connection");
+    WebsocketGatewayClientSession session =
+        ((Mono<WebsocketGatewayClientSession>) getOrConnect.invoke(client)).block(TIMEOUT);
+    Field connectionField = WebsocketGatewayClientSession.class.getDeclaredField("connection");
     connectionField.setAccessible(true);
     Connection connection = (Connection) connectionField.get(session);
     connection.addHandler(
@@ -192,8 +192,9 @@ class WebsocketClientConnectionTest extends BaseTest {
           public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof PongWebSocketFrame) {
               keepaliveLatch.countDown();
+            } else {
+              super.channelRead(ctx, msg);
             }
-            super.channelRead(ctx, msg);
           }
         });
 
