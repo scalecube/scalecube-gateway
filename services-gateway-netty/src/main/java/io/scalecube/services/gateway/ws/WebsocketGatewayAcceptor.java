@@ -115,11 +115,15 @@ public class WebsocketGatewayAcceptor
         .receive()
         .doOnError(th -> gatewayHandler.onSessionError(session, th))
         .subscribe(
-            byteBuf ->
-                Mono.deferWithContext(context -> onRequest(session, byteBuf, context))
-                    .subscriberContext(
-                        context -> gatewayHandler.onRequest(session, byteBuf, context))
-                    .subscribe());
+            byteBuf -> {
+              if (!byteBuf.isReadable()) {
+                ReferenceCountUtil.safestRelease(byteBuf);
+                return;
+              }
+              Mono.deferWithContext(context -> onRequest(session, byteBuf, context))
+                  .subscriberContext(context -> gatewayHandler.onRequest(session, byteBuf, context))
+                  .subscribe();
+            });
 
     return session.onClose(() -> gatewayHandler.onSessionClose(session));
   }

@@ -1,8 +1,6 @@
 package io.scalecube.services.gateway.transport.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
@@ -25,9 +23,9 @@ import reactor.netty.Connection;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
-public final class WebsocketSession {
+public final class WebsocketGatewayClientSession {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayClientSession.class);
 
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
@@ -40,19 +38,21 @@ public final class WebsocketSession {
   private final Map<Long, Processor<ServiceMessage, ServiceMessage>> inboundProcessors =
       new NonBlockingHashMapLong<>(1024);
 
-  WebsocketSession(GatewayClientCodec<ByteBuf> codec, Connection connection) {
+  WebsocketGatewayClientSession(GatewayClientCodec<ByteBuf> codec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
     this.connection = connection;
 
     WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
     inbound
-        .aggregateFrames()
-        .receiveFrames()
-        .filter(f -> !(f instanceof PongWebSocketFrame || f instanceof PingWebSocketFrame))
-        .map(f -> f.retain().content())
+        .receive()
+        .retain()
         .subscribe(
             byteBuf -> {
+              if (!byteBuf.isReadable()) {
+                ReferenceCountUtil.safestRelease(byteBuf);
+                return;
+              }
               // decode message
               ServiceMessage message;
               try {
@@ -186,7 +186,7 @@ public final class WebsocketSession {
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", WebsocketSession.class.getSimpleName() + "[", "]")
+    return new StringJoiner(", ", WebsocketGatewayClientSession.class.getSimpleName() + "[", "]")
         .add("id=" + id)
         .toString();
   }
