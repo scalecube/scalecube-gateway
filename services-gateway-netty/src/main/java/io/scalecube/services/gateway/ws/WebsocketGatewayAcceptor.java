@@ -188,7 +188,7 @@ public class WebsocketGatewayAcceptor
                 () -> {
                   if (!receivedError.get()) {
                     session
-                        .send(newCompleteMessage(message))
+                        .send(newCompleteMessage(sid, message.qualifier()))
                         .subscriberContext(context)
                         .subscribe();
                   }
@@ -209,6 +209,7 @@ public class WebsocketGatewayAcceptor
     long sid = getSid(message);
     // dispose by sid (if anything to dispose)
     session.dispose(sid);
-    return session.send(newCancelMessage(sid)); // no need to subscribe here since flatMap will do
+    // no need to subscribe here since flatMap will do
+    return session.send(newCancelMessage(sid, message.qualifier()));
   }
 }
