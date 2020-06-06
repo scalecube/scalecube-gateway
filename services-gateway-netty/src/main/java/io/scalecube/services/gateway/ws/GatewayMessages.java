@@ -3,7 +3,7 @@ package io.scalecube.services.gateway.ws;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 
-final class GatewayMessages {
+public final class GatewayMessages {
 
   static final String QUALIFIER_FIELD = "q";
   static final String STREAM_ID_FIELD = "sid";
@@ -16,7 +16,14 @@ final class GatewayMessages {
     // Do not instantiate
   }
 
-  static ServiceMessage newCancelMessage(long sid, String qualifier) {
+  /**
+   * Returns cancel message by given arguments.
+   *
+   * @param sid sid
+   * @param qualifier qualifier
+   * @return {@link ServiceMessage} instance as the cancel signal
+   */
+  public static ServiceMessage newCancelMessage(long sid, String qualifier) {
     return ServiceMessage.builder()
         .qualifier(qualifier)
         .header(STREAM_ID_FIELD, sid)
@@ -24,7 +31,14 @@ final class GatewayMessages {
         .build();
   }
 
-  static ServiceMessage newErrorMessage(ServiceMessage message, Throwable th) {
+  /**
+   * Returns error message by given arguments.
+   *
+   * @param message request
+   * @param th cause
+   * @return {@link ServiceMessage} instance as the error signal
+   */
+  public static ServiceMessage newErrorMessage(ServiceMessage message, Throwable th) {
     ServiceMessage.Builder builder =
         ServiceMessage.from(DefaultErrorMapper.INSTANCE.toMessage(message.qualifier(), th))
             .header(SIGNAL_FIELD, Signal.ERROR.code());
@@ -35,7 +49,14 @@ final class GatewayMessages {
     return builder.build();
   }
 
-  static ServiceMessage newCompleteMessage(long sid, String qualifier) {
+  /**
+   * Returns complete message by given arguments.
+   *
+   * @param sid sid
+   * @param qualifier qualifier
+   * @return {@link ServiceMessage} instance as the complete signal
+   */
+  public static ServiceMessage newCompleteMessage(long sid, String qualifier) {
     return ServiceMessage.builder()
         .qualifier(qualifier)
         .header(STREAM_ID_FIELD, sid)
@@ -43,7 +64,15 @@ final class GatewayMessages {
         .build();
   }
 
-  static ServiceMessage newResponseMessage(
+  /**
+   * Returns response message by given arguments.
+   *
+   * @param sid sid
+   * @param message request
+   * @param isErrorResponse should the message be marked as an error?
+   * @return {@link ServiceMessage} instance as the response
+   */
+  public static ServiceMessage newResponseMessage(
       long sid, ServiceMessage message, boolean isErrorResponse) {
     if (isErrorResponse) {
       return ServiceMessage.from(message)
@@ -54,7 +83,13 @@ final class GatewayMessages {
     return ServiceMessage.from(message).header(STREAM_ID_FIELD, sid).build();
   }
 
-  static ServiceMessage validateSid(ServiceMessage message) {
+  /**
+   * Verifies the sid existence in a given message.
+   *
+   * @param message message
+   * @return incoming message
+   */
+  public static ServiceMessage validateSid(ServiceMessage message) {
     if (message.header(STREAM_ID_FIELD) == null) {
       throw WebsocketContextException.badRequest("sid is missing", message);
     } else {
@@ -62,7 +97,14 @@ final class GatewayMessages {
     }
   }
 
-  static ServiceMessage validateSidOnSession(
+  /**
+   * Verifies the sid is not used in a given session.
+   *
+   * @param session session
+   * @param message message
+   * @return incoming message
+   */
+  public static ServiceMessage validateSidOnSession(
       WebsocketGatewaySession session, ServiceMessage message) {
     long sid = getSid(message);
     if (session.containsSid(sid)) {
@@ -72,18 +114,36 @@ final class GatewayMessages {
     }
   }
 
-  static ServiceMessage validateQualifier(ServiceMessage message) {
+  /**
+   * Verifies the qualifier existence in a given message.
+   *
+   * @param message message
+   * @return incoming message
+   */
+  public static ServiceMessage validateQualifier(ServiceMessage message) {
     if (message.qualifier() == null) {
       throw WebsocketContextException.badRequest("qualifier is missing", message);
     }
     return message;
   }
 
-  static long getSid(ServiceMessage message) {
+  /**
+   * Returns sid from a given message.
+   *
+   * @param message message
+   * @return sid
+   */
+  public static long getSid(ServiceMessage message) {
     return Long.parseLong(message.header(STREAM_ID_FIELD));
   }
 
-  static Signal getSignal(ServiceMessage message) {
+  /**
+   * Returns signal from a given message.
+   *
+   * @param message message
+   * @return signal
+   */
+  public static Signal getSignal(ServiceMessage message) {
     String header = message.header(SIGNAL_FIELD);
     return header != null ? Signal.from(Integer.parseInt(header)) : null;
   }
