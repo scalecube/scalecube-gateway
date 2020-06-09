@@ -1,9 +1,10 @@
 package io.scalecube.services.gateway.ws;
 
 public interface TestInputs {
-  Long SID = 42L;
-  Integer I = 423;
-  Integer SIG = 422;
+
+  long SID = 42L;
+  int I = 423;
+  int SIG = 422;
   String Q = "/test/test";
 
   String NO_DATA =

@@ -55,6 +55,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
     httpClient =
         HttpClient.newConnection()
+            .headers(headers -> settings.headers().forEach(headers::add))
             .followRedirect(settings.followRedirect())
             .tcpConfiguration(
                 tcpClient -> {
@@ -136,12 +137,13 @@ public final class WebsocketGatewayClient implements GatewayClient {
     return codec;
   }
 
-  private Mono<WebsocketSession> getOrConnect() {
+  private Mono<WebsocketGatewayClientSession> getOrConnect() {
     // noinspection unchecked
     return Mono.defer(() -> websocketMonoUpdater.updateAndGet(this, this::getOrConnect0));
   }
 
-  private Mono<WebsocketSession> getOrConnect0(Mono<WebsocketSession> prev) {
+  private Mono<WebsocketGatewayClientSession> getOrConnect0(
+      Mono<WebsocketGatewayClientSession> prev) {
     if (prev != null) {
       return prev;
     }
@@ -161,7 +163,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
                     : connection)
         .map(
             connection -> {
-              WebsocketSession session = new WebsocketSession(codec, connection);
+              WebsocketGatewayClientSession session =
+                  new WebsocketGatewayClientSession(codec, connection);
               LOGGER.info("Created {} on {}:{}", session, settings.host(), settings.port());
               // setup shutdown hook
               session
@@ -208,7 +211,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
   }
 
-  private void handleCancel(long sid, WebsocketSession session) {
+  private void handleCancel(long sid, WebsocketGatewayClientSession session) {
     ByteBuf byteBuf =
         codec.encode(
             ServiceMessage.builder()

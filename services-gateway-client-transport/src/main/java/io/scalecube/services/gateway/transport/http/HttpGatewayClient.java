@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway.transport.http;
 
 import io.netty.buffer.ByteBuf;
-import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.gateway.transport.GatewayClient;
@@ -42,6 +41,7 @@ public final class HttpGatewayClient implements GatewayClient {
 
     httpClient =
         HttpClient.create(ConnectionProvider.elastic("http-gateway-client"))
+            .headers(headers -> settings.headers().forEach(headers::add))
             .followRedirect(settings.followRedirect())
             .tcpConfiguration(
                 tcpClient -> {
@@ -73,13 +73,11 @@ public final class HttpGatewayClient implements GatewayClient {
               };
           return httpClient
               .post()
-              .uri(request.qualifier())
+              .uri("/" + request.qualifier())
               .send(sender)
               .responseSingle(
                   (httpResponse, bbMono) ->
-                      bbMono
-                          .map(ByteBuf::retain)
-                          .map(content -> toMessage(httpResponse, content)));
+                      bbMono.map(ByteBuf::retain).map(content -> toMessage(httpResponse, content)));
         });
   }
 
@@ -114,10 +112,13 @@ public final class HttpGatewayClient implements GatewayClient {
   }
 
   private ServiceMessage toMessage(HttpClientResponse httpResponse, ByteBuf content) {
-    int httpCode = httpResponse.status().code();
-    String qualifier = isError(httpCode) ? Qualifier.asError(httpCode) : httpResponse.uri();
+    Builder builder = ServiceMessage.builder().qualifier(httpResponse.uri()).data(content);
 
-    Builder builder = ServiceMessage.builder().qualifier(qualifier).data(content);
+    int httpCode = httpResponse.status().code();
+    if (isError(httpCode)) {
+      builder.header(ServiceMessage.HEADER_ERROR_TYPE, String.valueOf(httpCode));
+    }
+
     // prepare response headers
     httpResponse
         .responseHeaders()

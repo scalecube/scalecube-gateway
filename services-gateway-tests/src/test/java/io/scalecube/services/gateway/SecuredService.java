@@ -1,14 +1,12 @@
-package io.scalecube.services.testservice;
+package io.scalecube.services.gateway;
 
-import static io.scalecube.services.testservice.SecuredService.NS;
+import static io.scalecube.services.gateway.SecuredService.NS;
 
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Auth;
-import io.scalecube.services.auth.Principal;
-import io.scalecube.services.examples.EchoRequest;
+import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -23,11 +21,11 @@ public interface SecuredService {
 
   @ServiceMethod
   @RequestType(String.class)
-  @Auth
-  Mono<String> requestOne(String req, @Principal String auth);
+  @Secured
+  Mono<String> requestOne(String req);
 
   @ServiceMethod
   @RequestType(Integer.class)
-  @Auth
-  Flux<String> requestN(Integer req, @Principal String auth);
+  @Secured
+  Flux<String> requestN(Integer req);
 }

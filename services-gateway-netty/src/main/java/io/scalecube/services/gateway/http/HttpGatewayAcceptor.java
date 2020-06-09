@@ -10,17 +10,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
-import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.transport.api.DataCodec;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -35,17 +31,12 @@ public class HttpGatewayAcceptor
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayAcceptor.class);
 
-  private static final String SERVICE_RECV_TIME = "service-recv-time";
-  private static final String SERVICE_SEND_TIME = "service-send-time";
-  private static final String CLIENT_RECV_TIME = "client-recv-time";
-  private static final String CLIENT_SEND_TIME = "client-send-time";
+  private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
 
   private final ServiceCall serviceCall;
-  private final GatewayMetrics metrics;
 
-  HttpGatewayAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
+  HttpGatewayAcceptor(ServiceCall serviceCall) {
     this.serviceCall = serviceCall;
-    this.metrics = metrics;
   }
 
   @Override
@@ -66,33 +57,36 @@ public class HttpGatewayAcceptor
         .aggregate()
         .switchIfEmpty(Mono.defer(() -> ByteBufMono.just(Unpooled.EMPTY_BUFFER)))
         .map(ByteBuf::retain)
-        .doOnNext(content -> metrics.markRequest())
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
-        .doOnSuccess(avoid -> metrics.markResponse())
-        .onErrorResume(t -> error(httpResponse, DefaultErrorMapper.INSTANCE.toMessage(t)));
+        .onErrorResume(
+            t -> error(httpResponse, DefaultErrorMapper.INSTANCE.toMessage(ERROR_NAMESPACE, t)));
   }
 
   private Mono<Void> handleRequest(
       ByteBuf content, HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
 
-    String qualifier = httpRequest.uri();
-    Builder builder = ServiceMessage.builder().qualifier(qualifier).data(content);
-    enrichRequest(httpRequest.requestHeaders(), builder);
+    ServiceMessage request =
+        ServiceMessage.builder().qualifier(getQualifier(httpRequest)).data(content).build();
 
     return serviceCall
-        .requestOne(builder.build())
-        .doOnNext(message -> metrics.markServiceResponse())
-        .switchIfEmpty(
-            Mono.defer(() -> Mono.just(ServiceMessage.builder().qualifier(qualifier).build())))
+        .requestOne(request)
+        .switchIfEmpty(Mono.defer(() -> emptyMessage(httpRequest)))
+        .doOnError(th -> releaseRequestOnError(request))
         .flatMap(
-            response -> {
-              enrichResponse(httpResponse, response);
-              return response.isError() // check error
-                  ? error(httpResponse, response)
-                  : response.hasData() // check data
-                      ? ok(httpResponse, response)
-                      : noContent(httpResponse);
-            });
+            response ->
+                response.isError() // check error
+                    ? error(httpResponse, response)
+                    : response.hasData() // check data
+                        ? ok(httpResponse, response)
+                        : noContent(httpResponse));
+  }
+
+  private Mono<ServiceMessage> emptyMessage(HttpServerRequest httpRequest) {
+    return Mono.just(ServiceMessage.builder().qualifier(getQualifier(httpRequest)).build());
+  }
+
+  private static String getQualifier(HttpServerRequest httpRequest) {
+    return httpRequest.uri().substring(1);
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {
@@ -140,31 +134,7 @@ public class HttpGatewayAcceptor
     return byteBuf;
   }
 
-  private void enrichRequest(HttpHeaders requestHeaders, Builder builder) {
-    Optional.ofNullable(requestHeaders.get(CLIENT_SEND_TIME))
-        .ifPresent(value -> builder.header(CLIENT_SEND_TIME, value));
-
-    Optional.ofNullable(requestHeaders.get(CLIENT_RECV_TIME))
-        .ifPresent(value -> builder.header(CLIENT_RECV_TIME, value));
-
-    Optional.ofNullable(requestHeaders.get(SERVICE_RECV_TIME))
-        .ifPresent(value -> builder.header(SERVICE_RECV_TIME, value));
-
-    Optional.ofNullable(requestHeaders.get(SERVICE_SEND_TIME))
-        .ifPresent(value -> builder.header(SERVICE_SEND_TIME, value));
-  }
-
-  private void enrichResponse(HttpServerResponse httpResponse, ServiceMessage response) {
-    Optional.ofNullable(response.header(CLIENT_SEND_TIME))
-        .ifPresent(value -> httpResponse.header(CLIENT_SEND_TIME, value));
-
-    Optional.ofNullable(response.header(CLIENT_RECV_TIME))
-        .ifPresent(value -> httpResponse.header(CLIENT_RECV_TIME, value));
-
-    Optional.ofNullable(response.header(SERVICE_RECV_TIME))
-        .ifPresent(value -> httpResponse.header(SERVICE_RECV_TIME, value));
-
-    Optional.ofNullable(response.header(SERVICE_SEND_TIME))
-        .ifPresent(value -> httpResponse.header(SERVICE_SEND_TIME, value));
+  private void releaseRequestOnError(ServiceMessage request) {
+    ReferenceCountUtil.safestRelease(request.data());
   }
 }

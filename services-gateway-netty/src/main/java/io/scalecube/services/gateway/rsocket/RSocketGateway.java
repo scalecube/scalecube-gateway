@@ -5,13 +5,10 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.scalecube.net.Address;
-import io.scalecube.services.ServiceCall;
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.GatewayTemplate;
-import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.StringJoiner;
 import org.slf4j.Logger;
@@ -24,40 +21,35 @@ public class RSocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGateway.class);
 
-  private final GatewaySessionHandler<ServiceMessage> gatewaySessionHandler;
+  private final GatewaySessionHandler sessionHandler;
   private CloseableChannel server;
   private LoopResources loopResources;
 
   public RSocketGateway(GatewayOptions options) {
     super(options);
-    this.gatewaySessionHandler = GatewaySessionHandler.DEFAULT_RS_INSTANCE;
+    this.sessionHandler = GatewaySessionHandler.DEFAULT_INSTANCE;
   }
 
-  public RSocketGateway(
-      GatewayOptions options, GatewaySessionHandler<ServiceMessage> gatewaySessionHandler) {
+  public RSocketGateway(GatewayOptions options, GatewaySessionHandler sessionHandler) {
     super(options);
-    this.gatewaySessionHandler = gatewaySessionHandler;
+    this.sessionHandler = sessionHandler;
   }
 
   @Override
   public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
-          ServiceCall serviceCall =
-              options.call().requestReleaser(ReferenceCountUtil::safestRelease);
           RSocketGatewayAcceptor acceptor =
-              new RSocketGatewayAcceptor(serviceCall, gatewayMetrics, gatewaySessionHandler);
+              new RSocketGatewayAcceptor(options.call(), sessionHandler);
 
           loopResources = LoopResources.create("rsocket-gateway");
 
           WebsocketServerTransport rsocketTransport =
-              WebsocketServerTransport.create(
-                  prepareHttpServer(loopResources, options.port(), gatewayMetrics));
+              WebsocketServerTransport.create(prepareHttpServer(loopResources, options.port()));
 
           return RSocketServer.create()
               .acceptor(acceptor)
               .payloadDecoder(PayloadDecoder.DEFAULT)
-              .errorConsumer(th -> LOGGER.warn("Exception occurred at rsocket gateway: " + th))
               .bind(rsocketTransport)
               .doOnSuccess(server -> this.server = server)
               .thenReturn(this);

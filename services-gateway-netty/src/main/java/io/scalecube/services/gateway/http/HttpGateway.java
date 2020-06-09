@@ -5,12 +5,9 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http.cors.CorsHandler;
 import io.scalecube.net.Address;
-import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
-import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.Map.Entry;
 import java.util.StringJoiner;
@@ -111,13 +108,11 @@ public class HttpGateway extends GatewayTemplate {
   public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
-          ServiceCall serviceCall =
-              options.call().requestReleaser(ReferenceCountUtil::safestRelease);
-          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(serviceCall, gatewayMetrics);
+          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(options.call());
 
           loopResources = LoopResources.create("http-gateway");
 
-          return prepareHttpServer(loopResources, options.port(), null /*metrics*/)
+          return prepareHttpServer(loopResources, options.port())
               .handle(acceptor)
               .bind()
               .doOnSuccess(server -> this.server = server)
@@ -137,24 +132,15 @@ public class HttpGateway extends GatewayTemplate {
         .then();
   }
 
-  protected HttpServer prepareHttpServer(
-      LoopResources loopResources, int port, GatewayMetrics metrics) {
+  protected HttpServer prepareHttpServer(LoopResources loopResources, int port) {
     return HttpServer.create()
         .tcpConfiguration(
             tcpServer -> {
               if (loopResources != null) {
                 tcpServer = tcpServer.runOn(loopResources);
               }
-              if (metrics != null) {
-                tcpServer =
-                    tcpServer.doOnConnection(
-                        connection -> {
-                          metrics.incConnection();
-                          connection.onDispose(metrics::decConnection);
-                        });
-              }
               return tcpServer
-                  .addressSupplier(() -> new InetSocketAddress(port))
+                  .bindAddress(() -> new InetSocketAddress(port))
                   .doOnConnection(
                       connection -> {
                         if (corsEnabled) {

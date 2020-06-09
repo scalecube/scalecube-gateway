@@ -40,7 +40,6 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .gateway(opts -> new HttpGateway(opts.id("http")))
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
-            .metrics(registry())
             .startAwait();
 
     Address seedAddress = gateway.discovery().address();

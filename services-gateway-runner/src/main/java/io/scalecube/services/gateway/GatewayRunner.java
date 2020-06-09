@@ -1,7 +1,5 @@
 package io.scalecube.services.gateway;
 
-import com.codahale.metrics.CsvReporter;
-import com.codahale.metrics.MetricRegistry;
 import io.scalecube.config.ConfigRegistry;
 import io.scalecube.config.ConfigRegistrySettings;
 import io.scalecube.config.audit.Slf4JConfigEventListener;
@@ -17,11 +15,9 @@ import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -33,8 +29,6 @@ public class GatewayRunner {
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewayRunner.class);
   private static final String DECORATOR =
       "#######################################################################";
-
-  private static final String REPORTER_PATH = "reports/gateway/metrics";
 
   /**
    * Main runner.
@@ -55,8 +49,6 @@ public class GatewayRunner {
     LOGGER.info("Starting Gateway on {}", config);
     LOGGER.info(DECORATOR);
 
-    MetricRegistry metrics = initMetricRegistry();
-
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
         .transport(() -> newServiceTransport(config))
@@ -67,7 +59,6 @@ public class GatewayRunner {
                     .corsEnabled(true)
                     .corsConfig(cors -> cors.allowedRequestHeaders("*")))
         .gateway(opts -> new RSocketGateway(opts.id("rsws").port(9090)))
-        .metrics(metrics)
         .startAwait()
         .onShutdown()
         .block();
@@ -86,25 +77,8 @@ public class GatewayRunner {
                 clusterConfig
                     .membership(opts -> opts.seedMembers(config.seedAddresses()))
                     .transport(opts -> opts.port(config.discoveryPort()))
-                    .memberHost(config.memberHost())
-                    .memberPort(config.memberPort()));
-  }
-
-  private static MetricRegistry initMetricRegistry() {
-    MetricRegistry metrics = new MetricRegistry();
-    File reporterDir = new File(REPORTER_PATH);
-    if (!reporterDir.exists()) {
-      //noinspection ResultOfMethodCallIgnored
-      reporterDir.mkdirs();
-    }
-    CsvReporter csvReporter =
-        CsvReporter.forRegistry(metrics)
-            .convertDurationsTo(TimeUnit.MILLISECONDS)
-            .convertRatesTo(TimeUnit.SECONDS)
-            .build(reporterDir);
-
-    csvReporter.start(10, TimeUnit.SECONDS);
-    return metrics;
+                    .containerHost(config.memberHost())
+                    .containerPort(config.memberPort()));
   }
 
   public static class Config {

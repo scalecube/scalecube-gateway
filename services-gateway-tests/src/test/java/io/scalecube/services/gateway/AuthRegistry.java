@@ -1,4 +1,4 @@
-package io.scalecube.services.testservice;
+package io.scalecube.services.gateway;
 
 import java.util.Optional;
 import java.util.Set;

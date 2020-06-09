@@ -1,28 +1,34 @@
 package io.scalecube.services.gateway.ws;
 
+import static io.scalecube.services.gateway.ws.GatewayMessages.RATE_LIMIT_FIELD;
+import static io.scalecube.services.gateway.ws.GatewayMessages.getSid;
+import static io.scalecube.services.gateway.ws.GatewayMessages.getSignal;
+import static io.scalecube.services.gateway.ws.GatewayMessages.newCancelMessage;
+import static io.scalecube.services.gateway.ws.GatewayMessages.newCompleteMessage;
+import static io.scalecube.services.gateway.ws.GatewayMessages.newErrorMessage;
+import static io.scalecube.services.gateway.ws.GatewayMessages.newResponseMessage;
+import static io.scalecube.services.gateway.ws.GatewayMessages.validateSidOnSession;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
-import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -40,10 +46,9 @@ public class WebsocketGatewayAcceptor
 
   private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 
-  private final GatewayMessageCodec messageCodec = new GatewayMessageCodec();
+  private final WebsocketServiceMessageCodec messageCodec = new WebsocketServiceMessageCodec();
   private final ServiceCall serviceCall;
-  private final GatewayMetrics metrics;
-  private final GatewaySessionHandler<GatewayMessage> gatewayHandler;
+  private final GatewaySessionHandler gatewayHandler;
 
   /**
    * Constructor for websocket acceptor.
@@ -51,18 +56,14 @@ public class WebsocketGatewayAcceptor
    * @param serviceCall service call
    * @param gatewayHandler gateway handler
    */
-  public WebsocketGatewayAcceptor(
-      ServiceCall serviceCall,
-      GatewayMetrics metrics,
-      GatewaySessionHandler<GatewayMessage> gatewayHandler) {
+  public WebsocketGatewayAcceptor(ServiceCall serviceCall, GatewaySessionHandler gatewayHandler) {
     this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
-    this.metrics = Objects.requireNonNull(metrics, "metrics");
     this.gatewayHandler = Objects.requireNonNull(gatewayHandler, "gatewayHandler");
   }
 
   @Override
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    final Map<String, List<String>> headers = computeHeaders(httpRequest.requestHeaders());
+    final Map<String, String> headers = computeHeaders(httpRequest.requestHeaders());
     final long sessionId = SESSION_ID_GENERATOR.incrementAndGet();
 
     return gatewayHandler
@@ -84,12 +85,9 @@ public class WebsocketGatewayAcceptor
         .onErrorResume(throwable -> Mono.empty());
   }
 
-  private static Map<String, List<String>> computeHeaders(HttpHeaders httpHeaders) {
-    Map<String, List<String>> headers = new HashMap<>();
-    for (String name : httpHeaders.names()) {
-      headers.put(name, httpHeaders.getAll(name));
-    }
-    return headers;
+  private static Map<String, String> computeHeaders(HttpHeaders httpHeaders) {
+    // exception will be thrown on duplicate
+    return httpHeaders.entries().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue));
   }
 
   private static int toStatusCode(Throwable throwable) {
@@ -117,24 +115,28 @@ public class WebsocketGatewayAcceptor
         .receive()
         .doOnError(th -> gatewayHandler.onSessionError(session, th))
         .subscribe(
-            byteBuf ->
-                Mono.deferWithContext(context -> onRequest(session, byteBuf, context))
-                    .subscriberContext(
-                        context -> gatewayHandler.onRequest(session, byteBuf, context))
-                    .subscribe());
+            byteBuf -> {
+              if (!byteBuf.isReadable()) {
+                ReferenceCountUtil.safestRelease(byteBuf);
+                return;
+              }
+              Mono.deferWithContext(context -> onRequest(session, byteBuf, context))
+                  .subscriberContext(context -> gatewayHandler.onRequest(session, byteBuf, context))
+                  .subscribe();
+            });
 
     return session.onClose(() -> gatewayHandler.onSessionClose(session));
   }
 
-  private Mono<GatewayMessage> onRequest(
+  private Mono<ServiceMessage> onRequest(
       WebsocketGatewaySession session, ByteBuf byteBuf, Context context) {
+
     return Mono.fromCallable(() -> messageCodec.decode(byteBuf))
-        .doOnNext(message -> metrics.markRequest())
-        .map(this::validateSid)
-        .flatMap(msg -> onCancel(session, msg))
-        .map(msg -> validateSid(session, (GatewayMessage) msg))
-        .map(this::validateQualifier)
-        .map(msg -> gatewayHandler.mapMessage(session, msg, context))
+        .map(GatewayMessages::validateSid)
+        .flatMap(message -> onCancel(session, message))
+        .map(message -> validateSidOnSession(session, (ServiceMessage) message))
+        .map(GatewayMessages::validateQualifier)
+        .map(message -> gatewayHandler.mapMessage(session, message, context))
         .doOnNext(request -> onMessage(session, request, context))
         .doOnError(
             th -> {
@@ -147,26 +149,50 @@ public class WebsocketGatewayAcceptor
               WebsocketContextException wex = (WebsocketContextException) th;
               wex.releaseRequest(); // release
 
-              onError(session, wex.request(), wex.getCause(), context);
+              session
+                  .send(newErrorMessage(wex.request(), wex.getCause()))
+                  .subscriberContext(context)
+                  .subscribe();
             });
   }
 
-  private void onMessage(WebsocketGatewaySession session, GatewayMessage request, Context context) {
-    final Long sid = request.streamId();
+  private void onMessage(WebsocketGatewaySession session, ServiceMessage message, Context context) {
+    final long sid = getSid(message);
     final AtomicBoolean receivedError = new AtomicBoolean(false);
 
-    final Flux<ServiceMessage> serviceStream =
-        serviceCall.requestMany(GatewayMessage.toServiceMessage(request));
+    final Flux<ServiceMessage> serviceStream = serviceCall.requestMany(message);
 
     Disposable disposable =
-        Optional.ofNullable(request.rateLimit())
+        Optional.ofNullable(message.header(RATE_LIMIT_FIELD))
+            .map(Integer::valueOf)
             .map(serviceStream::limitRate)
             .orElse(serviceStream)
-            .map(response -> prepareResponse(sid, response, receivedError))
-            .doOnNext(response -> metrics.markServiceResponse())
+            .map(
+                response -> {
+                  boolean isErrorResponse = false;
+                  if (message.isError()) {
+                    receivedError.set(true);
+                    isErrorResponse = true;
+                  }
+                  return newResponseMessage(sid, response, isErrorResponse);
+                })
             .flatMap(session::send)
-            .doOnError(th -> onError(session, request, th, context))
-            .doOnComplete(() -> onComplete(session, request, receivedError, context))
+            .doOnError(th -> ReferenceCountUtil.safestRelease(message.data()))
+            .doOnError(
+                th ->
+                    session
+                        .send(newErrorMessage(message, th))
+                        .subscriberContext(context)
+                        .subscribe())
+            .doOnComplete(
+                () -> {
+                  if (!receivedError.get()) {
+                    session
+                        .send(newCompleteMessage(sid, message.qualifier()))
+                        .subscriberContext(context)
+                        .subscribe();
+                  }
+                })
             .doFinally(signalType -> session.dispose(sid))
             .subscriberContext(context)
             .subscribe();
@@ -174,78 +200,16 @@ public class WebsocketGatewayAcceptor
     session.register(sid, disposable);
   }
 
-  private void onError(
-      WebsocketGatewaySession session, GatewayMessage req, Throwable th, Context context) {
-
-    Builder builder = GatewayMessage.from(DefaultErrorMapper.INSTANCE.toMessage(th));
-    Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
-    GatewayMessage response = builder.signal(Signal.ERROR).build();
-
-    session.send(response).subscriberContext(context).subscribe();
-  }
-
-  private void onComplete(
-      WebsocketGatewaySession session,
-      GatewayMessage req,
-      AtomicBoolean receivedError,
-      Context context) {
-
-    if (!receivedError.get()) {
-      Builder builder = GatewayMessage.builder();
-      Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
-      GatewayMessage response = builder.signal(Signal.COMPLETE).build();
-
-      session.send(response).subscriberContext(context).subscribe();
+  private Mono<?> onCancel(WebsocketGatewaySession session, ServiceMessage message) {
+    if (getSignal(message) != Signal.CANCEL) {
+      return Mono.just(message);
     }
-  }
-
-  private Mono<?> onCancel(WebsocketGatewaySession session, GatewayMessage msg) {
-    if (!msg.hasSignal(Signal.CANCEL)) {
-      return Mono.just(msg);
-    }
-
     // release data if CANCEL contains data (it shouldn't normally), just in case
-    Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
-
+    Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
+    long sid = getSid(message);
     // dispose by sid (if anything to dispose)
-    session.dispose(msg.streamId());
-
-    GatewayMessage cancelAck =
-        GatewayMessage.builder().streamId(msg.streamId()).signal(Signal.CANCEL).build();
-    return session.send(cancelAck); // no need to subscribe here since flatMap will do
-  }
-
-  private GatewayMessage validateQualifier(GatewayMessage msg) {
-    if (msg.qualifier() == null) {
-      throw WebsocketContextException.badRequest("qualifier is missing", msg);
-    }
-    return msg;
-  }
-
-  private GatewayMessage validateSid(WebsocketGatewaySession session, GatewayMessage msg) {
-    if (session.containsSid(msg.streamId())) {
-      throw WebsocketContextException.badRequest(
-          "sid=" + msg.streamId() + " is already registered", msg);
-    } else {
-      return msg;
-    }
-  }
-
-  private GatewayMessage validateSid(GatewayMessage msg) {
-    if (msg.streamId() == null) {
-      throw WebsocketContextException.badRequest("sid is missing", msg);
-    } else {
-      return msg;
-    }
-  }
-
-  private GatewayMessage prepareResponse(
-      Long streamId, ServiceMessage message, AtomicBoolean receivedErrorMessage) {
-    GatewayMessage.Builder response = GatewayMessage.from(message).streamId(streamId);
-    if (message.isError()) {
-      receivedErrorMessage.set(true);
-      response.signal(Signal.ERROR);
-    }
-    return response.build();
+    session.dispose(sid);
+    // no need to subscribe here since flatMap will do
+    return session.send(newCancelMessage(sid, message.qualifier()));
   }
 }

@@ -1,14 +1,12 @@
 package io.scalecube.services.gateway.ws;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
@@ -25,14 +23,14 @@ public final class WebsocketGatewaySession implements GatewaySession {
 
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
 
-  private final GatewaySessionHandler<GatewayMessage> gatewayHandler;
+  private final GatewaySessionHandler gatewayHandler;
 
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
-  private final GatewayMessageCodec codec;
+  private final WebsocketServiceMessageCodec codec;
 
   private final long sessionId;
-  private final Map<String, List<String>> headers;
+  private final Map<String, String> headers;
 
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
@@ -46,11 +44,11 @@ public final class WebsocketGatewaySession implements GatewaySession {
    */
   public WebsocketGatewaySession(
       long sessionId,
-      GatewayMessageCodec codec,
-      Map<String, List<String>> headers,
+      WebsocketServiceMessageCodec codec,
+      Map<String, String> headers,
       WebsocketInbound inbound,
       WebsocketOutbound outbound,
-      GatewaySessionHandler<GatewayMessage> gatewayHandler) {
+      GatewaySessionHandler gatewayHandler) {
     this.sessionId = sessionId;
     this.codec = codec;
 
@@ -67,7 +65,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   }
 
   @Override
-  public Map<String, List<String>> headers() {
+  public Map<String, String> headers() {
     return headers;
   }
 
@@ -77,11 +75,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
    * @return flux websocket {@link ByteBuf}
    */
   public Flux<ByteBuf> receive() {
-    return inbound
-        .aggregateFrames()
-        .receiveFrames()
-        .filter(f -> !(f instanceof PongWebSocketFrame || f instanceof PingWebSocketFrame))
-        .map(f -> f.retain().content());
+    return inbound.receive().retain();
   }
 
   /**
@@ -90,7 +84,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
    * @param response response
    * @return mono void
    */
-  public Mono<Void> send(GatewayMessage response) {
+  public Mono<Void> send(ServiceMessage response) {
     return Mono.deferWithContext(
         context -> {
           // send with publisher (defer buffer cleanup to netty)

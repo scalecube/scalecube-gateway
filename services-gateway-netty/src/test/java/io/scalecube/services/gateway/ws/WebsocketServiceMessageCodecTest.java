@@ -1,6 +1,10 @@
 package io.scalecube.services.gateway.ws;
 
-import static io.scalecube.services.gateway.ws.GatewayMessage.STREAM_ID_FIELD;
+import static io.scalecube.services.gateway.ws.GatewayMessages.DATA_FIELD;
+import static io.scalecube.services.gateway.ws.GatewayMessages.INACTIVITY_FIELD;
+import static io.scalecube.services.gateway.ws.GatewayMessages.QUALIFIER_FIELD;
+import static io.scalecube.services.gateway.ws.GatewayMessages.SIGNAL_FIELD;
+import static io.scalecube.services.gateway.ws.GatewayMessages.STREAM_ID_FIELD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,7 +20,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
+import io.scalecube.services.api.ServiceMessage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -26,21 +30,21 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-public class GatewayMessageCodecTest {
+public class WebsocketServiceMessageCodecTest {
 
-  private final GatewayMessageCodec codec = new GatewayMessageCodec();
+  private final WebsocketServiceMessageCodec codec = new WebsocketServiceMessageCodec();
   private final ObjectMapper objectMapper = objectMapper();
 
   @Test
   public void testDecodeNoData() {
     ByteBuf input = toByteBuf(TestInputs.NO_DATA);
 
-    GatewayMessage result = codec.decode(input);
+    ServiceMessage message = codec.decode(input);
 
-    assertEquals(TestInputs.Q, result.qualifier());
-    assertEquals(TestInputs.SID, result.streamId());
-    assertEquals(TestInputs.SIG, result.signal());
-    assertEquals(TestInputs.I, result.inactivity());
+    assertEquals(TestInputs.Q, message.qualifier());
+    assertEquals(TestInputs.SIG, Long.parseLong(message.header(SIGNAL_FIELD)));
+    assertEquals(TestInputs.SID, Long.parseLong(message.header(STREAM_ID_FIELD)));
+    assertEquals(TestInputs.I, Long.parseLong(message.header(INACTIVITY_FIELD)));
   }
 
   @Test
@@ -57,12 +61,12 @@ public class GatewayMessageCodecTest {
     ByteBuf input = toByteBuf(stringData);
     System.out.println("Parsing JSON:" + stringData);
 
-    GatewayMessage result = codec.decode(input);
+    ServiceMessage message = codec.decode(input);
 
-    assertEquals(TestInputs.Q, result.qualifier());
-    assertEquals(TestInputs.SIG, result.signal());
-    assertEquals(TestInputs.SID, result.streamId());
-    assertNull(result.data());
+    assertEquals(TestInputs.Q, message.qualifier());
+    assertEquals(TestInputs.SIG, Long.parseLong(message.header(SIGNAL_FIELD)));
+    assertEquals(TestInputs.SID, Long.parseLong(message.header(STREAM_ID_FIELD)));
+    assertNull(message.data());
   }
 
   @Test
@@ -79,14 +83,14 @@ public class GatewayMessageCodecTest {
     ByteBuf input = toByteBuf(stringData);
     System.out.println("Parsing JSON:" + stringData);
 
-    GatewayMessage result = codec.decode(input);
+    ServiceMessage message = codec.decode(input);
 
-    assertEquals(TestInputs.Q, result.qualifier());
-    assertEquals(TestInputs.SIG, result.signal());
-    assertEquals(TestInputs.SID, result.streamId());
-    assertTrue(result.data() instanceof ByteBuf);
+    assertEquals(TestInputs.Q, message.qualifier());
+    assertEquals(TestInputs.SIG, Long.parseLong(message.header(SIGNAL_FIELD)));
+    assertEquals(TestInputs.SID, Long.parseLong(message.header(STREAM_ID_FIELD)));
+    assertTrue(message.data() instanceof ByteBuf);
     assertEquals(
-        expectedData, Integer.valueOf(((ByteBuf) result.data()).toString(StandardCharsets.UTF_8)));
+        expectedData, Integer.valueOf(((ByteBuf) message.data()).toString(StandardCharsets.UTF_8)));
   }
 
   @Test
@@ -103,14 +107,14 @@ public class GatewayMessageCodecTest {
     ByteBuf input = toByteBuf(stringData);
     System.out.println("Parsing JSON:" + stringData);
 
-    GatewayMessage result = codec.decode(input);
+    ServiceMessage message = codec.decode(input);
 
-    assertEquals(TestInputs.Q, result.qualifier());
-    assertEquals(TestInputs.SIG, result.signal());
-    assertEquals(TestInputs.SID, result.streamId());
-    assertTrue(result.data() instanceof ByteBuf);
+    assertEquals(TestInputs.Q, message.qualifier());
+    assertEquals(TestInputs.SIG, Long.parseLong(message.header(SIGNAL_FIELD)));
+    assertEquals(TestInputs.SID, Long.parseLong(message.header(STREAM_ID_FIELD)));
+    assertTrue(message.data() instanceof ByteBuf);
     assertEquals(
-        expectedData, Integer.valueOf(((ByteBuf) result.data()).toString(StandardCharsets.UTF_8)));
+        expectedData, Integer.valueOf(((ByteBuf) message.data()).toString(StandardCharsets.UTF_8)));
   }
 
   @Test
@@ -127,13 +131,13 @@ public class GatewayMessageCodecTest {
     ByteBuf input = toByteBuf(stringData);
     System.out.println("Parsing JSON:" + stringData);
 
-    GatewayMessage result = codec.decode(input);
+    ServiceMessage message = codec.decode(input);
 
-    assertEquals(TestInputs.Q, result.qualifier());
-    assertEquals(TestInputs.SIG, result.signal());
-    assertEquals(TestInputs.SID, result.streamId());
-    assertTrue(result.data() instanceof ByteBuf);
-    assertEquals(expectedData, ((ByteBuf) result.data()).toString(StandardCharsets.UTF_8));
+    assertEquals(TestInputs.Q, message.qualifier());
+    assertEquals(TestInputs.SIG, Long.parseLong(message.header(SIGNAL_FIELD)));
+    assertEquals(TestInputs.SID, Long.parseLong(message.header(STREAM_ID_FIELD)));
+    assertTrue(message.data() instanceof ByteBuf);
+    assertEquals(expectedData, ((ByteBuf) message.data()).toString(StandardCharsets.UTF_8));
   }
 
   @Test
@@ -150,14 +154,14 @@ public class GatewayMessageCodecTest {
     ByteBuf input = toByteBuf(stringData);
     System.out.println("Parsing JSON:" + stringData);
 
-    GatewayMessage result = codec.decode(input);
+    ServiceMessage message = codec.decode(input);
 
-    assertEquals(TestInputs.Q, result.qualifier());
-    assertEquals(TestInputs.SIG, result.signal());
-    assertEquals(TestInputs.SID, result.streamId());
-    assertTrue(result.data() instanceof ByteBuf);
+    assertEquals(TestInputs.Q, message.qualifier());
+    assertEquals(TestInputs.SIG, Long.parseLong(message.header(SIGNAL_FIELD)));
+    assertEquals(TestInputs.SID, Long.parseLong(message.header(STREAM_ID_FIELD)));
+    assertTrue(message.data() instanceof ByteBuf);
     assertEquals(
-        expectedData, Boolean.valueOf(((ByteBuf) result.data()).toString(StandardCharsets.UTF_8)));
+        expectedData, Boolean.valueOf(((ByteBuf) message.data()).toString(StandardCharsets.UTF_8)));
   }
 
   @Test
@@ -175,13 +179,13 @@ public class GatewayMessageCodecTest {
     ByteBuf input = toByteBuf(stringData);
     System.out.println("Parsing JSON:" + stringData);
 
-    GatewayMessage result = codec.decode(input);
+    ServiceMessage message = codec.decode(input);
 
-    assertEquals(TestInputs.Q, result.qualifier());
-    assertEquals(TestInputs.SIG, result.signal());
-    assertEquals(TestInputs.SID, result.streamId());
-    assertTrue(result.data() instanceof ByteBuf);
-    assertEquals(expectedData, ((ByteBuf) result.data()).toString(StandardCharsets.UTF_8));
+    assertEquals(TestInputs.Q, message.qualifier());
+    assertEquals(TestInputs.SIG, Long.parseLong(message.header(SIGNAL_FIELD)));
+    assertEquals(TestInputs.SID, Long.parseLong(message.header(STREAM_ID_FIELD)));
+    assertTrue(message.data() instanceof ByteBuf);
+    assertEquals(expectedData, ((ByteBuf) message.data()).toString(StandardCharsets.UTF_8));
   }
 
   @Test
@@ -198,74 +202,74 @@ public class GatewayMessageCodecTest {
     ByteBuf input = toByteBuf(stringData);
     System.out.println("Parsing JSON:" + stringData);
 
-    GatewayMessage result = codec.decode(input);
+    ServiceMessage message = codec.decode(input);
 
-    assertEquals(TestInputs.Q, result.qualifier());
-    assertEquals(TestInputs.SIG, result.signal());
-    assertEquals(TestInputs.SID, result.streamId());
-    assertTrue(result.data() instanceof ByteBuf);
-    assertEquals(expectedData, ((ByteBuf) result.data()).toString(StandardCharsets.UTF_8));
+    assertEquals(TestInputs.Q, message.qualifier());
+    assertEquals(TestInputs.SIG, Long.parseLong(message.header(SIGNAL_FIELD)));
+    assertEquals(TestInputs.SID, Long.parseLong(message.header(STREAM_ID_FIELD)));
+    assertTrue(message.data() instanceof ByteBuf);
+    assertEquals(expectedData, ((ByteBuf) message.data()).toString(StandardCharsets.UTF_8));
   }
 
   @Test
   public void testEncodePojoData() throws Exception {
     TestInputs.Entity data = new TestInputs.Entity("test", 123, true);
-    GatewayMessage expected =
-        GatewayMessage.builder()
+    ServiceMessage expected =
+        ServiceMessage.builder()
             .qualifier(TestInputs.Q)
-            .streamId(TestInputs.SID)
-            .signal(TestInputs.SIG)
+            .header(STREAM_ID_FIELD, TestInputs.SID)
+            .header(SIGNAL_FIELD, TestInputs.SIG)
             .data(toByteBuf(data))
             .build();
     ByteBuf bb = codec.encode(expected);
 
-    GatewayMessage actual = fromByteBuf(bb, TestInputs.Entity.class);
+    ServiceMessage actual = fromByteBuf(bb, TestInputs.Entity.class);
 
     assertEquals(expected.qualifier(), actual.qualifier());
-    assertEquals(expected.signal(), actual.signal());
-    assertEquals(expected.streamId(), actual.streamId());
-    assertEquals(expected.inactivity(), actual.inactivity());
+    assertEquals(expected.header(SIGNAL_FIELD), actual.header(SIGNAL_FIELD));
+    assertEquals(expected.header(STREAM_ID_FIELD), actual.header(STREAM_ID_FIELD));
+    assertEquals(expected.header(INACTIVITY_FIELD), actual.header(INACTIVITY_FIELD));
     assertEquals(data, actual.data());
   }
 
   @Test
   public void testEncodeNumberData() throws Exception {
     Integer data = -213;
-    GatewayMessage expected =
-        GatewayMessage.builder()
+    ServiceMessage expected =
+        ServiceMessage.builder()
             .qualifier(TestInputs.Q)
-            .streamId(TestInputs.SID)
-            .signal(TestInputs.SIG)
+            .header(STREAM_ID_FIELD, TestInputs.SID)
+            .header(SIGNAL_FIELD, TestInputs.SIG)
             .data(toByteBuf(data))
             .build();
     ByteBuf bb = codec.encode(expected);
-    GatewayMessage actual = fromByteBuf(bb, Integer.class);
+    ServiceMessage actual = fromByteBuf(bb, Integer.class);
 
     assertEquals(expected.qualifier(), actual.qualifier());
-    assertEquals(expected.signal(), actual.signal());
-    assertEquals(expected.streamId(), actual.streamId());
-    assertEquals(expected.inactivity(), actual.inactivity());
+    assertEquals(expected.header(SIGNAL_FIELD), actual.header(SIGNAL_FIELD));
+    assertEquals(expected.header(STREAM_ID_FIELD), actual.header(STREAM_ID_FIELD));
+    assertEquals(expected.header(INACTIVITY_FIELD), actual.header(INACTIVITY_FIELD));
     assertEquals(data, actual.data());
   }
 
   @Test
   public void testEncodeBooleanData() throws Exception {
     Boolean data = true;
-    GatewayMessage expected =
-        GatewayMessage.builder()
+    ServiceMessage expected =
+        ServiceMessage.builder()
             .qualifier(TestInputs.Q)
-            .streamId(TestInputs.SID)
-            .signal(TestInputs.SIG)
+            .header(STREAM_ID_FIELD, TestInputs.SID)
+            .header(SIGNAL_FIELD, TestInputs.SIG)
             .data(toByteBuf(data))
             .build();
     ByteBuf bb = codec.encode(expected);
 
-    GatewayMessage actual = fromByteBuf(bb, Boolean.class);
+    ServiceMessage actual = fromByteBuf(bb, Boolean.class);
 
     assertEquals(expected.qualifier(), actual.qualifier());
-    assertEquals(expected.signal(), actual.signal());
-    assertEquals(expected.streamId(), actual.streamId());
-    assertEquals(expected.inactivity(), actual.inactivity());
+    assertEquals(expected.header(SIGNAL_FIELD), actual.header(SIGNAL_FIELD));
+    assertEquals(expected.header(STREAM_ID_FIELD), actual.header(STREAM_ID_FIELD));
+    assertEquals(expected.header(INACTIVITY_FIELD), actual.header(INACTIVITY_FIELD));
     assertEquals(data, actual.data());
   }
 
@@ -281,29 +285,24 @@ public class GatewayMessageCodecTest {
     return bb;
   }
 
-  private GatewayMessage fromByteBuf(ByteBuf bb, Class<?> dataClass) throws IOException {
+  private ServiceMessage fromByteBuf(ByteBuf bb, Class<?> dataClass) throws IOException {
     // noinspection unchecked
 
     Map<String, Object> map =
         objectMapper.readValue((InputStream) new ByteBufInputStream(bb.slice()), HashMap.class);
-    Builder builder = GatewayMessage.builder();
+    ServiceMessage.Builder builder = ServiceMessage.builder();
 
-    Optional.ofNullable((String) map.get(GatewayMessage.QUALIFIER_FIELD)) //
-        .ifPresent(builder::qualifier);
+    Optional.ofNullable(map.get(QUALIFIER_FIELD)).ifPresent(o -> builder.header("q", o));
 
-    Optional.ofNullable(String.valueOf(map.get(STREAM_ID_FIELD))) //
-        .map(Long::valueOf)
-        .ifPresent(builder::streamId);
+    Optional.ofNullable(map.get(STREAM_ID_FIELD))
+        .ifPresent(o -> builder.header(STREAM_ID_FIELD, o));
 
-    Optional.ofNullable((Integer) map.get(GatewayMessage.SIGNAL_FIELD)) //
-        .ifPresent(builder::signal);
+    Optional.ofNullable(map.get(SIGNAL_FIELD)).ifPresent(o -> builder.header(SIGNAL_FIELD, o));
 
-    Optional.ofNullable((Integer) map.get(GatewayMessage.INACTIVITY_FIELD)) //
-        .ifPresent(builder::signal);
+    Optional.ofNullable(map.get(INACTIVITY_FIELD))
+        .ifPresent(o -> builder.header(INACTIVITY_FIELD, o));
 
-    return builder
-        .data(objectMapper.convertValue(map.get(GatewayMessage.DATA_FIELD), dataClass))
-        .build();
+    return builder.data(objectMapper.convertValue(map.get(DATA_FIELD), dataClass)).build();
   }
 
   private ObjectMapper objectMapper() {

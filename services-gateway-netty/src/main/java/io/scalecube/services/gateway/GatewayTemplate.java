@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.gateway.ws.GatewayMessage;
 import java.net.InetSocketAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,17 +19,13 @@ public abstract class GatewayTemplate implements Gateway {
         obj -> {
           ReferenceCountUtil.safestRelease(
               obj instanceof ServiceMessage ? ((ServiceMessage) obj).data() : obj);
-          ReferenceCountUtil.safestRelease(
-              obj instanceof GatewayMessage ? ((GatewayMessage) obj).data() : obj);
         });
   }
 
   protected final GatewayOptions options;
-  protected final GatewayMetrics gatewayMetrics;
 
   protected GatewayTemplate(GatewayOptions options) {
     this.options = new GatewayOptions(options);
-    this.gatewayMetrics = new GatewayMetrics(this.options.id(), this.options.metrics());
   }
 
   @Override
@@ -43,26 +38,16 @@ public abstract class GatewayTemplate implements Gateway {
    *
    * @param loopResources loop resources
    * @param port listen port
-   * @param metrics gateway metrics
    * @return http server
    */
-  protected HttpServer prepareHttpServer(
-      LoopResources loopResources, int port, GatewayMetrics metrics) {
+  protected HttpServer prepareHttpServer(LoopResources loopResources, int port) {
     return HttpServer.create()
         .tcpConfiguration(
             tcpServer -> {
               if (loopResources != null) {
                 tcpServer = tcpServer.runOn(loopResources);
               }
-              if (metrics != null) {
-                tcpServer =
-                    tcpServer.doOnConnection(
-                        connection -> {
-                          metrics.incConnection();
-                          connection.onDispose(metrics::decConnection);
-                        });
-              }
-              return tcpServer.addressSupplier(() -> new InetSocketAddress(port));
+              return tcpServer.bindAddress(() -> new InetSocketAddress(port));
             });
   }
 

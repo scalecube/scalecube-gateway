@@ -1,24 +1,22 @@
 package io.scalecube.services.gateway.websocket;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
-import io.scalecube.services.testservice.AuthRegistry;
-import io.scalecube.services.testservice.SecuredAuthenticator;
-import io.scalecube.services.testservice.SecuredService;
-import io.scalecube.services.testservice.SecuredServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import reactor.test.StepVerifier;
-
+import io.scalecube.services.gateway.AuthRegistry;
+import io.scalecube.services.gateway.SecuredService;
+import io.scalecube.services.gateway.SecuredServiceImpl;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import reactor.test.StepVerifier;
 
 public class WebsocketLocalGatewayAuthTest {
 
@@ -32,8 +30,7 @@ public class WebsocketLocalGatewayAuthTest {
 
   @RegisterExtension
   static WsLocalWithAuthExtension extension =
-      new WsLocalWithAuthExtension(
-          new SecuredServiceImpl(AUTH_REG), new SecuredAuthenticator(AUTH_REG), AUTH_REG);
+      new WsLocalWithAuthExtension(new SecuredServiceImpl(AUTH_REG), AUTH_REG);
 
   private SecuredService clientService;
 
@@ -72,12 +69,12 @@ public class WebsocketLocalGatewayAuthTest {
 
   @Test
   void testCallSecuredMethod_notAuthenticated() {
-    StepVerifier.create(clientService.requestOne("echo", null))
+    StepVerifier.create(clientService.requestOne("echo"))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(403, e.errorCode(), "Session is not authenticated");
-              assertTrue(e.getMessage().contains("Session is not authenticated"));
+              assertEquals(401, e.errorCode(), "Authentication failed");
+              assertTrue(e.getMessage().contains("Authentication failed"));
             })
         .verify();
   }
@@ -88,7 +85,7 @@ public class WebsocketLocalGatewayAuthTest {
     extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class).block(TIMEOUT);
     // call secured service
     final String req = "echo";
-    StepVerifier.create(clientService.requestOne(req, null))
+    StepVerifier.create(clientService.requestOne(req))
         .expectNextMatches(resp -> resp.equals(ALLOWED_USER + "@" + req))
         .expectComplete()
         .verify();
@@ -103,24 +100,24 @@ public class WebsocketLocalGatewayAuthTest {
         .verify();
     // call secured service
     final String req = "echo";
-    StepVerifier.create(clientService.requestOne(req, null))
+    StepVerifier.create(clientService.requestOne(req))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(403, e.errorCode());
-              assertEquals("Session is not authenticated", e.getMessage());
+              assertEquals(401, e.errorCode());
+              assertEquals("Authentication failed", e.getMessage());
             })
         .verify();
   }
 
   @Test
   void testCallSecuredMethod_notAuthenticatedRequestStream() {
-    StepVerifier.create(clientService.requestN(10, null))
+    StepVerifier.create(clientService.requestN(10))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(403, e.errorCode(), "Session is not authenticated");
-              assertTrue(e.getMessage().equals("Session is not authenticated"));
+              assertEquals(401, e.errorCode(), "Authentication failed");
+              assertEquals("Authentication failed", e.getMessage());
             })
         .verify();
   }
@@ -131,7 +128,7 @@ public class WebsocketLocalGatewayAuthTest {
     extension.client().requestOne(createSessionReq(ALLOWED_USER), String.class).block(TIMEOUT);
     // call secured service
     Integer times = 10;
-    StepVerifier.create(clientService.requestN(times, null))
+    StepVerifier.create(clientService.requestN(times))
         .expectNextCount(10)
         .expectComplete()
         .verify();

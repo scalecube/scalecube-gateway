@@ -39,7 +39,6 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
             .gateway(opts -> new HttpGateway(opts.id("http")))
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
-            .metrics(registry())
             .startAwait();
   }
 
