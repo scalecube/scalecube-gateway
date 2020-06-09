@@ -116,7 +116,7 @@ public final class HttpGatewayClient implements GatewayClient {
 
     int httpCode = httpResponse.status().code();
     if (isError(httpCode)) {
-      builder.header(ServiceMessage.ERROR_TYPE, String.valueOf(httpCode));
+      builder.header(ServiceMessage.HEADER_ERROR_TYPE, String.valueOf(httpCode));
     }
 
     // prepare response headers
