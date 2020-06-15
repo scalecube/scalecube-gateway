@@ -38,19 +38,19 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .gateway(opts -> new RSocketGateway(opts.id("rsws")))
             .gateway(opts -> new WebsocketGateway(opts.id("ws")))
             .gateway(opts -> new HttpGateway(opts.id("http")))
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    Address seedAddress = gateway.discovery().address();
+    Address seedAddress = gateway.discovery("gateway").address();
     int numOfThreads = Runtime.getRuntime().availableProcessors();
     services =
         Microservices.builder()
             .discovery(
+                "services",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            config -> config.membership(opts -> opts.seedMembers(seedAddress))))
+                        .membership(opts -> opts.seedMembers(seedAddress)))
             .transport(() -> new RSocketServiceTransport().numOfWorkers(numOfThreads))
             .services(new BenchmarkServiceImpl())
             .startAwait();
