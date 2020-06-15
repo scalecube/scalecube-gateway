@@ -190,6 +190,7 @@ class WebsocketClientConnectionTest extends BaseTest {
           @Override
           public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof PongWebSocketFrame) {
+              ((PongWebSocketFrame) msg).release();
               keepaliveLatch.countDown();
             } else {
               super.channelRead(ctx, msg);
