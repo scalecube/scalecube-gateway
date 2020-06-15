@@ -42,7 +42,7 @@ class HttpClientConnectionTest extends BaseTest {
   void beforEach() {
     gateway =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .gateway(options -> new HttpGateway(options.id("HTTP")))
             .startAwait();
@@ -52,12 +52,11 @@ class HttpClientConnectionTest extends BaseTest {
     service =
         Microservices.builder()
             .discovery(
+                "service",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            config ->
-                                config.membership(
-                                    opts -> opts.seedMembers(gateway.discovery().address()))))
+                        .membership(
+                            opts -> opts.seedMembers(gateway.discovery("gateway").address())))
             .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl())
             .startAwait();

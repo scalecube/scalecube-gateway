@@ -34,9 +34,8 @@ public class GatewayRunner {
    * Main runner.
    *
    * @param args program arguments
-   * @throws Exception exception thrown
    */
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     ConfigRegistry configRegistry = ConfigBootstrap.configRegistry();
 
     Config config =
@@ -50,7 +49,7 @@ public class GatewayRunner {
     LOGGER.info(DECORATOR);
 
     Microservices.builder()
-        .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
+        .discovery("gateway", serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
         .transport(() -> newServiceTransport(config))
         .gateway(opts -> new WebsocketGateway(opts.id("ws").port(7070)))
         .gateway(
