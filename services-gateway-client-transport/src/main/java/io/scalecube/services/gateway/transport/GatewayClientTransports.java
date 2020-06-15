@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.transport;
 
 import io.netty.buffer.ByteBuf;
 import io.rsocket.Payload;
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.transport.http.HttpGatewayClient;
 import io.scalecube.services.gateway.transport.http.HttpGatewayClientCodec;
 import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
@@ -12,21 +11,12 @@ import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClientC
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
-import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.util.function.Function;
-import reactor.core.publisher.Hooks;
 
 public class GatewayClientTransports {
 
   private static final String CONTENT_TYPE = "application/json";
   private static final HeadersCodec HEADERS_CODEC = HeadersCodec.getInstance(CONTENT_TYPE);
-
-  static {
-    Hooks.onNextDropped(
-        obj ->
-            ReferenceCountUtil.safestRelease(
-                obj instanceof ServiceMessage ? ((ServiceMessage) obj).data() : obj));
-  }
 
   public static final GatewayClientCodec<ByteBuf> WEBSOCKET_CLIENT_CODEC =
       new WebsocketGatewayClientCodec(DataCodec.getInstance(CONTENT_TYPE));

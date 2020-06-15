@@ -1,10 +1,8 @@
 package io.scalecube.services.gateway;
 
-import io.scalecube.services.api.ServiceMessage;
 import java.net.InetSocketAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
@@ -13,14 +11,6 @@ import reactor.netty.resources.LoopResources;
 public abstract class GatewayTemplate implements Gateway {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewayTemplate.class);
-
-  static {
-    Hooks.onNextDropped(
-        obj -> {
-          ReferenceCountUtil.safestRelease(
-              obj instanceof ServiceMessage ? ((ServiceMessage) obj).data() : obj);
-        });
-  }
 
   protected final GatewayOptions options;
 
