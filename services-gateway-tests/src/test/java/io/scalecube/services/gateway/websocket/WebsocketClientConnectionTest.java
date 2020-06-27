@@ -31,7 +31,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Duration;
-import java.util.Map;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +61,7 @@ class WebsocketClientConnectionTest extends BaseTest {
     this.sessionEventHandler = new TestGatewaySessionHandler();
     gateway =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .gateway(options -> new WebsocketGateway(options.id("WS"), sessionEventHandler))
             .startAwait();
@@ -71,12 +71,11 @@ class WebsocketClientConnectionTest extends BaseTest {
     service =
         Microservices.builder()
             .discovery(
+                "service",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            config ->
-                                config.membership(
-                                    opts -> opts.seedMembers(gateway.discovery().address()))))
+                        .membership(
+                            opts -> opts.seedMembers(gateway.discovery("gateway").address())))
             .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl(onCloseCounter::incrementAndGet))
             .startAwait();
@@ -191,6 +190,7 @@ class WebsocketClientConnectionTest extends BaseTest {
           @Override
           public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof PongWebSocketFrame) {
+              ((PongWebSocketFrame) msg).release();
               keepaliveLatch.countDown();
             } else {
               super.channelRead(ctx, msg);
@@ -212,7 +212,7 @@ class WebsocketClientConnectionTest extends BaseTest {
         new WebsocketGatewayClient(
             GatewayClientSettings.builder()
                 .address(gatewayAddress)
-                .headers(Map.of(headerKey, headerValue))
+                .headers(Collections.singletonMap(headerKey, headerValue))
                 .build(),
             CLIENT_CODEC);
     TestService service =

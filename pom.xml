@@ -3,12 +3,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>scalecube-gateway-parent</artifactId>
-  <version>2.8.17-SNAPSHOT</version>
+  <version>2.9.0-SNAPSHOT</version>
 
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2-RC3</version>
   </parent>
   <packaging>pom</packaging>
 
@@ -22,11 +22,11 @@
   </scm>
 
   <properties>
-    <scalecube-commons.version>1.0.4</scalecube-commons.version>
-    <scalecube-services.version>2.9.2</scalecube-services.version>
+    <scalecube-commons.version>1.0.7</scalecube-commons.version>
+    <scalecube-services.version>2.10.0</scalecube-services.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.4.3</scalecube-config.version>
-    <reactor.version>Dysprosium-SR8</reactor.version>
+    <scalecube-config.version>0.4.4</scalecube-config.version>
+    <reactor.version>Dysprosium-SR9</reactor.version>
     <rsocket.version>1.0.1</rsocket.version>
     <netty.version>4.1.50.Final</netty.version>
     <jackson.version>2.11.0</jackson.version>
@@ -241,7 +241,7 @@
       </snapshots>
       <id>central</id>
       <name>central</name>
-      <url>http://repo1.maven.org</url>
+      <url>https://repo1.maven.org</url>
     </repository>
   </repositories>
 

@@ -90,7 +90,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                           .send(encodeRequest(request, sid), sid)
                           .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
                           .then(session.newMonoProcessor(sid))
-                          .doOnCancel(() -> handleCancel(sid, session))
+                          .doOnCancel(() -> handleCancel(sid, request.qualifier(), session))
                           .doFinally(s -> session.removeProcessor(sid)));
         });
   }
@@ -107,7 +107,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
                           .send(encodeRequest(request, sid), sid)
                           .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
                           .thenMany(session.newUnicastProcessor(sid))
-                          .doOnCancel(() -> handleCancel(sid, session))
+                          .doOnCancel(() -> handleCancel(sid, request.qualifier(), session))
                           .doFinally(s -> session.removeProcessor(sid)));
         });
   }
@@ -211,10 +211,11 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
   }
 
-  private void handleCancel(long sid, WebsocketGatewayClientSession session) {
+  private void handleCancel(long sid, String qualifier, WebsocketGatewayClientSession session) {
     ByteBuf byteBuf =
         codec.encode(
             ServiceMessage.builder()
+                .qualifier(qualifier)
                 .header(STREAM_ID, sid)
                 .header(SIGNAL, Signal.CANCEL.codeAsString())
                 .build());
