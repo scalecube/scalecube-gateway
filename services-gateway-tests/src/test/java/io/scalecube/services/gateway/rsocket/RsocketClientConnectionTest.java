@@ -23,7 +23,7 @@ import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -158,7 +158,7 @@ class RsocketClientConnectionTest extends BaseTest {
     client =
         new RSocketGatewayClient(
             GatewayClientSettings.builder()
-                .headers(Map.of(headerKey, headerValue))
+                .headers(Collections.singletonMap(headerKey, headerValue))
                 .address(gatewayAddress)
                 .build(),
             CLIENT_CODEC);

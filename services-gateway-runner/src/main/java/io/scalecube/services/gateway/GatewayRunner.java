@@ -14,6 +14,7 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
+import io.scalecube.services.transport.rsocket.RSocketServerTransportFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.nio.file.Path;
 import java.util.List;
@@ -22,7 +23,6 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.netty.tcp.TcpServer;
 
 public class GatewayRunner {
 
@@ -65,8 +65,7 @@ public class GatewayRunner {
 
   private static RSocketServiceTransport newServiceTransport(Config config) {
     return new RSocketServiceTransport()
-        .tcpServer(
-            loopResources -> TcpServer.create().runOn(loopResources).port(config.servicePort()));
+        .serverTransportFactory(RSocketServerTransportFactory.tcp(config.servicePort()));
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
