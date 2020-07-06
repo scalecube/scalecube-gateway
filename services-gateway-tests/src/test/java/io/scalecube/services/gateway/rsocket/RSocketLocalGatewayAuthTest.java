@@ -75,7 +75,7 @@ public class RSocketLocalGatewayAuthTest {
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
               assertEquals(401, e.errorCode(), "Authentication failed");
-              assertEquals("Authentication failed", e.getMessage());
+              assertTrue(e.getMessage().contains("Authentication failed"));
             })
         .verify();
   }
@@ -106,7 +106,7 @@ public class RSocketLocalGatewayAuthTest {
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
               assertEquals(401, e.errorCode());
-              assertEquals("Authentication failed", e.getMessage());
+              assertTrue(e.getMessage().contains("Authentication failed"));
             })
         .verify();
   }

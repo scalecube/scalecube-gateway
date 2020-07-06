@@ -13,9 +13,7 @@ public class WsLocalWithAuthExtension extends AbstractLocalGatewayExtension {
 
   WsLocalWithAuthExtension(Object serviceInstance, AuthRegistry authReg) {
     super(
-        ServiceInfo.fromServiceInstance(serviceInstance)
-            .authenticator(createSessionAwareAuthenticator)
-            .build(),
+        ServiceInfo.fromServiceInstance(serviceInstance).build(),
         opts ->
             new WebsocketGateway(
                 opts.id(GATEWAY_ALIAS_NAME), new GatewaySessionHandlerImpl(authReg)),

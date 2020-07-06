@@ -7,11 +7,9 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import io.rsocket.util.EmptyPayload;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
-import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,10 +64,7 @@ public final class RSocketGatewayClient implements GatewayClient {
                     rsocket ->
                         rsocket
                             .requestResponse(toPayload(request))
-                            .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
-                            .onErrorMap(
-                                ClosedChannelException.class,
-                                e -> new ConnectionClosedException("Connection closed")))
+                            .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request)))
                 .map(this::toMessage));
   }
 
@@ -82,10 +77,7 @@ public final class RSocketGatewayClient implements GatewayClient {
                     rsocket ->
                         rsocket
                             .requestStream(toPayload(request))
-                            .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
-                            .onErrorMap(
-                                ClosedChannelException.class,
-                                e -> new ConnectionClosedException("Connection closed")))
+                            .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request)))
                 .map(this::toMessage));
   }
 
@@ -96,14 +88,10 @@ public final class RSocketGatewayClient implements GatewayClient {
             getOrConnect()
                 .flatMapMany(
                     rsocket ->
-                        rsocket
-                            .requestChannel(
-                                requests
-                                    .doOnNext(r -> LOGGER.debug("Sending request {}", r))
-                                    .map(this::toPayload))
-                            .onErrorMap(
-                                ClosedChannelException.class,
-                                e -> new ConnectionClosedException("Connection closed")))
+                        rsocket.requestChannel(
+                            requests
+                                .doOnNext(r -> LOGGER.debug("Sending request {}", r))
+                                .map(this::toPayload)))
                 .map(this::toMessage));
   }
 
