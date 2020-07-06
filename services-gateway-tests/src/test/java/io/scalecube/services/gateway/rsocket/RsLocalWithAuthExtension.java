@@ -12,9 +12,7 @@ public class RsLocalWithAuthExtension extends AbstractLocalGatewayExtension {
 
   RsLocalWithAuthExtension(Object serviceInstance, AuthRegistry authReg) {
     super(
-        ServiceInfo.fromServiceInstance(serviceInstance)
-            .authenticator(createSessionAwareAuthenticator)
-            .build(),
+        ServiceInfo.fromServiceInstance(serviceInstance).build(),
         opts ->
             new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME), new GatewaySessionHandlerImpl(authReg)),
         GatewayClientTransports::rsocketGatewayClientTransport);

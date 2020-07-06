@@ -75,8 +75,8 @@ public class GatewayRunner {
                 clusterConfig
                     .membership(opts -> opts.seedMembers(config.seedAddresses()))
                     .transport(opts -> opts.port(config.discoveryPort()))
-                    .containerHost(config.memberHost())
-                    .containerPort(config.memberPort()));
+                    .externalHost(config.externalHost())
+                    .externalPort(config.externalPort()));
   }
 
   public static class Config {
@@ -84,8 +84,8 @@ public class GatewayRunner {
     private int servicePort;
     private int discoveryPort;
     private List<String> seeds;
-    private String memberHost;
-    private Integer memberPort;
+    private String externalHost;
+    private Integer externalPort;
 
     public int servicePort() {
       return servicePort;
@@ -110,12 +110,12 @@ public class GatewayRunner {
           .orElse(new Address[0]);
     }
 
-    public String memberHost() {
-      return memberHost;
+    public String externalHost() {
+      return externalHost;
     }
 
-    public Integer memberPort() {
-      return memberPort;
+    public Integer externalPort() {
+      return externalPort;
     }
 
     @Override
@@ -124,8 +124,8 @@ public class GatewayRunner {
       sb.append("servicePort=").append(servicePort);
       sb.append(", discoveryPort=").append(discoveryPort);
       sb.append(", seeds=").append(seeds);
-      sb.append(", memberHost=").append(memberHost);
-      sb.append(", memberPort=").append(memberPort);
+      sb.append(", externalHost=").append(externalHost);
+      sb.append(", externalPort=").append(externalPort);
       sb.append('}');
       return sb.toString();
     }

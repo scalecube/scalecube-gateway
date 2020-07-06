@@ -4,10 +4,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
+import java.nio.channels.ClosedChannelException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -79,9 +79,7 @@ public final class WebsocketGatewayClientSession {
             });
 
     connection.onDispose(
-        () ->
-            inboundProcessors.forEach(
-                (k, resp) -> resp.onError(new ConnectionClosedException("Connection closed"))));
+        () -> inboundProcessors.forEach((k, resp) -> resp.onError(new ClosedChannelException())));
   }
 
   public String id() {
