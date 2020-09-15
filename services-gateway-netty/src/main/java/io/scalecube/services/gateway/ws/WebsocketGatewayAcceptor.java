@@ -137,7 +137,7 @@ public class WebsocketGatewayAcceptor
         .map(message -> validateSidOnSession(session, (ServiceMessage) message))
         .map(GatewayMessages::validateQualifier)
         .map(message -> gatewayHandler.mapMessage(session, message, context))
-        .doOnNext(request -> onMessage(session, request, context))
+        .doOnNext(request -> onRequest(session, request, context))
         .doOnError(
             th -> {
               if (!(th instanceof WebsocketContextException)) {
@@ -156,39 +156,39 @@ public class WebsocketGatewayAcceptor
             });
   }
 
-  private void onMessage(WebsocketGatewaySession session, ServiceMessage message, Context context) {
-    final long sid = getSid(message);
+  private void onRequest(WebsocketGatewaySession session, ServiceMessage request, Context context) {
+    final long sid = getSid(request);
     final AtomicBoolean receivedError = new AtomicBoolean(false);
 
-    final Flux<ServiceMessage> serviceStream = serviceCall.requestMany(message);
+    final Flux<ServiceMessage> serviceStream = serviceCall.requestMany(request);
 
     Disposable disposable =
-        Optional.ofNullable(message.header(RATE_LIMIT_FIELD))
+        Optional.ofNullable(request.header(RATE_LIMIT_FIELD))
             .map(Integer::valueOf)
             .map(serviceStream::limitRate)
             .orElse(serviceStream)
             .map(
                 response -> {
                   boolean isErrorResponse = false;
-                  if (message.isError()) {
+                  if (response.isError()) {
                     receivedError.set(true);
                     isErrorResponse = true;
                   }
                   return newResponseMessage(sid, response, isErrorResponse);
                 })
             .flatMap(session::send)
-            .doOnError(th -> ReferenceCountUtil.safestRelease(message.data()))
+            .doOnError(th -> ReferenceCountUtil.safestRelease(request.data()))
             .doOnError(
                 th ->
                     session
-                        .send(newErrorMessage(message, th))
+                        .send(newErrorMessage(request, th))
                         .subscriberContext(context)
                         .subscribe())
             .doOnComplete(
                 () -> {
                   if (!receivedError.get()) {
                     session
-                        .send(newCompleteMessage(sid, message.qualifier()))
+                        .send(newCompleteMessage(sid, request.qualifier()))
                         .subscriberContext(context)
                         .subscribe();
                   }
