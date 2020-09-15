@@ -37,6 +37,10 @@ public class RSocketGateway extends GatewayTemplate {
     this(options, sessionHandler, DefaultErrorMapper.INSTANCE);
   }
 
+  public RSocketGateway(GatewayOptions options, ServiceProviderErrorMapper errorMapper) {
+    this(options, GatewaySessionHandler.DEFAULT_INSTANCE, errorMapper);
+  }
+
   /**
    * Constructor.
    *
