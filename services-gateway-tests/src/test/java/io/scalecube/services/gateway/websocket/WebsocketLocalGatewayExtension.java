@@ -16,10 +16,7 @@ class WebsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
   }
 
   WebsocketLocalGatewayExtension(ServiceInfo serviceInfo) {
-    super(
-        serviceInfo,
-        opts -> new WebsocketGateway(opts.id(GATEWAY_ALIAS_NAME)),
-        GatewayClientTransports::websocketGatewayClientTransport);
+    this(serviceInfo, WebsocketGateway::new);
   }
 
   WebsocketLocalGatewayExtension(

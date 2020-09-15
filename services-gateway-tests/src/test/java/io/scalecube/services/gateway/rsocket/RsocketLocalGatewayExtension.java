@@ -2,7 +2,9 @@ package io.scalecube.services.gateway.rsocket;
 
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
+import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
+import java.util.function.Function;
 
 class RsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
 
@@ -13,9 +15,14 @@ class RsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
   }
 
   RsocketLocalGatewayExtension(ServiceInfo serviceInfo) {
+    this(serviceInfo, RSocketGateway::new);
+  }
+
+  RsocketLocalGatewayExtension(
+      ServiceInfo serviceInfo, Function<GatewayOptions, RSocketGateway> gatewaySupplier) {
     super(
         serviceInfo,
-        opts -> new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME)),
+        opts -> gatewaySupplier.apply(opts.id(GATEWAY_ALIAS_NAME)),
         GatewayClientTransports::rsocketGatewayClientTransport);
   }
 }
