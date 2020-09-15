@@ -2,6 +2,8 @@ package io.scalecube.services.gateway.ws;
 
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.scalecube.net.Address;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewaySessionHandler;
@@ -23,20 +25,33 @@ public class WebsocketGateway extends GatewayTemplate {
 
   private final GatewaySessionHandler gatewayHandler;
   private final Duration keepAliveInterval;
+  private final ServiceProviderErrorMapper errorMapper;
 
   private DisposableServer server;
   private LoopResources loopResources;
 
   public WebsocketGateway(GatewayOptions options) {
-    this(options, Duration.ZERO, GatewaySessionHandler.DEFAULT_INSTANCE);
+    this(
+        options,
+        Duration.ZERO,
+        GatewaySessionHandler.DEFAULT_INSTANCE,
+        DefaultErrorMapper.INSTANCE);
   }
 
   public WebsocketGateway(GatewayOptions options, Duration keepAliveInterval) {
-    this(options, keepAliveInterval, GatewaySessionHandler.DEFAULT_INSTANCE);
+    this(
+        options,
+        keepAliveInterval,
+        GatewaySessionHandler.DEFAULT_INSTANCE,
+        DefaultErrorMapper.INSTANCE);
   }
 
   public WebsocketGateway(GatewayOptions options, GatewaySessionHandler gatewayHandler) {
-    this(options, Duration.ZERO, gatewayHandler);
+    this(options, Duration.ZERO, gatewayHandler, DefaultErrorMapper.INSTANCE);
+  }
+
+  public WebsocketGateway(GatewayOptions options, ServiceProviderErrorMapper errorMapper) {
+    this(options, Duration.ZERO, GatewaySessionHandler.DEFAULT_INSTANCE, errorMapper);
   }
 
   /**
@@ -45,12 +60,17 @@ public class WebsocketGateway extends GatewayTemplate {
    * @param options gateway options
    * @param keepAliveInterval keep alive interval
    * @param gatewayHandler gateway handler
+   * @param errorMapper error mapper
    */
   public WebsocketGateway(
-      GatewayOptions options, Duration keepAliveInterval, GatewaySessionHandler gatewayHandler) {
+      GatewayOptions options,
+      Duration keepAliveInterval,
+      GatewaySessionHandler gatewayHandler,
+      ServiceProviderErrorMapper errorMapper) {
     super(options);
     this.keepAliveInterval = keepAliveInterval;
     this.gatewayHandler = gatewayHandler;
+    this.errorMapper = errorMapper;
   }
 
   @Override
@@ -58,7 +78,7 @@ public class WebsocketGateway extends GatewayTemplate {
     return Mono.defer(
         () -> {
           WebsocketGatewayAcceptor acceptor =
-              new WebsocketGatewayAcceptor(options.call(), gatewayHandler);
+              new WebsocketGatewayAcceptor(options.call(), gatewayHandler, errorMapper);
 
           loopResources = LoopResources.create("websocket-gateway");
 

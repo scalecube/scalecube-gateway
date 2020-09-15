@@ -168,10 +168,6 @@ public final class WebsocketGatewayClientSession {
           // decode error data to retrieve real error cause
           ServiceMessage errorMessage = codec.decodeData(response, ErrorData.class);
           onNext.accept(errorMessage);
-          // Throwable error = DefaultErrorMapper.INSTANCE.toError(errorMessage);
-          // String sid = response.header(STREAM_ID);
-          // LOGGER.error("Received error response: sid={}, error={}", sid, error);
-          // onError.accept(error);
         }
       } else {
         // handle normal response
