@@ -30,6 +30,11 @@ public class WebsocketGateway extends GatewayTemplate {
   private DisposableServer server;
   private LoopResources loopResources;
 
+  /**
+   * Constructor.
+   *
+   * @param options gateway options
+   */
   public WebsocketGateway(GatewayOptions options) {
     this(
         options,
@@ -38,6 +43,12 @@ public class WebsocketGateway extends GatewayTemplate {
         DefaultErrorMapper.INSTANCE);
   }
 
+  /**
+   * Constructor.
+   *
+   * @param options gateway options
+   * @param keepAliveInterval keep alive interval
+   */
   public WebsocketGateway(GatewayOptions options, Duration keepAliveInterval) {
     this(
         options,
@@ -46,10 +57,22 @@ public class WebsocketGateway extends GatewayTemplate {
         DefaultErrorMapper.INSTANCE);
   }
 
+  /**
+   * Constructor.
+   *
+   * @param options gateway options
+   * @param gatewayHandler gateway handler
+   */
   public WebsocketGateway(GatewayOptions options, GatewaySessionHandler gatewayHandler) {
     this(options, Duration.ZERO, gatewayHandler, DefaultErrorMapper.INSTANCE);
   }
 
+  /**
+   * Constructor.
+   *
+   * @param options gateway options
+   * @param errorMapper error mapper
+   */
   public WebsocketGateway(GatewayOptions options, ServiceProviderErrorMapper errorMapper) {
     this(options, Duration.ZERO, GatewaySessionHandler.DEFAULT_INSTANCE, errorMapper);
   }
