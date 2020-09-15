@@ -4,7 +4,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.nio.channels.ClosedChannelException;
@@ -168,10 +167,11 @@ public final class WebsocketGatewayClientSession {
         if (signal == Signal.ERROR) {
           // decode error data to retrieve real error cause
           ServiceMessage errorMessage = codec.decodeData(response, ErrorData.class);
-          Throwable error = DefaultErrorMapper.INSTANCE.toError(errorMessage);
-          String sid = response.header(STREAM_ID);
-          LOGGER.error("Received error response: sid={}, error={}", sid, error);
-          onError.accept(error);
+          onNext.accept(errorMessage);
+          // Throwable error = DefaultErrorMapper.INSTANCE.toError(errorMessage);
+          // String sid = response.header(STREAM_ID);
+          // LOGGER.error("Received error response: sid={}, error={}", sid, error);
+          // onError.accept(error);
         }
       } else {
         // handle normal response

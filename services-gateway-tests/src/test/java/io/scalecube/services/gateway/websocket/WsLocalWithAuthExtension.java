@@ -12,8 +12,12 @@ public class WsLocalWithAuthExtension extends AbstractLocalGatewayExtension {
   private static final String GATEWAY_ALIAS_NAME = "ws";
 
   WsLocalWithAuthExtension(Object serviceInstance, AuthRegistry authReg) {
+    this(ServiceInfo.fromServiceInstance(serviceInstance).build(), authReg);
+  }
+
+  WsLocalWithAuthExtension(ServiceInfo serviceInfo, AuthRegistry authReg) {
     super(
-        ServiceInfo.fromServiceInstance(serviceInstance).build(),
+        serviceInfo,
         opts ->
             new WebsocketGateway(
                 opts.id(GATEWAY_ALIAS_NAME), new GatewaySessionHandlerImpl(authReg)),
