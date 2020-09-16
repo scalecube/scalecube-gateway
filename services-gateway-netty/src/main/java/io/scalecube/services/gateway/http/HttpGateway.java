@@ -5,6 +5,8 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http.cors.CorsHandler;
 import io.scalecube.net.Address;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
@@ -20,6 +22,8 @@ import reactor.netty.resources.LoopResources;
 
 public class HttpGateway extends GatewayTemplate {
 
+  private final ServiceProviderErrorMapper errorMapper;
+
   private DisposableServer server;
   private LoopResources loopResources;
 
@@ -31,7 +35,12 @@ public class HttpGateway extends GatewayTemplate {
           .allowedRequestMethods(HttpMethod.POST);
 
   public HttpGateway(GatewayOptions options) {
+    this(options, DefaultErrorMapper.INSTANCE);
+  }
+
+  public HttpGateway(GatewayOptions options, ServiceProviderErrorMapper errorMapper) {
     super(options);
+    this.errorMapper = errorMapper;
   }
 
   private HttpGateway(HttpGateway other) {
@@ -40,6 +49,7 @@ public class HttpGateway extends GatewayTemplate {
     this.loopResources = other.loopResources;
     this.corsEnabled = other.corsEnabled;
     this.corsConfigBuilder = copy(other.corsConfigBuilder);
+    this.errorMapper = other.errorMapper;
   }
 
   /**
@@ -108,7 +118,7 @@ public class HttpGateway extends GatewayTemplate {
   public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
-          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(options.call());
+          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(options.call(), errorMapper);
 
           loopResources = LoopResources.create("http-gateway");
 

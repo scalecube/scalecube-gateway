@@ -5,6 +5,8 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.scalecube.net.Address;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewaySessionHandler;
@@ -22,17 +24,37 @@ public class RSocketGateway extends GatewayTemplate {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGateway.class);
 
   private final GatewaySessionHandler sessionHandler;
+  private final ServiceProviderErrorMapper errorMapper;
+
   private CloseableChannel server;
   private LoopResources loopResources;
 
   public RSocketGateway(GatewayOptions options) {
-    super(options);
-    this.sessionHandler = GatewaySessionHandler.DEFAULT_INSTANCE;
+    this(options, GatewaySessionHandler.DEFAULT_INSTANCE, DefaultErrorMapper.INSTANCE);
   }
 
   public RSocketGateway(GatewayOptions options, GatewaySessionHandler sessionHandler) {
+    this(options, sessionHandler, DefaultErrorMapper.INSTANCE);
+  }
+
+  public RSocketGateway(GatewayOptions options, ServiceProviderErrorMapper errorMapper) {
+    this(options, GatewaySessionHandler.DEFAULT_INSTANCE, errorMapper);
+  }
+
+  /**
+   * Constructor.
+   *
+   * @param options gateway options
+   * @param sessionHandler session handler
+   * @param errorMapper error mapper
+   */
+  public RSocketGateway(
+      GatewayOptions options,
+      GatewaySessionHandler sessionHandler,
+      ServiceProviderErrorMapper errorMapper) {
     super(options);
     this.sessionHandler = sessionHandler;
+    this.errorMapper = errorMapper;
   }
 
   @Override
@@ -40,7 +62,7 @@ public class RSocketGateway extends GatewayTemplate {
     return Mono.defer(
         () -> {
           RSocketGatewayAcceptor acceptor =
-              new RSocketGatewayAcceptor(options.call(), sessionHandler);
+              new RSocketGatewayAcceptor(options.call(), sessionHandler, errorMapper);
 
           loopResources = LoopResources.create("rsocket-gateway");
 

@@ -15,6 +15,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.transport.api.DataCodec;
 import java.util.function.BiFunction;
@@ -34,9 +35,15 @@ public class HttpGatewayAcceptor
   private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
 
   private final ServiceCall serviceCall;
+  private final ServiceProviderErrorMapper errorMapper;
 
   HttpGatewayAcceptor(ServiceCall serviceCall) {
+    this(serviceCall, DefaultErrorMapper.INSTANCE);
+  }
+
+  HttpGatewayAcceptor(ServiceCall serviceCall, ServiceProviderErrorMapper errorMapper) {
     this.serviceCall = serviceCall;
+    this.errorMapper = errorMapper;
   }
 
   @Override
@@ -58,8 +65,7 @@ public class HttpGatewayAcceptor
         .switchIfEmpty(Mono.defer(() -> ByteBufMono.just(Unpooled.EMPTY_BUFFER)))
         .map(ByteBuf::retain)
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
-        .onErrorResume(
-            t -> error(httpResponse, DefaultErrorMapper.INSTANCE.toMessage(ERROR_NAMESPACE, t)));
+        .onErrorResume(t -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, t)));
   }
 
   private Mono<Void> handleRequest(

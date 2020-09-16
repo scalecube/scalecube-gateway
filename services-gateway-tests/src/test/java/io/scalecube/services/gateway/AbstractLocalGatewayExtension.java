@@ -3,6 +3,7 @@ package io.scalecube.services.gateway;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -21,7 +22,7 @@ public abstract class AbstractLocalGatewayExtension
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLocalGatewayExtension.class);
 
-  private final Object serviceInstance;
+  private final ServiceInfo serviceInfo;
   private final Function<GatewayOptions, Gateway> gatewaySupplier;
   private final Function<GatewayClientSettings, ClientTransport> clientSupplier;
 
@@ -31,10 +32,10 @@ public abstract class AbstractLocalGatewayExtension
   private String gatewayId;
 
   protected AbstractLocalGatewayExtension(
-      Object serviceInstance,
+      ServiceInfo serviceInfo,
       Function<GatewayOptions, Gateway> gatewaySupplier,
       Function<GatewayClientSettings, ClientTransport> clientSupplier) {
-    this.serviceInstance = serviceInstance;
+    this.serviceInfo = serviceInfo;
     this.gatewaySupplier = gatewaySupplier;
     this.clientSupplier = clientSupplier;
   }
@@ -44,7 +45,7 @@ public abstract class AbstractLocalGatewayExtension
 
     gateway =
         Microservices.builder()
-            .services(serviceInstance)
+            .services(serviceInfo)
             .gateway(
                 options -> {
                   Gateway gateway = gatewaySupplier.apply(options);
