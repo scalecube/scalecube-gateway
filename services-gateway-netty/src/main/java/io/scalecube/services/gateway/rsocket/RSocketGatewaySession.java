@@ -5,7 +5,7 @@ import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.ServiceMessageCodec;
@@ -31,23 +31,27 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
   private final long sessionId;
   private final BiFunction<GatewaySession, ServiceMessage, ServiceMessage> messageMapper;
   private final Map<String, String> headers;
+  private final ServiceProviderErrorMapper errorMapper;
 
   /**
    * Constructor for gateway rsocket.
    *
    * @param serviceCall service call coming from microservices.
    * @param messageCodec message messageCodec.
+   * @param errorMapper error mapper
    */
   public RSocketGatewaySession(
       ServiceCall serviceCall,
       ServiceMessageCodec messageCodec,
       Map<String, String> headers,
-      BiFunction<GatewaySession, ServiceMessage, ServiceMessage> messageMapper) {
+      BiFunction<GatewaySession, ServiceMessage, ServiceMessage> messageMapper,
+      ServiceProviderErrorMapper errorMapper) {
     this.serviceCall = serviceCall;
     this.messageCodec = messageCodec;
     this.messageMapper = messageMapper;
     this.sessionId = SESSION_ID_GENERATOR.incrementAndGet();
     this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
+    this.errorMapper = errorMapper;
   }
 
   @Override
@@ -73,8 +77,7 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
           return serviceCall
               .requestOne(request)
               .doOnError(th -> releaseRequestOnError(request))
-              .onErrorResume(
-                  th -> Mono.just(DefaultErrorMapper.INSTANCE.toMessage(request.qualifier(), th)))
+              .onErrorResume(th -> Mono.just(errorMapper.toMessage(request.qualifier(), th)))
               .map(this::toPayload);
         });
   }
@@ -87,8 +90,7 @@ public final class RSocketGatewaySession extends AbstractRSocket implements Gate
           return serviceCall
               .requestMany(request)
               .doOnError(th -> releaseRequestOnError(request))
-              .onErrorResume(
-                  th -> Mono.just(DefaultErrorMapper.INSTANCE.toMessage(request.qualifier(), th)))
+              .onErrorResume(th -> Mono.just(errorMapper.toMessage(request.qualifier(), th)))
               .map(this::toPayload);
         });
   }

@@ -4,6 +4,7 @@ import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
@@ -24,7 +25,7 @@ public abstract class AbstractGatewayExtension
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGatewayExtension.class);
 
-  private final Object serviceInstance;
+  private final ServiceInfo serviceInfo;
   private final Function<GatewayOptions, Gateway> gatewaySupplier;
   private final Function<GatewayClientSettings, ClientTransport> clientSupplier;
 
@@ -34,10 +35,10 @@ public abstract class AbstractGatewayExtension
   private ServiceCall clientServiceCall;
 
   protected AbstractGatewayExtension(
-      Object serviceInstance,
+      ServiceInfo serviceInfo,
       Function<GatewayOptions, Gateway> gatewaySupplier,
       Function<GatewayClientSettings, ClientTransport> clientSupplier) {
-    this.serviceInstance = serviceInstance;
+    this.serviceInfo = serviceInfo;
     this.gatewaySupplier = gatewaySupplier;
     this.clientSupplier = clientSupplier;
   }
@@ -93,7 +94,7 @@ public abstract class AbstractGatewayExtension
         Microservices.builder()
             .discovery("services", this::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .services(serviceInstance)
+            .services(serviceInfo)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
   }

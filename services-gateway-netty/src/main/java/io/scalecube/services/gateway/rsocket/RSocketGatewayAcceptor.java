@@ -4,6 +4,7 @@ import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import io.scalecube.services.gateway.ServiceMessageCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
@@ -19,16 +20,22 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
 
   private final ServiceCall serviceCall;
   private final GatewaySessionHandler sessionHandler;
+  private final ServiceProviderErrorMapper errorMapper;
 
   /**
    * Creates new acceptor for RS gateway.
    *
    * @param serviceCall to call remote service
    * @param sessionHandler handler for session events
+   * @param errorMapper error mapper
    */
-  public RSocketGatewayAcceptor(ServiceCall serviceCall, GatewaySessionHandler sessionHandler) {
+  public RSocketGatewayAcceptor(
+      ServiceCall serviceCall,
+      GatewaySessionHandler sessionHandler,
+      ServiceProviderErrorMapper errorMapper) {
     this.serviceCall = serviceCall;
     this.sessionHandler = sessionHandler;
+    this.errorMapper = errorMapper;
   }
 
   @Override
@@ -43,7 +50,8 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
             serviceCall,
             messageCodec,
             headers(messageCodec, setup),
-            (session, req) -> sessionHandler.mapMessage(session, req, Context.empty()));
+            (session, req) -> sessionHandler.mapMessage(session, req, Context.empty()),
+            errorMapper);
     sessionHandler.onSessionOpen(gatewaySession);
     rsocket
         .onClose()

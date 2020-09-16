@@ -5,8 +5,8 @@ import static io.scalecube.services.gateway.ws.GatewayMessages.getSid;
 import static io.scalecube.services.gateway.ws.GatewayMessages.getSignal;
 import static io.scalecube.services.gateway.ws.GatewayMessages.newCancelMessage;
 import static io.scalecube.services.gateway.ws.GatewayMessages.newCompleteMessage;
-import static io.scalecube.services.gateway.ws.GatewayMessages.newErrorMessage;
 import static io.scalecube.services.gateway.ws.GatewayMessages.newResponseMessage;
+import static io.scalecube.services.gateway.ws.GatewayMessages.toErrorResponse;
 import static io.scalecube.services.gateway.ws.GatewayMessages.validateSidOnSession;
 
 import io.netty.buffer.ByteBuf;
@@ -17,6 +17,7 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.gateway.GatewaySessionHandler;
@@ -49,16 +50,22 @@ public class WebsocketGatewayAcceptor
   private final WebsocketServiceMessageCodec messageCodec = new WebsocketServiceMessageCodec();
   private final ServiceCall serviceCall;
   private final GatewaySessionHandler gatewayHandler;
+  private final ServiceProviderErrorMapper errorMapper;
 
   /**
    * Constructor for websocket acceptor.
    *
    * @param serviceCall service call
    * @param gatewayHandler gateway handler
+   * @param errorMapper error mapper
    */
-  public WebsocketGatewayAcceptor(ServiceCall serviceCall, GatewaySessionHandler gatewayHandler) {
+  public WebsocketGatewayAcceptor(
+      ServiceCall serviceCall,
+      GatewaySessionHandler gatewayHandler,
+      ServiceProviderErrorMapper errorMapper) {
     this.serviceCall = Objects.requireNonNull(serviceCall, "serviceCall");
     this.gatewayHandler = Objects.requireNonNull(gatewayHandler, "gatewayHandler");
+    this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
   }
 
   @Override
@@ -137,7 +144,7 @@ public class WebsocketGatewayAcceptor
         .map(message -> validateSidOnSession(session, (ServiceMessage) message))
         .map(GatewayMessages::validateQualifier)
         .map(message -> gatewayHandler.mapMessage(session, message, context))
-        .doOnNext(request -> onMessage(session, request, context))
+        .doOnNext(request -> onRequest(session, request, context))
         .doOnError(
             th -> {
               if (!(th instanceof WebsocketContextException)) {
@@ -150,45 +157,45 @@ public class WebsocketGatewayAcceptor
               wex.releaseRequest(); // release
 
               session
-                  .send(newErrorMessage(wex.request(), wex.getCause()))
+                  .send(toErrorResponse(errorMapper, wex.request(), wex.getCause()))
                   .subscriberContext(context)
                   .subscribe();
             });
   }
 
-  private void onMessage(WebsocketGatewaySession session, ServiceMessage message, Context context) {
-    final long sid = getSid(message);
+  private void onRequest(WebsocketGatewaySession session, ServiceMessage request, Context context) {
+    final long sid = getSid(request);
     final AtomicBoolean receivedError = new AtomicBoolean(false);
 
-    final Flux<ServiceMessage> serviceStream = serviceCall.requestMany(message);
+    final Flux<ServiceMessage> serviceStream = serviceCall.requestMany(request);
 
     Disposable disposable =
-        Optional.ofNullable(message.header(RATE_LIMIT_FIELD))
+        Optional.ofNullable(request.header(RATE_LIMIT_FIELD))
             .map(Integer::valueOf)
             .map(serviceStream::limitRate)
             .orElse(serviceStream)
             .map(
                 response -> {
                   boolean isErrorResponse = false;
-                  if (message.isError()) {
+                  if (response.isError()) {
                     receivedError.set(true);
                     isErrorResponse = true;
                   }
                   return newResponseMessage(sid, response, isErrorResponse);
                 })
             .flatMap(session::send)
-            .doOnError(th -> ReferenceCountUtil.safestRelease(message.data()))
+            .doOnError(th -> ReferenceCountUtil.safestRelease(request.data()))
             .doOnError(
                 th ->
                     session
-                        .send(newErrorMessage(message, th))
+                        .send(toErrorResponse(errorMapper, request, th))
                         .subscriberContext(context)
                         .subscribe())
             .doOnComplete(
                 () -> {
                   if (!receivedError.get()) {
                     session
-                        .send(newCompleteMessage(sid, message.qualifier()))
+                        .send(newCompleteMessage(sid, request.qualifier()))
                         .subscriberContext(context)
                         .subscribe();
                   }

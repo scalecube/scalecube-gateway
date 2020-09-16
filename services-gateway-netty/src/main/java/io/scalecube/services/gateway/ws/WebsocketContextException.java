@@ -21,11 +21,6 @@ public class WebsocketContextException extends RuntimeException {
         new io.scalecube.services.exceptions.BadRequestException(errorMessage), request, null);
   }
 
-  public static WebsocketContextException wrap(
-      Throwable th, ServiceMessage request, ServiceMessage response) {
-    return new WebsocketContextException(th, request, response);
-  }
-
   public ServiceMessage request() {
     return request;
   }

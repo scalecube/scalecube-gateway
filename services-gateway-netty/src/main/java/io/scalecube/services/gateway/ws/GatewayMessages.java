@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.ws;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 
 public final class GatewayMessages {
 
@@ -34,19 +34,22 @@ public final class GatewayMessages {
   /**
    * Returns error message by given arguments.
    *
-   * @param message request
+   * @param errorMapper error mapper
+   * @param request request
    * @param th cause
    * @return {@link ServiceMessage} instance as the error signal
    */
-  public static ServiceMessage newErrorMessage(ServiceMessage message, Throwable th) {
-    ServiceMessage.Builder builder =
-        ServiceMessage.from(DefaultErrorMapper.INSTANCE.toMessage(message.qualifier(), th))
-            .header(SIGNAL_FIELD, Signal.ERROR.code());
-    String sid = message.header(STREAM_ID_FIELD);
-    if (sid != null) {
-      builder.header(STREAM_ID_FIELD, sid);
+  public static ServiceMessage toErrorResponse(
+      ServiceProviderErrorMapper errorMapper, ServiceMessage request, Throwable th) {
+    ServiceMessage errorMessage = errorMapper.toMessage(request.qualifier(), th);
+    String sid = request.header(STREAM_ID_FIELD);
+    if (sid == null) {
+      return ServiceMessage.from(errorMessage).header(SIGNAL_FIELD, Signal.ERROR.code()).build();
     }
-    return builder.build();
+    return ServiceMessage.from(errorMessage)
+        .header(SIGNAL_FIELD, Signal.ERROR.code())
+        .header(STREAM_ID_FIELD, sid)
+        .build();
   }
 
   /**
