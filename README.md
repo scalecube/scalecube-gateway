@@ -66,4 +66,3 @@ releases: https://github.com/scalecube/scalecube-services/releases
   <artifactId>scalecube-services-discovery</artifactId>
   <version>${scalecube.version}</version>
  </dependency>
-
