@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.17</version>
   </parent>
 
   <artifactId>scalecube-gateway-parent</artifactId>
@@ -65,10 +65,10 @@
   </scm>
 
   <properties>
-    <scalecube-commons.version>1.0.10</scalecube-commons.version>
-    <scalecube-services.version>2.10.8</scalecube-services.version>
+    <scalecube-commons.version>1.0.11</scalecube-commons.version>
+    <scalecube-services.version>2.10.9</scalecube-services.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.4.6</scalecube-config.version>
+    <scalecube-config.version>0.4.7</scalecube-config.version>
 
     <reactor.version>Dysprosium-SR9</reactor.version>
     <rsocket.version>1.0.1</rsocket.version>
@@ -88,11 +88,9 @@
 
   <modules>
     <module>services-gateway-netty</module>
-    <module>services-gateway-tests</module>
-    <module>services-gateway-runner</module>
     <module>services-gateway-client-transport</module>
-    <module>services-gateway-benchmarks</module>
     <module>services-gateway-examples</module>
+    <module>services-gateway-tests</module>
   </modules>
 
   <dependencyManagement>
