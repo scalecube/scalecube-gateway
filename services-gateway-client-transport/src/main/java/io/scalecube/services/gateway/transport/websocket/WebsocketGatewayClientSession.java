@@ -117,7 +117,7 @@ public final class WebsocketGatewayClientSession {
           // send with publisher (defer buffer cleanup to netty)
           return connection
               .outbound()
-              .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new), f -> true)
+              .sendObject(new TextWebSocketFrame(byteBuf))
               .then()
               .doOnError(
                   th -> {
@@ -152,7 +152,9 @@ public final class WebsocketGatewayClientSession {
       Consumer<Throwable> onError,
       Runnable onComplete) {
 
-    LOGGER.debug("Handle response: {}, session={}", response, id);
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Handle response (headers: {}), session={}", response.headers(), id);
+    }
 
     try {
       Optional<Signal> signalOptional =

@@ -91,7 +91,8 @@ public final class WebsocketGatewayClient implements GatewayClient {
                           .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
                           .then(session.newMonoProcessor(sid))
                           .doOnCancel(() -> handleCancel(sid, request.qualifier(), session))
-                          .doFinally(s -> session.removeProcessor(sid)));
+                          .doFinally(s -> session.removeProcessor(sid))
+                          .log("### client/sid=" + sid));
         });
   }
 

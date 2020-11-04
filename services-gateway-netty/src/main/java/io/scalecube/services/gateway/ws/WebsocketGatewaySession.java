@@ -88,17 +88,15 @@ public final class WebsocketGatewaySession implements GatewaySession {
     return Mono.deferWithContext(
         context -> {
           // send with publisher (defer buffer cleanup to netty)
+          final ByteBuf byteBuf = codec.encode(response);
+          final ByteBuf copy = byteBuf.copy();
+          final TextWebSocketFrame frame = new TextWebSocketFrame(byteBuf);
           return outbound
-              .sendObject(
-                  Mono.just(response)
-                      .map(codec::encode)
-                      .map(TextWebSocketFrame::new)
-                      .doOnNext(
-                          frame ->
-                              gatewayHandler.onResponse(this, frame.content(), response, context)),
-                  f -> true)
+              .sendObject(frame)
               .then()
-              .doOnError(th -> gatewayHandler.onError(this, th, context));
+              .doOnSuccess(unused -> gatewayHandler.onResponse(this, copy, response, context))
+              .doOnError(th -> gatewayHandler.onError(this, th, context))
+              .log("### server/sid=" + response.header("sid"));
         });
   }
 
