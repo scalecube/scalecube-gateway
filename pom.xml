@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.2.17</version>
+    <version>0.2.19</version>
   </parent>
 
   <artifactId>scalecube-gateway-parent</artifactId>
@@ -48,14 +50,6 @@
     </repository>
   </repositories>
 
-  <distributionManagement>
-    <repository>
-      <id>github</id>
-      <name>GitHub Packages</name>
-      <url>https://maven.pkg.github.com/scalecube/scalecube-gateway</url>
-    </repository>
-  </distributionManagement>
-
   <scm>
     <url>https://github.com/scalecube/scalecube-gateway</url>
     <connection>scm:git:https://github.com/scalecube/scalecube-gateway.git</connection>
@@ -65,10 +59,10 @@
   </scm>
 
   <properties>
-    <scalecube-commons.version>1.0.11</scalecube-commons.version>
-    <scalecube-services.version>2.10.9</scalecube-services.version>
+    <scalecube-commons.version>1.0.12</scalecube-commons.version>
+    <scalecube-services.version>2.10.12</scalecube-services.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.4.7</scalecube-config.version>
+    <scalecube-config.version>0.4.14</scalecube-config.version>
 
     <reactor.version>Dysprosium-SR9</reactor.version>
     <rsocket.version>1.0.1</rsocket.version>
@@ -279,5 +273,45 @@
       <url>https://jcenter.bintray.com</url>
     </pluginRepository>
   </pluginRepositories>
+
+  <profiles>
+    <profile>
+      <id>deploy2Github</id>
+      <distributionManagement>
+        <repository>
+          <id>github</id>
+          <name>GitHub Packages</name>
+          <url>https://maven.pkg.github.com/scalecube/scalecube-gateway</url>
+        </repository>
+      </distributionManagement>
+    </profile>
+    <profile>
+      <id>deploy2Maven</id>
+      <distributionManagement>
+        <repository>
+          <id>ossrh</id>
+          <name>Central Repository OSSRH</name>
+          <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+      </distributionManagement>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <artifactId>maven-source-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <artifactId>maven-gpg-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
