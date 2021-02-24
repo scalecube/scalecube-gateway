@@ -34,6 +34,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.DisposableChannel;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.websocket.WebsocketInbound;
@@ -75,7 +76,13 @@ public class WebsocketGatewayAcceptor
 
     return gatewayHandler
         .onConnectionOpen(sessionId, headers)
-        .doOnError(ex -> httpResponse.status(toStatusCode(ex)).send().subscribe())
+        .doOnError(
+            ex ->
+                httpResponse
+                    .status(toStatusCode(ex))
+                    .send()
+                    .doFinally(s -> httpResponse.withConnection(DisposableChannel::dispose))
+                    .subscribe())
         .then(
             Mono.defer(
                 () ->
