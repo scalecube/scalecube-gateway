@@ -132,7 +132,7 @@ public class HttpGateway extends GatewayTemplate {
 
   @Override
   public Address address() {
-    InetSocketAddress address = server.address();
+    InetSocketAddress address = (InetSocketAddress) server.address();
     return Address.create(address.getHostString(), address.getPort());
   }
 
@@ -143,20 +143,19 @@ public class HttpGateway extends GatewayTemplate {
   }
 
   protected HttpServer prepareHttpServer(LoopResources loopResources, int port) {
-    return HttpServer.create()
-        .tcpConfiguration(
-            tcpServer -> {
-              if (loopResources != null) {
-                tcpServer = tcpServer.runOn(loopResources);
+    HttpServer httpServer = HttpServer.create();
+
+    if (loopResources != null) {
+      httpServer = httpServer.runOn(loopResources);
+    }
+
+    return httpServer
+        .bindAddress(() -> new InetSocketAddress(port))
+        .doOnConnection(
+            connection -> {
+              if (corsEnabled) {
+                connection.addHandlerLast(new CorsHandler(corsConfigBuilder.build()));
               }
-              return tcpServer
-                  .bindAddress(() -> new InetSocketAddress(port))
-                  .doOnConnection(
-                      connection -> {
-                        if (corsEnabled) {
-                          connection.addHandlerLast(new CorsHandler(corsConfigBuilder.build()));
-                        }
-                      });
             });
   }
 

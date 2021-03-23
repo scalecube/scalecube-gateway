@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.netty.NettyOutbound;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientRequest;
@@ -27,8 +27,8 @@ public final class HttpGatewayClient implements GatewayClient {
   private final GatewayClientCodec<ByteBuf> codec;
   private final HttpClient httpClient;
   private final LoopResources loopResources;
-  private final MonoProcessor<Void> close = MonoProcessor.create();
-  private final MonoProcessor<Void> onClose = MonoProcessor.create();
+  private final Sinks.One<Void> close = Sinks.one();
+  private final Sinks.One<Void> onClose = Sinks.one();
 
   /**
    * Creates instance of http client transport.
@@ -39,22 +39,22 @@ public final class HttpGatewayClient implements GatewayClient {
     this.codec = codec;
     this.loopResources = LoopResources.create("http-gateway-client");
 
-    httpClient =
-        HttpClient.create(ConnectionProvider.elastic("http-gateway-client"))
+    HttpClient httpClient =
+        HttpClient.create(ConnectionProvider.create("http-gateway-client"))
             .headers(headers -> settings.headers().forEach(headers::add))
-            .followRedirect(settings.followRedirect())
-            .tcpConfiguration(
-                tcpClient -> {
-                  if (settings.sslProvider() != null) {
-                    tcpClient = tcpClient.secure(settings.sslProvider());
-                  }
-                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
-                });
+            .followRedirect(settings.followRedirect());
+
+    if (settings.sslProvider() != null) {
+      httpClient = httpClient.secure(settings.sslProvider());
+    }
+
+    this.httpClient = httpClient.runOn(loopResources).host(settings.host()).port(settings.port());
 
     // Setup cleanup
     close
+        .asMono()
         .then(doClose())
-        .doFinally(s -> onClose.onComplete())
+        .doFinally(s -> onClose.tryEmitEmpty())
         .doOnTerminate(() -> LOGGER.info("Closed HttpGatewayClient resources"))
         .subscribe(null, ex -> LOGGER.warn("Exception occurred on HttpGatewayClient close: " + ex));
   }
@@ -95,12 +95,12 @@ public final class HttpGatewayClient implements GatewayClient {
 
   @Override
   public void close() {
-    close.onComplete();
+    close.tryEmitEmpty();
   }
 
   @Override
   public Mono<Void> onClose() {
-    return onClose;
+    return onClose.asMono();
   }
 
   private Mono<Void> doClose() {

@@ -106,7 +106,7 @@ public class WebsocketGateway extends GatewayTemplate {
           loopResources = LoopResources.create("websocket-gateway");
 
           return prepareHttpServer(loopResources, options.port())
-              .tcpConfiguration(tcpServer -> tcpServer.doOnConnection(this::setupKeepAlive))
+              .doOnConnection(this::setupKeepAlive)
               .handle(acceptor)
               .bind()
               .doOnSuccess(server -> this.server = server)
@@ -116,7 +116,7 @@ public class WebsocketGateway extends GatewayTemplate {
 
   @Override
   public Address address() {
-    InetSocketAddress address = server.address();
+    InetSocketAddress address = (InetSocketAddress) server.address();
     return Address.create(address.getHostString(), address.getPort());
   }
 
