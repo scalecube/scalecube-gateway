@@ -40,6 +40,7 @@ import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 import reactor.util.context.Context;
+import reactor.util.context.ContextView;
 
 public class WebsocketGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
@@ -134,8 +135,8 @@ public class WebsocketGatewayAcceptor
                 ReferenceCountUtil.safestRelease(byteBuf);
                 return;
               }
-              Mono.deferWithContext(context -> onRequest(session, byteBuf, context))
-                  .subscriberContext(context -> gatewayHandler.onRequest(session, byteBuf, context))
+              Mono.deferContextual(context -> onRequest(session, byteBuf, context))
+                  .contextWrite(context -> gatewayHandler.onRequest(session, byteBuf, context))
                   .subscribe();
             });
 
@@ -143,20 +144,20 @@ public class WebsocketGatewayAcceptor
   }
 
   private Mono<ServiceMessage> onRequest(
-      WebsocketGatewaySession session, ByteBuf byteBuf, Context context) {
+      WebsocketGatewaySession session, ByteBuf byteBuf, ContextView context) {
 
     return Mono.fromCallable(() -> messageCodec.decode(byteBuf))
         .map(GatewayMessages::validateSid)
         .flatMap(message -> onCancel(session, message))
         .map(message -> validateSidOnSession(session, (ServiceMessage) message))
         .map(GatewayMessages::validateQualifier)
-        .map(message -> gatewayHandler.mapMessage(session, message, context))
-        .doOnNext(request -> onRequest(session, request, context))
+        .map(message -> gatewayHandler.mapMessage(session, message, (Context) context))
+        .doOnNext(request -> onRequest(session, request, (Context) context))
         .doOnError(
             th -> {
               if (!(th instanceof WebsocketContextException)) {
                 // decode failed at this point
-                gatewayHandler.onError(session, th, context);
+                gatewayHandler.onError(session, th, (Context) context);
                 return;
               }
 
@@ -165,7 +166,7 @@ public class WebsocketGatewayAcceptor
 
               session
                   .send(toErrorResponse(errorMapper, wex.request(), wex.getCause()))
-                  .subscriberContext(context)
+                  .contextWrite(context)
                   .subscribe();
             });
   }
@@ -196,19 +197,19 @@ public class WebsocketGatewayAcceptor
                 th ->
                     session
                         .send(toErrorResponse(errorMapper, request, th))
-                        .subscriberContext(context)
+                        .contextWrite(context)
                         .subscribe())
             .doOnComplete(
                 () -> {
                   if (!receivedError.get()) {
                     session
                         .send(newCompleteMessage(sid, request.qualifier()))
-                        .subscriberContext(context)
+                        .contextWrite(context)
                         .subscribe();
                   }
                 })
             .doFinally(signalType -> session.dispose(sid))
-            .subscriberContext(context)
+            .contextWrite(context)
             .subscribe();
 
     session.register(sid, disposable);

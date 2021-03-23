@@ -39,7 +39,7 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Mono<String> requestOne(String req) {
-    return Mono.deferWithContext(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
+    return Mono.deferContextual(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
         .doOnNext(this::checkPermissions)
         .cast(String.class)
         .flatMap(
@@ -51,7 +51,7 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Flux<String> requestN(Integer times) {
-    return Mono.deferWithContext(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
+    return Mono.deferContextual(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
         .doOnNext(this::checkPermissions)
         .cast(String.class)
         .flatMapMany(
