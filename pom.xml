@@ -57,9 +57,8 @@
   </scm>
 
   <properties>
-    <scalecube-commons.version>1.0.12</scalecube-commons.version>
-    <scalecube-services.version>2.10.13.RC2</scalecube-services.version>
-    <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
+    <scalecube-commons.version>1.0.13</scalecube-commons.version>
+    <scalecube-services.version>2.10.13.RC4</scalecube-services.version>
     <scalecube-config.version>0.4.14</scalecube-config.version>
 
     <reactor.version>2020.0.5</reactor.version>
@@ -183,18 +182,6 @@
         <version>${netty.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-
-      <!-- Scalecube benchmarks -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-benchmarks-api</artifactId>
-        <version>${scalecube-benchmarks.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-benchmarks-log4j2</artifactId>
-        <version>${scalecube-benchmarks.version}</version>
       </dependency>
 
       <!-- Codahale -->
