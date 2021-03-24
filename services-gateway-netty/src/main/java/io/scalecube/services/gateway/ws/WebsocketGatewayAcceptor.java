@@ -40,7 +40,6 @@ import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 import reactor.util.context.Context;
-import reactor.util.context.ContextView;
 
 public class WebsocketGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
@@ -135,7 +134,7 @@ public class WebsocketGatewayAcceptor
                 ReferenceCountUtil.safestRelease(byteBuf);
                 return;
               }
-              Mono.deferContextual(context -> onRequest(session, byteBuf, context))
+              Mono.deferContextual(context -> onRequest(session, byteBuf, (Context) context))
                   .contextWrite(context -> gatewayHandler.onRequest(session, byteBuf, context))
                   .subscribe();
             });
@@ -144,20 +143,20 @@ public class WebsocketGatewayAcceptor
   }
 
   private Mono<ServiceMessage> onRequest(
-      WebsocketGatewaySession session, ByteBuf byteBuf, ContextView context) {
+      WebsocketGatewaySession session, ByteBuf byteBuf, Context context) {
 
     return Mono.fromCallable(() -> messageCodec.decode(byteBuf))
         .map(GatewayMessages::validateSid)
         .flatMap(message -> onCancel(session, message))
         .map(message -> validateSidOnSession(session, (ServiceMessage) message))
         .map(GatewayMessages::validateQualifier)
-        .map(message -> gatewayHandler.mapMessage(session, message, (Context) context))
-        .doOnNext(request -> onRequest(session, request, (Context) context))
+        .map(message -> gatewayHandler.mapMessage(session, message, context))
+        .doOnNext(request -> onRequest(session, request, context))
         .doOnError(
             th -> {
               if (!(th instanceof WebsocketContextException)) {
                 // decode failed at this point
-                gatewayHandler.onError(session, th, (Context) context);
+                gatewayHandler.onError(session, th, context);
                 return;
               }
 
