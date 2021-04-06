@@ -21,7 +21,6 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
-import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -44,34 +43,14 @@ public final class WebsocketGatewayClientCodec implements GatewayClientCodec<Byt
   // data field
   private static final String DATA_FIELD = "d";
 
-  private final DataCodec dataCodec;
   private final boolean releaseDataOnEncode;
 
-  /**
-   * Constructor for codec which encode/decode client message to/from websocket gateway message
-   * represented by json and transformed in {@link ByteBuf}.
-   *
-   * @param dataCodec data message codec.
-   */
-  public WebsocketGatewayClientCodec(DataCodec dataCodec) {
-    this(dataCodec, true /*always release by default*/);
+  public WebsocketGatewayClientCodec() {
+    this(true /*always release by default*/);
   }
 
-  /**
-   * Constructor for codec which encode/decode client message to/from websocket gateway message
-   * represented by json and transformed in {@link ByteBuf}.
-   *
-   * @param dataCodec data message codec.
-   * @param releaseDataOnEncode release data on encode flag.
-   */
-  public WebsocketGatewayClientCodec(DataCodec dataCodec, boolean releaseDataOnEncode) {
-    this.dataCodec = dataCodec;
-    this.releaseDataOnEncode = releaseDataOnEncode; // always release by default
-  }
-
-  @Override
-  public DataCodec getDataCodec() {
-    return dataCodec;
+  public WebsocketGatewayClientCodec(boolean releaseDataOnEncode) {
+    this.releaseDataOnEncode = releaseDataOnEncode;
   }
 
   @Override

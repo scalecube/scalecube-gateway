@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.transport;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
-import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.lang.reflect.Type;
 
@@ -25,14 +24,6 @@ public interface GatewayClientCodec<T> {
       throws MessageCodecException {
     return ServiceMessageCodec.decodeData(message, dataType);
   }
-
-  /**
-   * Returns codec which is used to decode data object of {@link ServiceMessage}.
-   *
-   * @return data codec
-   * @see GatewayClientCodec#decodeData(ServiceMessage, Type)
-   */
-  DataCodec getDataCodec();
 
   /**
    * Encodes {@link ServiceMessage} to {@link T} type.

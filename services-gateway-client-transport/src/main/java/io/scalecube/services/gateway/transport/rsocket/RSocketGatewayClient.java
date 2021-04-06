@@ -15,22 +15,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
 
 public final class RSocketGatewayClient implements GatewayClient {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGatewayClient.class);
 
-  private static final AtomicReferenceFieldUpdater<RSocketGatewayClient, Mono> rSocketMonoUpdater =
+  @SuppressWarnings("rawtypes")
+  private static final AtomicReferenceFieldUpdater<RSocketGatewayClient, Mono> rsocketMonoUpdater =
       AtomicReferenceFieldUpdater.newUpdater(RSocketGatewayClient.class, Mono.class, "rsocketMono");
 
   private final GatewayClientSettings settings;
   private final GatewayClientCodec<Payload> codec;
   private final LoopResources loopResources;
-  private final MonoProcessor<Void> close = MonoProcessor.create();
-  private final MonoProcessor<Void> onClose = MonoProcessor.create();
+
+  private final Sinks.One<Void> close = Sinks.one();
+  private final Sinks.One<Void> onClose = Sinks.one();
 
   @SuppressWarnings("unused")
   private volatile Mono<?> rsocketMono;
@@ -48,8 +51,9 @@ public final class RSocketGatewayClient implements GatewayClient {
 
     // Setup cleanup
     close
+        .asMono()
         .then(doClose())
-        .doFinally(s -> onClose.onComplete())
+        .doFinally(s -> onClose.tryEmitEmpty())
         .doOnTerminate(() -> LOGGER.info("Closed RSocketGatewayClient resources"))
         .subscribe(
             null, ex -> LOGGER.warn("Exception occurred on RSocketGatewayClient close: " + ex));
@@ -57,67 +61,58 @@ public final class RSocketGatewayClient implements GatewayClient {
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
-    return Mono.defer(
-        () ->
-            getOrConnect()
-                .flatMap(
-                    rsocket ->
-                        rsocket
-                            .requestResponse(toPayload(request))
-                            .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request)))
-                .map(this::toMessage));
+    return getOrConnect()
+        .flatMap(
+            rsocket ->
+                rsocket
+                    .requestResponse(toPayload(request))
+                    .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request)))
+        .map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
-    return Flux.defer(
-        () ->
-            getOrConnect()
-                .flatMapMany(
-                    rsocket ->
-                        rsocket
-                            .requestStream(toPayload(request))
-                            .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request)))
-                .map(this::toMessage));
+    return getOrConnect()
+        .flatMapMany(
+            rsocket ->
+                rsocket
+                    .requestStream(toPayload(request))
+                    .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request)))
+        .map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> requests) {
-    return Flux.defer(
-        () ->
-            getOrConnect()
-                .flatMapMany(
-                    rsocket ->
-                        rsocket.requestChannel(
-                            requests
-                                .doOnNext(r -> LOGGER.debug("Sending request {}", r))
-                                .map(this::toPayload)))
-                .map(this::toMessage));
+    return getOrConnect()
+        .flatMapMany(
+            rsocket ->
+                rsocket.requestChannel(
+                    requests
+                        .doOnNext(r -> LOGGER.debug("Sending request {}", r))
+                        .map(this::toPayload)))
+        .map(this::toMessage);
   }
 
   @Override
   public void close() {
-    close.onComplete();
+    close.tryEmitEmpty();
   }
 
   @Override
   public Mono<Void> onClose() {
-    return onClose;
+    return onClose.asMono();
   }
 
   private Mono<Void> doClose() {
     return Mono.defer(loopResources::disposeLater);
   }
 
-  public GatewayClientCodec<Payload> getCodec() {
-    return codec;
-  }
-
   private Mono<RSocket> getOrConnect() {
     // noinspection unchecked
-    return Mono.defer(() -> rSocketMonoUpdater.updateAndGet(this, this::getOrConnect0));
+    return Mono.defer(() -> rsocketMonoUpdater.updateAndGet(this, this::getOrConnect0));
   }
 
+  @SuppressWarnings("rawtypes")
   private Mono<RSocket> getOrConnect0(Mono prev) {
     if (prev != null) {
       // noinspection unchecked
@@ -133,7 +128,7 @@ public final class RSocketGatewayClient implements GatewayClient {
         .payloadDecoder(PayloadDecoder.DEFAULT)
         .setupPayload(setupPayload)
         .metadataMimeType(settings.contentType())
-        .connect(createRSocketTransport(settings))
+        .connect(createClientTransport(settings))
         .doOnSuccess(
             rsocket -> {
               LOGGER.info("Connected successfully on {}:{}", settings.host(), settings.port());
@@ -142,7 +137,7 @@ public final class RSocketGatewayClient implements GatewayClient {
                   .onClose()
                   .doOnTerminate(
                       () -> {
-                        rSocketMonoUpdater.getAndSet(this, null); // clear reference
+                        rsocketMonoUpdater.getAndSet(this, null); // clear reference
                         LOGGER.info("Connection closed on {}:{}", settings.host(), settings.port());
                       })
                   .subscribe(
@@ -155,26 +150,26 @@ public final class RSocketGatewayClient implements GatewayClient {
                   settings.host(),
                   settings.port(),
                   ex.toString());
-              rSocketMonoUpdater.getAndSet(this, null); // clear reference
+              rsocketMonoUpdater.getAndSet(this, null); // clear reference
             })
         .cache();
   }
 
-  private WebsocketClientTransport createRSocketTransport(GatewayClientSettings settings) {
-    String path = "/";
-
+  private WebsocketClientTransport createClientTransport(GatewayClientSettings settings) {
     HttpClient httpClient =
-        HttpClient.newConnection()
+        HttpClient.create(ConnectionProvider.newConnection())
+            .headers(headers -> settings.headers().forEach(headers::add))
             .followRedirect(settings.followRedirect())
-            .tcpConfiguration(
-                tcpClient -> {
-                  if (settings.sslProvider() != null) {
-                    tcpClient = tcpClient.secure(settings.sslProvider());
-                  }
-                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
-                });
+            .wiretap(settings.wiretap())
+            .runOn(loopResources)
+            .host(settings.host())
+            .port(settings.port());
 
-    return WebsocketClientTransport.create(httpClient, path);
+    if (settings.sslProvider() != null) {
+      httpClient = httpClient.secure(settings.sslProvider());
+    }
+
+    return WebsocketClientTransport.create(httpClient, "/");
   }
 
   private Payload toPayload(ServiceMessage message) {

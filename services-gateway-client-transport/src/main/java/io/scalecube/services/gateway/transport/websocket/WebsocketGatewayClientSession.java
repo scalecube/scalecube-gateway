@@ -10,14 +10,11 @@ import java.nio.channels.ClosedChannelException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
-import java.util.function.Consumer;
 import org.jctools.maps.NonBlockingHashMapLong;
-import org.reactivestreams.Processor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoProcessor;
-import reactor.core.publisher.UnicastProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.netty.Connection;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
@@ -25,6 +22,9 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 public final class WebsocketGatewayClientSession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayClientSession.class);
+
+  private static final ClosedChannelException CLOSED_CHANNEL_EXCEPTION =
+      new ClosedChannelException();
 
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
@@ -34,8 +34,7 @@ public final class WebsocketGatewayClientSession {
   private final Connection connection;
 
   // processor by sid mapping
-  private final Map<Long, Processor<ServiceMessage, ServiceMessage>> inboundProcessors =
-      new NonBlockingHashMapLong<>(1024);
+  private final Map<Long, Object> inboundProcessors = new NonBlockingHashMapLong<>(1024);
 
   WebsocketGatewayClientSession(GatewayClientCodec<ByteBuf> codec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));
@@ -52,6 +51,7 @@ public final class WebsocketGatewayClientSession {
                 ReferenceCountUtil.safestRelease(byteBuf);
                 return;
               }
+
               // decode message
               ServiceMessage message;
               try {
@@ -60,48 +60,49 @@ public final class WebsocketGatewayClientSession {
                 LOGGER.error("Response decoder failed: " + ex);
                 return;
               }
+
               // ignore messages w/o sid
               if (!message.headers().containsKey(STREAM_ID)) {
                 LOGGER.error("Ignore response: {} with null sid, session={}", message, id);
                 Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 return;
               }
+
               // processor?
               long sid = Long.parseLong(message.header(STREAM_ID));
-              Processor<ServiceMessage, ServiceMessage> processor = inboundProcessors.get(sid);
+              Object processor = inboundProcessors.get(sid);
               if (processor == null) {
                 Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 return;
               }
+
               // handle response message
-              handleResponse(message, processor::onNext, processor::onError, processor::onComplete);
+              handleResponse(message, processor);
             });
 
     connection.onDispose(
-        () -> inboundProcessors.forEach((k, resp) -> resp.onError(new ClosedChannelException())));
+        () -> inboundProcessors.forEach((k, o) -> tryEmitError(o, CLOSED_CHANNEL_EXCEPTION)));
   }
 
-  public String id() {
-    return id;
-  }
-
-  MonoProcessor<ServiceMessage> newMonoProcessor(long sid) {
-    return (MonoProcessor<ServiceMessage>)
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  <T> Sinks.One<T> newMonoProcessor(long sid) {
+    return (Sinks.One)
         inboundProcessors.computeIfAbsent(
             sid,
             key -> {
               LOGGER.debug("Put sid={}, session={}", sid, id);
-              return MonoProcessor.create();
+              return Sinks.one();
             });
   }
 
-  UnicastProcessor<ServiceMessage> newUnicastProcessor(long sid) {
-    return (UnicastProcessor<ServiceMessage>)
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  <T> Sinks.Many<T> newUnicastProcessor(long sid) {
+    return (Sinks.Many)
         inboundProcessors.computeIfAbsent(
             sid,
             key -> {
               LOGGER.debug("Put sid={}, session={}", sid, id);
-              return UnicastProcessor.create();
+              return Sinks.many().unicast().onBackpressureBuffer();
             });
   }
 
@@ -111,23 +112,31 @@ public final class WebsocketGatewayClientSession {
     }
   }
 
-  Mono<Void> send(ByteBuf byteBuf, long sid) {
+  Mono<Void> send(ByteBuf byteBuf) {
     return Mono.defer(
         () -> {
           // send with publisher (defer buffer cleanup to netty)
           return connection
               .outbound()
               .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new), f -> true)
-              .then()
-              .doOnError(
-                  th -> {
-                    Processor<ServiceMessage, ServiceMessage> processor =
-                        inboundProcessors.remove(sid);
-                    if (processor != null) {
-                      processor.onError(th);
-                    }
-                  });
+              .then();
         });
+  }
+
+  void cancel(long sid, String qualifier) {
+    ByteBuf byteBuf =
+        codec.encode(
+            ServiceMessage.builder()
+                .qualifier(qualifier)
+                .header(STREAM_ID, sid)
+                .header(SIGNAL, Signal.CANCEL.codeAsString())
+                .build());
+
+    send(byteBuf)
+        .subscribe(
+            null,
+            th ->
+                LOGGER.error("Exception occurred on sending CANCEL signal for session={}", id, th));
   }
 
   /**
@@ -146,12 +155,7 @@ public final class WebsocketGatewayClientSession {
     return connection.onDispose();
   }
 
-  private void handleResponse(
-      ServiceMessage response,
-      Consumer<ServiceMessage> onNext,
-      Consumer<Throwable> onError,
-      Runnable onComplete) {
-
+  private void handleResponse(ServiceMessage response, Object processor) {
     LOGGER.debug("Handle response: {}, session={}", response, id);
 
     try {
@@ -159,22 +163,53 @@ public final class WebsocketGatewayClientSession {
           Optional.ofNullable(response.header(SIGNAL)).map(Signal::from);
 
       if (signalOptional.isPresent()) {
+
         // handle completion signal
         Signal signal = signalOptional.get();
         if (signal == Signal.COMPLETE) {
-          onComplete.run();
+          tryEmitComplete(processor);
         }
+
         if (signal == Signal.ERROR) {
           // decode error data to retrieve real error cause
           ServiceMessage errorMessage = codec.decodeData(response, ErrorData.class);
-          onNext.accept(errorMessage);
+          tryEmitValue(processor, errorMessage);
         }
       } else {
         // handle normal response
-        onNext.accept(response);
+        tryEmitValue(processor, response);
       }
     } catch (Exception e) {
-      onError.accept(e);
+      tryEmitError(processor, e);
+    }
+  }
+
+  private static void tryEmitValue(Object processor, ServiceMessage message) {
+    if (processor instanceof Sinks.One) {
+      //noinspection unchecked
+      ((Sinks.One<ServiceMessage>) processor).tryEmitValue(message);
+    }
+    if (processor instanceof Sinks.Many) {
+      //noinspection unchecked
+      ((Sinks.Many<ServiceMessage>) processor).tryEmitNext(message);
+    }
+  }
+
+  private static void tryEmitComplete(Object processor) {
+    if (processor instanceof Sinks.One) {
+      ((Sinks.One<?>) processor).tryEmitEmpty();
+    }
+    if (processor instanceof Sinks.Many) {
+      ((Sinks.Many<?>) processor).tryEmitComplete();
+    }
+  }
+
+  private static void tryEmitError(Object processor, Exception e) {
+    if (processor instanceof Sinks.One) {
+      ((Sinks.One<?>) processor).tryEmitError(e);
+    }
+    if (processor instanceof Sinks.Many) {
+      ((Sinks.Many<?>) processor).tryEmitError(e);
     }
   }
 

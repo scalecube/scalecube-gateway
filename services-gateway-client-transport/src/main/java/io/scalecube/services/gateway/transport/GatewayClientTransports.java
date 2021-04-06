@@ -1,7 +1,5 @@
 package io.scalecube.services.gateway.transport;
 
-import io.netty.buffer.ByteBuf;
-import io.rsocket.Payload;
 import io.scalecube.services.gateway.transport.http.HttpGatewayClient;
 import io.scalecube.services.gateway.transport.http.HttpGatewayClientCodec;
 import io.scalecube.services.gateway.transport.rsocket.RSocketGatewayClient;
@@ -18,11 +16,13 @@ public class GatewayClientTransports {
   private static final String CONTENT_TYPE = "application/json";
   private static final HeadersCodec HEADERS_CODEC = HeadersCodec.getInstance(CONTENT_TYPE);
 
-  public static final GatewayClientCodec<ByteBuf> WEBSOCKET_CLIENT_CODEC =
-      new WebsocketGatewayClientCodec(DataCodec.getInstance(CONTENT_TYPE));
-  public static final GatewayClientCodec<Payload> RSOCKET_CLIENT_CODEC =
+  public static final WebsocketGatewayClientCodec WEBSOCKET_CLIENT_CODEC =
+      new WebsocketGatewayClientCodec();
+
+  public static final RSocketGatewayClientCodec RSOCKET_CLIENT_CODEC =
       new RSocketGatewayClientCodec(HEADERS_CODEC, DataCodec.getInstance(CONTENT_TYPE));
-  public static final GatewayClientCodec<ByteBuf> HTTP_CLIENT_CODEC =
+
+  public static final HttpGatewayClientCodec HTTP_CLIENT_CODEC =
       new HttpGatewayClientCodec(DataCodec.getInstance(CONTENT_TYPE));
 
   private GatewayClientTransports() {

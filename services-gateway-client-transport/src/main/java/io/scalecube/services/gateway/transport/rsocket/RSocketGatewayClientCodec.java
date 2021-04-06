@@ -36,11 +36,6 @@ public final class RSocketGatewayClientCodec implements GatewayClientCodec<Paylo
   }
 
   @Override
-  public DataCodec getDataCodec() {
-    return dataCodec;
-  }
-
-  @Override
   public Payload encode(ServiceMessage message) {
     return encodeAndTransform(message, ByteBufPayload::create);
   }

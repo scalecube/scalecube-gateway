@@ -27,6 +27,7 @@ public final class HttpGatewayClient implements GatewayClient {
   private final GatewayClientCodec<ByteBuf> codec;
   private final HttpClient httpClient;
   private final LoopResources loopResources;
+
   private final Sinks.One<Void> close = Sinks.one();
   private final Sinks.One<Void> onClose = Sinks.one();
 
@@ -42,13 +43,17 @@ public final class HttpGatewayClient implements GatewayClient {
     HttpClient httpClient =
         HttpClient.create(ConnectionProvider.create("http-gateway-client"))
             .headers(headers -> settings.headers().forEach(headers::add))
-            .followRedirect(settings.followRedirect());
+            .followRedirect(settings.followRedirect())
+            .wiretap(settings.wiretap())
+            .runOn(loopResources)
+            .host(settings.host())
+            .port(settings.port());
 
     if (settings.sslProvider() != null) {
       httpClient = httpClient.secure(settings.sslProvider());
     }
 
-    this.httpClient = httpClient.runOn(loopResources).host(settings.host()).port(settings.port());
+    this.httpClient = httpClient;
 
     // Setup cleanup
     close
@@ -105,10 +110,6 @@ public final class HttpGatewayClient implements GatewayClient {
 
   private Mono<Void> doClose() {
     return Mono.defer(loopResources::disposeLater);
-  }
-
-  public GatewayClientCodec<ByteBuf> getCodec() {
-    return codec;
   }
 
   private ServiceMessage toMessage(HttpClientResponse httpResponse, ByteBuf content) {
