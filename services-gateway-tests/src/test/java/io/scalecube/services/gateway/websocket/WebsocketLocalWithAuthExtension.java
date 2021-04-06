@@ -7,15 +7,15 @@ import io.scalecube.services.gateway.GatewaySessionHandlerImpl;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 
-public class WsLocalWithAuthExtension extends AbstractLocalGatewayExtension {
+public class WebsocketLocalWithAuthExtension extends AbstractLocalGatewayExtension {
 
   private static final String GATEWAY_ALIAS_NAME = "ws";
 
-  WsLocalWithAuthExtension(Object serviceInstance, AuthRegistry authReg) {
+  WebsocketLocalWithAuthExtension(Object serviceInstance, AuthRegistry authReg) {
     this(ServiceInfo.fromServiceInstance(serviceInstance).build(), authReg);
   }
 
-  WsLocalWithAuthExtension(ServiceInfo serviceInfo, AuthRegistry authReg) {
+  WebsocketLocalWithAuthExtension(ServiceInfo serviceInfo, AuthRegistry authReg) {
     super(
         serviceInfo,
         opts ->

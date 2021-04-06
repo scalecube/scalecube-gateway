@@ -29,8 +29,8 @@ public class WebsocketLocalGatewayAuthTest {
   private static final AuthRegistry AUTH_REG = new AuthRegistry(ALLOWED_USERS);
 
   @RegisterExtension
-  static WsLocalWithAuthExtension extension =
-      new WsLocalWithAuthExtension(new SecuredServiceImpl(AUTH_REG), AUTH_REG);
+  static WebsocketLocalWithAuthExtension extension =
+      new WebsocketLocalWithAuthExtension(new SecuredServiceImpl(AUTH_REG), AUTH_REG);
 
   private SecuredService clientService;
 
