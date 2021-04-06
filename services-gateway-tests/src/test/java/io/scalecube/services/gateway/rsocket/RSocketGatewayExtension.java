@@ -4,15 +4,15 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractGatewayExtension;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 
-class RsocketGatewayExtension extends AbstractGatewayExtension {
+class RSocketGatewayExtension extends AbstractGatewayExtension {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
 
-  RsocketGatewayExtension(Object serviceInstance) {
+  RSocketGatewayExtension(Object serviceInstance) {
     this(ServiceInfo.fromServiceInstance(serviceInstance).build());
   }
 
-  RsocketGatewayExtension(ServiceInfo serviceInfo) {
+  RSocketGatewayExtension(ServiceInfo serviceInfo) {
     super(
         serviceInfo,
         opts -> new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME)),
