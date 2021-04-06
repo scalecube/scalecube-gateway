@@ -26,7 +26,7 @@ class RSocketGatewayTest extends BaseTest {
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   @RegisterExtension
-  static RsocketGatewayExtension extension = new RsocketGatewayExtension(new GreetingServiceImpl());
+  static RSocketGatewayExtension extension = new RSocketGatewayExtension(new GreetingServiceImpl());
 
   private GreetingService service;
 

@@ -10,6 +10,7 @@ import static io.scalecube.services.gateway.ws.GatewayMessages.toErrorResponse;
 import static io.scalecube.services.gateway.ws.GatewayMessages.validateSidOnSession;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
@@ -35,6 +36,7 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableChannel;
+import reactor.netty.channel.AbortedException;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.websocket.WebsocketInbound;
@@ -127,16 +129,25 @@ public class WebsocketGatewayAcceptor
 
     session
         .receive()
-        .doOnError(th -> gatewayHandler.onSessionError(session, th))
         .subscribe(
             byteBuf -> {
+              if (byteBuf == Unpooled.EMPTY_BUFFER) {
+                return;
+              }
+
               if (!byteBuf.isReadable()) {
                 ReferenceCountUtil.safestRelease(byteBuf);
                 return;
               }
+
               Mono.deferContextual(context -> onRequest(session, byteBuf, (Context) context))
                   .contextWrite(context -> gatewayHandler.onRequest(session, byteBuf, context))
                   .subscribe();
+            },
+            th -> {
+              if (!(th instanceof AbortedException)) {
+                gatewayHandler.onSessionError(session, th);
+              }
             });
 
     return session.onClose(() -> gatewayHandler.onSessionClose(session));

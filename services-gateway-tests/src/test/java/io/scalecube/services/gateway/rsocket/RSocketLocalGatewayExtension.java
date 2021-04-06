@@ -6,19 +6,19 @@ import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import java.util.function.Function;
 
-class RsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
+class RSocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
 
-  RsocketLocalGatewayExtension(Object serviceInstance) {
+  RSocketLocalGatewayExtension(Object serviceInstance) {
     this(ServiceInfo.fromServiceInstance(serviceInstance).build());
   }
 
-  RsocketLocalGatewayExtension(ServiceInfo serviceInfo) {
+  RSocketLocalGatewayExtension(ServiceInfo serviceInfo) {
     this(serviceInfo, RSocketGateway::new);
   }
 
-  RsocketLocalGatewayExtension(
+  RSocketLocalGatewayExtension(
       ServiceInfo serviceInfo, Function<GatewayOptions, RSocketGateway> gatewaySupplier) {
     super(
         serviceInfo,

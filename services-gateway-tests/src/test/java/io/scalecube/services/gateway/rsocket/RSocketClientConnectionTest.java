@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class RsocketClientConnectionTest extends BaseTest {
+class RSocketClientConnectionTest extends BaseTest {
 
   public static final GatewayClientCodec<Payload> CLIENT_CODEC =
       GatewayClientTransports.RSOCKET_CLIENT_CODEC;

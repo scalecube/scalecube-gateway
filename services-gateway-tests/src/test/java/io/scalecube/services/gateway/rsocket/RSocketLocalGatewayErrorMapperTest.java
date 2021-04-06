@@ -13,11 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
 
-class RsocketLocalGatewayErrorMapperTest extends BaseTest {
+class RSocketLocalGatewayErrorMapperTest extends BaseTest {
 
   @RegisterExtension
-  static RsocketLocalGatewayExtension extension =
-      new RsocketLocalGatewayExtension(
+  static RSocketLocalGatewayExtension extension =
+      new RSocketLocalGatewayExtension(
           ServiceInfo.fromServiceInstance(new ErrorServiceImpl()).errorMapper(ERROR_MAPPER).build(),
           opts ->
               new RSocketGateway(opts.call(opts.call().errorMapper(ERROR_MAPPER)), ERROR_MAPPER));
