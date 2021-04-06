@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
@@ -145,7 +144,7 @@ class WebsocketLocalGatewayTest extends BaseTest {
         .verify();
   }
 
-  @Disabled("https://github.com/scalecube/scalecube-services/issues/742")
+  @Test
   public void testManyStreamBlockFirst() {
     for (int i = 0; i < 100; i++) {
       //noinspection ConstantConditions
