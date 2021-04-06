@@ -16,6 +16,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
+import reactor.util.context.Context;
 
 public final class WebsocketGatewaySession implements GatewaySession {
 
@@ -85,7 +86,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
    * @return mono void
    */
   public Mono<Void> send(ServiceMessage response) {
-    return Mono.deferWithContext(
+    return Mono.deferContextual(
         context -> {
           // send with publisher (defer buffer cleanup to netty)
           return outbound
@@ -95,10 +96,11 @@ public final class WebsocketGatewaySession implements GatewaySession {
                       .map(TextWebSocketFrame::new)
                       .doOnNext(
                           frame ->
-                              gatewayHandler.onResponse(this, frame.content(), response, context)),
+                              gatewayHandler.onResponse(
+                                  this, frame.content(), response, (Context) context)),
                   f -> true)
               .then()
-              .doOnError(th -> gatewayHandler.onError(this, th, context));
+              .doOnError(th -> gatewayHandler.onError(this, th, (Context) context));
         });
   }
 

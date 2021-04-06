@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.rsocket;
 
-import io.rsocket.AbstractRSocket;
 import io.rsocket.Payload;
+import io.rsocket.RSocket;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
@@ -22,7 +22,7 @@ import reactor.core.publisher.Mono;
  * #fireAndForget(Payload)}, {@link #requestResponse(Payload)}, {@link #requestStream(Payload)} and
  * {@link #requestChannel(org.reactivestreams.Publisher)}.
  */
-public final class RSocketGatewaySession extends AbstractRSocket implements GatewaySession {
+public final class RSocketGatewaySession implements RSocket, GatewaySession {
 
   private static final AtomicLong SESSION_ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 

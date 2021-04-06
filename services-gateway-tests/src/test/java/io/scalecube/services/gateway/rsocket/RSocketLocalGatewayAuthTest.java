@@ -30,8 +30,8 @@ public class RSocketLocalGatewayAuthTest {
   private static final AuthRegistry AUTH_REG = new AuthRegistry(ALLOWED_USERS);
 
   @RegisterExtension
-  static RsLocalWithAuthExtension extension =
-      new RsLocalWithAuthExtension(new SecuredServiceImpl(AUTH_REG), AUTH_REG);
+  static RSocketLocalWithAuthExtension extension =
+      new RSocketLocalWithAuthExtension(new SecuredServiceImpl(AUTH_REG), AUTH_REG);
 
   private SecuredService clientService;
 

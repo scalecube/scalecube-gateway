@@ -13,9 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.netty.Connection;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
 
 public final class WebsocketGatewayClient implements GatewayClient {
@@ -23,7 +24,6 @@ public final class WebsocketGatewayClient implements GatewayClient {
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayClient.class);
 
   private static final String STREAM_ID = "sid";
-  private static final String SIGNAL = "sig";
 
   @SuppressWarnings("rawtypes")
   private static final AtomicReferenceFieldUpdater<WebsocketGatewayClient, Mono>
@@ -31,13 +31,15 @@ public final class WebsocketGatewayClient implements GatewayClient {
           AtomicReferenceFieldUpdater.newUpdater(
               WebsocketGatewayClient.class, Mono.class, "websocketMono");
 
+  private final AtomicLong sidCounter = new AtomicLong();
+
   private final GatewayClientCodec<ByteBuf> codec;
   private final GatewayClientSettings settings;
   private final HttpClient httpClient;
-  private final AtomicLong sidCounter = new AtomicLong();
   private final LoopResources loopResources;
-  private final MonoProcessor<Void> close = MonoProcessor.create();
-  private final MonoProcessor<Void> onClose = MonoProcessor.create();
+
+  private final Sinks.One<Void> close = Sinks.one();
+  private final Sinks.One<Void> onClose = Sinks.one();
 
   @SuppressWarnings("unused")
   private volatile Mono<?> websocketMono;
@@ -53,29 +55,28 @@ public final class WebsocketGatewayClient implements GatewayClient {
     this.codec = codec;
     this.loopResources = LoopResources.create("websocket-gateway-client");
 
-    httpClient =
-        HttpClient.newConnection()
+    HttpClient httpClient =
+        HttpClient.create(ConnectionProvider.newConnection())
             .headers(headers -> settings.headers().forEach(headers::add))
             .followRedirect(settings.followRedirect())
-            .tcpConfiguration(
-                tcpClient -> {
-                  if (settings.sslProvider() != null) {
-                    tcpClient = tcpClient.secure(settings.sslProvider());
-                  }
-                  return tcpClient
-                      .wiretap(settings.wiretap())
-                      .runOn(loopResources)
-                      .host(settings.host())
-                      .port(settings.port());
-                });
+            .wiretap(settings.wiretap())
+            .runOn(loopResources)
+            .host(settings.host())
+            .port(settings.port());
+
+    if (settings.sslProvider() != null) {
+      httpClient = httpClient.secure(settings.sslProvider());
+    }
+
+    this.httpClient = httpClient;
 
     // Setup cleanup
     close
+        .asMono()
         .then(doClose())
-        .doFinally(s -> onClose.onComplete())
-        .doOnTerminate(() -> LOGGER.info("Closed WebsocketGatewayClient resources"))
-        .subscribe(
-            null, ex -> LOGGER.warn("Exception occurred on WebsocketGatewayClient close: " + ex));
+        .doFinally(s -> onClose.tryEmitEmpty())
+        .doOnTerminate(() -> LOGGER.info("Closed client"))
+        .subscribe(null, ex -> LOGGER.warn("Failed to close client, cause: " + ex));
   }
 
   @Override
@@ -87,10 +88,10 @@ public final class WebsocketGatewayClient implements GatewayClient {
               .flatMap(
                   session ->
                       session
-                          .send(encodeRequest(request, sid), sid)
+                          .send(encodeRequest(request, sid))
                           .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
-                          .then(session.newMonoProcessor(sid))
-                          .doOnCancel(() -> handleCancel(sid, request.qualifier(), session))
+                          .then(session.<ServiceMessage>newMonoProcessor(sid).asMono())
+                          .doOnCancel(() -> session.cancel(sid, request.qualifier()))
                           .doFinally(s -> session.removeProcessor(sid)));
         });
   }
@@ -104,37 +105,31 @@ public final class WebsocketGatewayClient implements GatewayClient {
               .flatMapMany(
                   session ->
                       session
-                          .send(encodeRequest(request, sid), sid)
+                          .send(encodeRequest(request, sid))
                           .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
-                          .thenMany(session.newUnicastProcessor(sid))
-                          .doOnCancel(() -> handleCancel(sid, request.qualifier(), session))
+                          .thenMany(session.<ServiceMessage>newUnicastProcessor(sid).asFlux())
+                          .doOnCancel(() -> session.cancel(sid, request.qualifier()))
                           .doFinally(s -> session.removeProcessor(sid)));
         });
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> requests) {
-    return Flux.error(
-        new UnsupportedOperationException(
-            "requestChannel is not supported by WebSocket transport implementation"));
+    return Flux.error(new UnsupportedOperationException("requestChannel is not supported"));
   }
 
   @Override
   public void close() {
-    close.onComplete();
+    close.tryEmitEmpty();
   }
 
   @Override
   public Mono<Void> onClose() {
-    return onClose;
+    return onClose.asMono();
   }
 
   private Mono<Void> doClose() {
     return Mono.defer(loopResources::disposeLater);
-  }
-
-  public GatewayClientCodec<ByteBuf> getCodec() {
-    return codec;
   }
 
   private Mono<WebsocketGatewayClientSession> getOrConnect() {
@@ -165,22 +160,21 @@ public final class WebsocketGatewayClient implements GatewayClient {
             connection -> {
               WebsocketGatewayClientSession session =
                   new WebsocketGatewayClientSession(codec, connection);
-              LOGGER.info("Created {} on {}:{}", session, settings.host(), settings.port());
+              LOGGER.info("Created session: {}", session);
               // setup shutdown hook
               session
                   .onClose()
                   .doOnTerminate(
                       () -> {
                         websocketMonoUpdater.getAndSet(this, null); // clear reference
-                        LOGGER.info(
-                            "Closed {} on {}:{}", session, settings.host(), settings.port());
+                        LOGGER.info("Closed session: {}", session);
                       })
                   .subscribe(
                       null,
                       th ->
                           LOGGER.warn(
-                              "Exception on closing session={}, cause: {}",
-                              session.id(),
+                              "Exception on closing session: {}, cause: {}",
+                              session,
                               th.toString()));
               return session;
             })
@@ -209,23 +203,6 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .sendObject(new PingWebSocketFrame())
         .then()
         .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
-  }
-
-  private void handleCancel(long sid, String qualifier, WebsocketGatewayClientSession session) {
-    ByteBuf byteBuf =
-        codec.encode(
-            ServiceMessage.builder()
-                .qualifier(qualifier)
-                .header(STREAM_ID, sid)
-                .header(SIGNAL, Signal.CANCEL.codeAsString())
-                .build());
-    session
-        .send(byteBuf, sid)
-        .subscribe(
-            null,
-            th ->
-                LOGGER.error(
-                    "Exception on sending CANCEL signal for session={}", session.id(), th));
   }
 
   private ByteBuf encodeRequest(ServiceMessage message, long sid) {

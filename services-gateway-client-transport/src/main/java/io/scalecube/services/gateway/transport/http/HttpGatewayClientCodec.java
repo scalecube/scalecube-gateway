@@ -27,11 +27,6 @@ public final class HttpGatewayClientCodec implements GatewayClientCodec<ByteBuf>
   }
 
   @Override
-  public DataCodec getDataCodec() {
-    return dataCodec;
-  }
-
-  @Override
   public ByteBuf encode(ServiceMessage message) {
     ByteBuf content;
 

@@ -134,8 +134,8 @@ public class WebsocketGatewayAcceptor
                 ReferenceCountUtil.safestRelease(byteBuf);
                 return;
               }
-              Mono.deferWithContext(context -> onRequest(session, byteBuf, context))
-                  .subscriberContext(context -> gatewayHandler.onRequest(session, byteBuf, context))
+              Mono.deferContextual(context -> onRequest(session, byteBuf, (Context) context))
+                  .contextWrite(context -> gatewayHandler.onRequest(session, byteBuf, context))
                   .subscribe();
             });
 
@@ -165,7 +165,7 @@ public class WebsocketGatewayAcceptor
 
               session
                   .send(toErrorResponse(errorMapper, wex.request(), wex.getCause()))
-                  .subscriberContext(context)
+                  .contextWrite(context)
                   .subscribe();
             });
   }
@@ -196,19 +196,19 @@ public class WebsocketGatewayAcceptor
                 th ->
                     session
                         .send(toErrorResponse(errorMapper, request, th))
-                        .subscriberContext(context)
+                        .contextWrite(context)
                         .subscribe())
             .doOnComplete(
                 () -> {
                   if (!receivedError.get()) {
                     session
                         .send(newCompleteMessage(sid, request.qualifier()))
-                        .subscriberContext(context)
+                        .contextWrite(context)
                         .subscribe();
                   }
                 })
             .doFinally(signalType -> session.dispose(sid))
-            .subscriberContext(context)
+            .contextWrite(context)
             .subscribe();
 
     session.register(sid, disposable);
