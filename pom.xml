@@ -57,7 +57,7 @@
   </scm>
 
   <properties>
-    <scalecube-services.version>2.10.13</scalecube-services.version>
+    <scalecube-services.version>2.10.17</scalecube-services.version>
 
     <reactor.version>2020.0.5</reactor.version>
     <rsocket.version>1.0.4</rsocket.version>
