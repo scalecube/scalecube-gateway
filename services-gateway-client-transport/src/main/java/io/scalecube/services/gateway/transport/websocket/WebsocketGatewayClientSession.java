@@ -1,5 +1,7 @@
 package io.scalecube.services.gateway.transport.websocket;
 
+import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ErrorData;
@@ -14,7 +16,10 @@ import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitFailureHandler;
+import reactor.core.publisher.Sinks.EmitResult;
 import reactor.netty.Connection;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
@@ -81,7 +86,7 @@ public final class WebsocketGatewayClientSession {
             });
 
     connection.onDispose(
-        () -> inboundProcessors.forEach((k, o) -> tryEmitError(o, CLOSED_CHANNEL_EXCEPTION)));
+        () -> inboundProcessors.forEach((k, o) -> emitError(o, CLOSED_CHANNEL_EXCEPTION)));
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
@@ -162,54 +167,52 @@ public final class WebsocketGatewayClientSession {
       Optional<Signal> signalOptional =
           Optional.ofNullable(response.header(SIGNAL)).map(Signal::from);
 
-      if (signalOptional.isPresent()) {
-
+      if (!signalOptional.isPresent()) {
+        // handle normal response
+        emitNext(processor, response);
+      } else {
         // handle completion signal
         Signal signal = signalOptional.get();
         if (signal == Signal.COMPLETE) {
-          tryEmitComplete(processor);
+          emitComplete(processor);
         }
-
         if (signal == Signal.ERROR) {
           // decode error data to retrieve real error cause
           ServiceMessage errorMessage = codec.decodeData(response, ErrorData.class);
-          tryEmitValue(processor, errorMessage);
+          emitNext(processor, errorMessage);
         }
-      } else {
-        // handle normal response
-        tryEmitValue(processor, response);
       }
     } catch (Exception e) {
-      tryEmitError(processor, e);
+      emitError(processor, e);
     }
   }
 
-  private static void tryEmitValue(Object processor, ServiceMessage message) {
+  private static void emitNext(Object processor, ServiceMessage message) {
     if (processor instanceof Sinks.One) {
       //noinspection unchecked
-      ((Sinks.One<ServiceMessage>) processor).tryEmitValue(message);
+      ((Sinks.One<ServiceMessage>) processor).emitValue(message, RetryEmitFailureHandler.INSTANCE);
     }
     if (processor instanceof Sinks.Many) {
       //noinspection unchecked
-      ((Sinks.Many<ServiceMessage>) processor).tryEmitNext(message);
+      ((Sinks.Many<ServiceMessage>) processor).emitNext(message, RetryEmitFailureHandler.INSTANCE);
     }
   }
 
-  private static void tryEmitComplete(Object processor) {
+  private static void emitComplete(Object processor) {
     if (processor instanceof Sinks.One) {
-      ((Sinks.One<?>) processor).tryEmitEmpty();
+      ((Sinks.One<?>) processor).emitEmpty(RetryEmitFailureHandler.INSTANCE);
     }
     if (processor instanceof Sinks.Many) {
-      ((Sinks.Many<?>) processor).tryEmitComplete();
+      ((Sinks.Many<?>) processor).emitComplete(RetryEmitFailureHandler.INSTANCE);
     }
   }
 
-  private static void tryEmitError(Object processor, Exception e) {
+  private static void emitError(Object processor, Exception e) {
     if (processor instanceof Sinks.One) {
-      ((Sinks.One<?>) processor).tryEmitError(e);
+      ((Sinks.One<?>) processor).emitError(e, RetryEmitFailureHandler.INSTANCE);
     }
     if (processor instanceof Sinks.Many) {
-      ((Sinks.Many<?>) processor).tryEmitError(e);
+      ((Sinks.Many<?>) processor).emitError(e, RetryEmitFailureHandler.INSTANCE);
     }
   }
 
@@ -218,5 +221,15 @@ public final class WebsocketGatewayClientSession {
     return new StringJoiner(", ", WebsocketGatewayClientSession.class.getSimpleName() + "[", "]")
         .add("id=" + id)
         .toString();
+  }
+
+  private static class RetryEmitFailureHandler implements EmitFailureHandler {
+
+    private static final RetryEmitFailureHandler INSTANCE = new RetryEmitFailureHandler();
+
+    @Override
+    public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
+      return emitResult == FAIL_NON_SERIALIZED;
+    }
   }
 }

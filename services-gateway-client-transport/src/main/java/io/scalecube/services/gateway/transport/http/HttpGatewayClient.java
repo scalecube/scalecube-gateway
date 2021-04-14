@@ -1,5 +1,7 @@
 package io.scalecube.services.gateway.transport.http;
 
+import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
+
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
@@ -12,7 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitFailureHandler;
+import reactor.core.publisher.Sinks.EmitResult;
 import reactor.netty.NettyOutbound;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientRequest;
@@ -59,7 +64,7 @@ public final class HttpGatewayClient implements GatewayClient {
     close
         .asMono()
         .then(doClose())
-        .doFinally(s -> onClose.tryEmitEmpty())
+        .doFinally(s -> onClose.emitEmpty(RetryEmitFailureHandler.INSTANCE))
         .doOnTerminate(() -> LOGGER.info("Closed HttpGatewayClient resources"))
         .subscribe(null, ex -> LOGGER.warn("Exception occurred on HttpGatewayClient close: " + ex));
   }
@@ -100,7 +105,7 @@ public final class HttpGatewayClient implements GatewayClient {
 
   @Override
   public void close() {
-    close.tryEmitEmpty();
+    close.emitEmpty(RetryEmitFailureHandler.INSTANCE);
   }
 
   @Override
@@ -133,5 +138,15 @@ public final class HttpGatewayClient implements GatewayClient {
 
   private boolean isError(int httpCode) {
     return httpCode >= 400 && httpCode <= 599;
+  }
+
+  private static class RetryEmitFailureHandler implements EmitFailureHandler {
+
+    private static final RetryEmitFailureHandler INSTANCE = new RetryEmitFailureHandler();
+
+    @Override
+    public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
+      return emitResult == FAIL_NON_SERIALIZED;
+    }
   }
 }
