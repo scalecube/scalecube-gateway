@@ -39,7 +39,6 @@ class WebsocketClientTest extends BaseTest {
   private static Address gatewayAddress;
   private static Microservices service;
   private static GatewayClient client;
-  private static ServiceCall serviceCall;
 
   @BeforeAll
   static void beforeAll() {
@@ -87,13 +86,13 @@ class WebsocketClientTest extends BaseTest {
   }
 
   @RepeatedTest(300)
-  void testCloseServiceStreamAfterLostConnection() {
+  void testMessageSequence() {
 
     client =
         new WebsocketGatewayClient(
             GatewayClientSettings.builder().address(gatewayAddress).build(), CLIENT_CODEC);
 
-    serviceCall =
+    ServiceCall serviceCall =
         new ServiceCall()
             .transport(new GatewayClientTransport(client))
             .router(new StaticAddressRouter(gatewayAddress));
