@@ -17,7 +17,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitFailureHandler;
 import reactor.core.publisher.Sinks.EmitResult;
 import reactor.netty.Connection;
 import reactor.netty.http.client.HttpClient;
@@ -79,7 +78,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
     close
         .asMono()
         .then(doClose())
-        .doFinally(s -> onClose.emitEmpty(RetryEmitFailureHandler.INSTANCE))
+        .doFinally(s -> onClose.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED))
         .doOnTerminate(() -> LOGGER.info("Closed client"))
         .subscribe(null, ex -> LOGGER.warn("Failed to close client, cause: " + ex));
   }
@@ -125,7 +124,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   @Override
   public void close() {
-    close.emitEmpty(RetryEmitFailureHandler.INSTANCE);
+    close.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED);
   }
 
   @Override
@@ -214,9 +213,9 @@ public final class WebsocketGatewayClient implements GatewayClient {
     return codec.encode(ServiceMessage.from(message).header(STREAM_ID, sid).build());
   }
 
-  private static class RetryEmitFailureHandler implements EmitFailureHandler {
+  private static class EmitFailureHandler implements Sinks.EmitFailureHandler {
 
-    private static final RetryEmitFailureHandler INSTANCE = new RetryEmitFailureHandler();
+    private static final EmitFailureHandler RETRY_NOT_SERIALIZED = new EmitFailureHandler();
 
     @Override
     public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
