@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.transport.websocket;
 
-import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
+import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -16,9 +16,7 @@ import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitResult;
 import reactor.netty.Connection;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
@@ -189,31 +187,29 @@ public final class WebsocketGatewayClientSession {
   private static void emitNext(Object processor, ServiceMessage message) {
     if (processor instanceof Sinks.One) {
       //noinspection unchecked
-      ((Sinks.One<ServiceMessage>) processor)
-          .emitValue(message, EmitFailureHandler.RETRY_NOT_SERIALIZED);
+      ((Sinks.One<ServiceMessage>) processor).emitValue(message, RETRY_NON_SERIALIZED);
     }
     if (processor instanceof Sinks.Many) {
       //noinspection unchecked
-      ((Sinks.Many<ServiceMessage>) processor)
-          .emitNext(message, EmitFailureHandler.RETRY_NOT_SERIALIZED);
+      ((Sinks.Many<ServiceMessage>) processor).emitNext(message, RETRY_NON_SERIALIZED);
     }
   }
 
   private static void emitComplete(Object processor) {
     if (processor instanceof Sinks.One) {
-      ((Sinks.One<?>) processor).emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED);
+      ((Sinks.One<?>) processor).emitEmpty(RETRY_NON_SERIALIZED);
     }
     if (processor instanceof Sinks.Many) {
-      ((Sinks.Many<?>) processor).emitComplete(EmitFailureHandler.RETRY_NOT_SERIALIZED);
+      ((Sinks.Many<?>) processor).emitComplete(RETRY_NON_SERIALIZED);
     }
   }
 
   private static void emitError(Object processor, Exception e) {
     if (processor instanceof Sinks.One) {
-      ((Sinks.One<?>) processor).emitError(e, EmitFailureHandler.RETRY_NOT_SERIALIZED);
+      ((Sinks.One<?>) processor).emitError(e, RETRY_NON_SERIALIZED);
     }
     if (processor instanceof Sinks.Many) {
-      ((Sinks.Many<?>) processor).emitError(e, EmitFailureHandler.RETRY_NOT_SERIALIZED);
+      ((Sinks.Many<?>) processor).emitError(e, RETRY_NON_SERIALIZED);
     }
   }
 
@@ -222,15 +218,5 @@ public final class WebsocketGatewayClientSession {
     return new StringJoiner(", ", WebsocketGatewayClientSession.class.getSimpleName() + "[", "]")
         .add("id=" + id)
         .toString();
-  }
-
-  private static class EmitFailureHandler implements Sinks.EmitFailureHandler {
-
-    private static final EmitFailureHandler RETRY_NOT_SERIALIZED = new EmitFailureHandler();
-
-    @Override
-    public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
-      return emitResult == FAIL_NON_SERIALIZED;
-    }
   }
 }

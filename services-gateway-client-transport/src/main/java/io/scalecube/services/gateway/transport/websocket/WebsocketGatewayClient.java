@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.transport.websocket;
 
-import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
+import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
@@ -15,9 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitResult;
 import reactor.netty.Connection;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
@@ -78,7 +76,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
     close
         .asMono()
         .then(doClose())
-        .doFinally(s -> onClose.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED))
+        .doFinally(s -> onClose.emitEmpty(RETRY_NON_SERIALIZED))
         .doOnTerminate(() -> LOGGER.info("Closed client"))
         .subscribe(null, ex -> LOGGER.warn("Failed to close client, cause: " + ex));
   }
@@ -124,7 +122,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   @Override
   public void close() {
-    close.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED);
+    close.emitEmpty(RETRY_NON_SERIALIZED);
   }
 
   @Override
@@ -211,15 +209,5 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   private ByteBuf encodeRequest(ServiceMessage message, long sid) {
     return codec.encode(ServiceMessage.from(message).header(STREAM_ID, sid).build());
-  }
-
-  private static class EmitFailureHandler implements Sinks.EmitFailureHandler {
-
-    private static final EmitFailureHandler RETRY_NOT_SERIALIZED = new EmitFailureHandler();
-
-    @Override
-    public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
-      return emitResult == FAIL_NON_SERIALIZED;
-    }
   }
 }

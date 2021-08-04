@@ -58,6 +58,7 @@
 
   <properties>
     <scalecube-services.version>2.10.18</scalecube-services.version>
+    <scalecube-commons.version>1.0.17</scalecube-commons.version>
 
     <reactor.version>2020.0.6</reactor.version>
     <rsocket.version>1.0.4</rsocket.version>
@@ -109,6 +110,11 @@
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-services-bytebuf-codec</artifactId>
         <version>${scalecube-services.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-commons</artifactId>
+        <version>${scalecube-commons.version}</version>
       </dependency>
 
       <!-- Reactor -->

@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.transport.rsocket;
 
-import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
+import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
 
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
@@ -17,9 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitResult;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
@@ -57,7 +55,7 @@ public final class RSocketGatewayClient implements GatewayClient {
     close
         .asMono()
         .then(doClose())
-        .doFinally(s -> onClose.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED))
+        .doFinally(s -> onClose.emitEmpty(RETRY_NON_SERIALIZED))
         .doOnTerminate(() -> LOGGER.info("Closed RSocketGatewayClient resources"))
         .subscribe(
             null, ex -> LOGGER.warn("Exception occurred on RSocketGatewayClient close: " + ex));
@@ -99,7 +97,7 @@ public final class RSocketGatewayClient implements GatewayClient {
 
   @Override
   public void close() {
-    close.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED);
+    close.emitEmpty(RETRY_NON_SERIALIZED);
   }
 
   @Override
@@ -184,15 +182,5 @@ public final class RSocketGatewayClient implements GatewayClient {
     ServiceMessage message = codec.decode(payload);
     LOGGER.debug("Received response {}", message);
     return message;
-  }
-
-  private static class EmitFailureHandler implements Sinks.EmitFailureHandler {
-
-    private static final EmitFailureHandler RETRY_NOT_SERIALIZED = new EmitFailureHandler();
-
-    @Override
-    public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
-      return emitResult == FAIL_NON_SERIALIZED;
-    }
   }
 }
