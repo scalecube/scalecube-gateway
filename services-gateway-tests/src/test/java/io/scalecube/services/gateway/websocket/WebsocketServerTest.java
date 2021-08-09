@@ -31,14 +31,13 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
-class WebsocketClientTest extends BaseTest {
+class WebsocketServerTest extends BaseTest {
 
   public static final GatewayClientCodec<ByteBuf> CLIENT_CODEC =
       GatewayClientTransports.WEBSOCKET_CLIENT_CODEC;
 
   private static Microservices gateway;
   private static Address gatewayAddress;
-  private static Microservices service;
   private static GatewayClient client;
 
   @BeforeAll
@@ -49,25 +48,15 @@ class WebsocketClientTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .gateway(
                 options -> new WebsocketGateway(options.id("WS"), new TestGatewaySessionHandler()))
-            .startAwait();
-    gatewayAddress = gateway.gateway("WS").address();
-
-    service =
-        Microservices.builder()
-            .discovery(
-                "service",
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .membership(
-                            opts -> opts.seedMembers(gateway.discovery("gateway").address())))
             .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl())
             .startAwait();
+    gatewayAddress = gateway.gateway("WS").address();
   }
 
   @AfterEach
   void afterEach() {
-    final GatewayClient client = WebsocketClientTest.client;
+    final GatewayClient client = WebsocketServerTest.client;
     if (client != null) {
       client.close();
     }
@@ -75,15 +64,11 @@ class WebsocketClientTest extends BaseTest {
 
   @AfterAll
   static void afterAll() {
-    final GatewayClient client = WebsocketClientTest.client;
+    final GatewayClient client = WebsocketServerTest.client;
     if (client != null) {
       client.close();
     }
-    Flux.concat(
-            Mono.justOrEmpty(gateway).map(Microservices::shutdown),
-            Mono.justOrEmpty(service).map(Microservices::shutdown))
-        .then()
-        .block();
+    Mono.justOrEmpty(gateway).map(Microservices::shutdown).then().block();
   }
 
   @RepeatedTest(300)
