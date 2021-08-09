@@ -98,7 +98,7 @@ class WebsocketClientTest extends BaseTest {
             .transport(new GatewayClientTransport(client))
             .router(new StaticAddressRouter(gatewayAddress));
 
-    int count = ThreadLocalRandom.current().nextInt(1042) + 24;
+    int count = ThreadLocalRandom.current().nextInt(100, 1042) + 24;
 
     StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<< ")*/)
         .expectNextSequence(IntStream.range(0, count).boxed().collect(Collectors.toList()))
