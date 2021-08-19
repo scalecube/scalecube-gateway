@@ -16,6 +16,7 @@ import io.scalecube.services.gateway.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.gateway.transport.http.HttpGatewayClient;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,7 +43,12 @@ class HttpClientConnectionTest extends BaseTest {
   void beforEach() {
     gateway =
         Microservices.builder()
-            .discovery("gateway", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "gateway",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .gateway(options -> new HttpGateway(options.id("HTTP")))
             .startAwait();
@@ -54,7 +60,9 @@ class HttpClientConnectionTest extends BaseTest {
             .discovery(
                 "service",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint))
                         .membership(
                             opts -> opts.seedMembers(gateway.discovery("gateway").address())))
             .transport(RSocketServiceTransport::new)

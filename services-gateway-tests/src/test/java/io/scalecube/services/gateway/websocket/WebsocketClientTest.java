@@ -18,6 +18,7 @@ import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -45,7 +46,12 @@ class WebsocketClientTest extends BaseTest {
   static void beforeAll() {
     gateway =
         Microservices.builder()
-            .discovery("gateway", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "gateway",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .gateway(
                 options -> new WebsocketGateway(options.id("WS"), new TestGatewaySessionHandler()))
@@ -57,7 +63,9 @@ class WebsocketClientTest extends BaseTest {
             .discovery(
                 "service",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint))
                         .membership(
                             opts -> opts.seedMembers(gateway.discovery("gateway").address())))
             .transport(RSocketServiceTransport::new)

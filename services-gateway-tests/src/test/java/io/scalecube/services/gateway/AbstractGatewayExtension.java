@@ -11,6 +11,7 @@ import io.scalecube.services.gateway.transport.GatewayClientSettings;
 import io.scalecube.services.gateway.transport.StaticAddressRouter;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -47,7 +48,12 @@ public abstract class AbstractGatewayExtension
   public final void beforeAll(ExtensionContext context) {
     gateway =
         Microservices.builder()
-            .discovery("gateway", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "gateway",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .gateway(
                 options -> {
@@ -100,7 +106,9 @@ public abstract class AbstractGatewayExtension
   }
 
   private ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
+    return new ScalecubeServiceDiscovery()
+        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+        .options(opts -> opts.metadata(serviceEndpoint))
         .membership(opts -> opts.seedMembers(gateway.discovery("gateway").address()));
   }
 
