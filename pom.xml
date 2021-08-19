@@ -57,12 +57,13 @@
   </scm>
 
   <properties>
-    <scalecube-services.version>2.10.18</scalecube-services.version>
+    <scalecube-services.version>2.10.20</scalecube-services.version>
     <scalecube-commons.version>1.0.17</scalecube-commons.version>
+    <scalecube-cluster.version>2.6.10</scalecube-cluster.version>
 
-    <reactor.version>2020.0.6</reactor.version>
-    <rsocket.version>1.0.4</rsocket.version>
-    <netty.version>4.1.63.Final</netty.version>
+    <reactor.version>2020.0.10</reactor.version>
+    <rsocket.version>1.0.5</rsocket.version>
+    <netty.version>4.1.66.Final</netty.version>
     <jackson.version>2.11.0</jackson.version>
     <metrics.version>3.1.2</metrics.version>
     <slf4j.version>1.7.30</slf4j.version>
@@ -115,6 +116,11 @@
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-commons</artifactId>
         <version>${scalecube-commons.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-transport-netty</artifactId>
+        <version>${scalecube-cluster.version}</version>
       </dependency>
 
       <!-- Reactor -->
