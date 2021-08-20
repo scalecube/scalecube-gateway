@@ -88,16 +88,36 @@ public final class WebsocketGatewaySession implements GatewaySession {
   public Mono<Void> send(ServiceMessage response) {
     return Mono.deferContextual(
         context -> {
+          final TextWebSocketFrame frame = new TextWebSocketFrame(codec.encode(response));
+          gatewayHandler.onResponse(this, frame.content(), response, (Context) context);
+          // send with publisher (defer buffer cleanup to netty)
+          return outbound
+              .sendObject(frame)
+              .then()
+              .doOnError(th -> gatewayHandler.onError(this, th, (Context) context));
+        });
+  }
+
+  /**
+   * Method to send normal response.
+   *
+   * @param messages messages
+   * @return mono void
+   */
+  public Mono<Void> send(Flux<ServiceMessage> messages) {
+    return Mono.deferContextual(
+        context -> {
           // send with publisher (defer buffer cleanup to netty)
           return outbound
               .sendObject(
-                  Mono.just(response)
-                      .map(codec::encode)
-                      .map(TextWebSocketFrame::new)
-                      .doOnNext(
-                          frame ->
-                              gatewayHandler.onResponse(
-                                  this, frame.content(), response, (Context) context)),
+                  messages.map(
+                      response -> {
+                        final TextWebSocketFrame frame =
+                            new TextWebSocketFrame(codec.encode(response));
+                        gatewayHandler.onResponse(
+                            this, frame.content(), response, (Context) context);
+                        return frame;
+                      }),
                   f -> true)
               .then()
               .doOnError(th -> gatewayHandler.onError(this, th, (Context) context));
