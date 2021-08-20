@@ -188,20 +188,20 @@ public class WebsocketGatewayAcceptor
     final Flux<ServiceMessage> serviceStream = serviceCall.requestMany(request);
 
     Disposable disposable =
-        Optional.ofNullable(request.header(RATE_LIMIT_FIELD))
-            .map(Integer::valueOf)
-            .map(serviceStream::limitRate)
-            .orElse(serviceStream)
-            .map(
-                response -> {
-                  boolean isErrorResponse = false;
-                  if (response.isError()) {
-                    receivedError.set(true);
-                    isErrorResponse = true;
-                  }
-                  return newResponseMessage(sid, response, isErrorResponse);
-                })
-            .flatMap(session::send)
+        session
+            .send(
+                Optional.ofNullable(request.header(RATE_LIMIT_FIELD))
+                    .map(Integer::valueOf)
+                    .map(serviceStream::limitRate)
+                    .orElse(serviceStream)
+                    .map(
+                        response -> {
+                          boolean isErrorResponse = response.isError();
+                          if (isErrorResponse) {
+                            receivedError.set(true);
+                          }
+                          return newResponseMessage(sid, response, isErrorResponse);
+                        }))
             .doOnError(th -> ReferenceCountUtil.safestRelease(request.data()))
             .doOnError(
                 th ->
@@ -209,7 +209,7 @@ public class WebsocketGatewayAcceptor
                         .send(toErrorResponse(errorMapper, request, th))
                         .contextWrite(context)
                         .subscribe())
-            .doOnComplete(
+            .doOnTerminate(
                 () -> {
                   if (!receivedError.get()) {
                     session
