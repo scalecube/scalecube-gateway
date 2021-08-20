@@ -19,7 +19,6 @@ import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterAll;
@@ -28,7 +27,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 class WebsocketServerTest extends BaseTest {
@@ -83,7 +81,7 @@ class WebsocketServerTest extends BaseTest {
             .transport(new GatewayClientTransport(client))
             .router(new StaticAddressRouter(gatewayAddress));
 
-    int count = ThreadLocalRandom.current().nextInt(100, 1042) + 24;
+    int count = (int) 1e3;
 
     StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<< ")*/)
         .expectNextSequence(IntStream.range(0, count).boxed().collect(Collectors.toList()))
@@ -102,9 +100,49 @@ class WebsocketServerTest extends BaseTest {
 
     @Override
     public Flux<Integer> many(int count) {
-      return Flux.range(0, count)
-          .subscribeOn(Schedulers.boundedElastic())
-          .publishOn(Schedulers.boundedElastic());
+      return Flux.using(
+          ReactiveAdapter::new,
+          reactiveAdapter ->
+              reactiveAdapter
+                  .receive()
+                  .take(count)
+                  .cast(Integer.class)
+                  .doOnSubscribe(
+                      s ->
+                          new Thread(
+                                  () -> {
+                                    for (int i = 0; ; ) {
+                                      int r = (int) reactiveAdapter.requested(100);
+
+                                      if (reactiveAdapter.isFastPath()) {
+                                        try {
+                                          if (reactiveAdapter.isDisposed()) {
+                                            return;
+                                          }
+                                          reactiveAdapter.tryNext(i++);
+                                          reactiveAdapter.incrementProduced();
+                                        } catch (Throwable e) {
+                                          reactiveAdapter.lastError(e);
+                                          return;
+                                        }
+                                      } else if (r > 0) {
+                                        try {
+                                          if (reactiveAdapter.isDisposed()) {
+                                            return;
+                                          }
+                                          reactiveAdapter.tryNext(i++);
+                                          reactiveAdapter.incrementProduced();
+                                        } catch (Throwable e) {
+                                          reactiveAdapter.lastError(e);
+                                          return;
+                                        }
+
+                                        reactiveAdapter.commitProduced();
+                                      }
+                                    }
+                                  })
+                              .start()),
+          ReactiveAdapter::dispose);
     }
   }
 }
