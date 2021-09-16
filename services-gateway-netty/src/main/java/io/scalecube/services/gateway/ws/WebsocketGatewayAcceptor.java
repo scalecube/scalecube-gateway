@@ -202,13 +202,15 @@ public class WebsocketGatewayAcceptor
                           }
                           return newResponseMessage(sid, response, isErrorResponse);
                         }))
-            .doOnError(th -> ReferenceCountUtil.safestRelease(request.data()))
             .doOnError(
-                th ->
-                    session
-                        .send(toErrorResponse(errorMapper, request, th))
-                        .contextWrite(context)
-                        .subscribe())
+                th -> {
+                  ReferenceCountUtil.safestRelease(request.data());
+                  receivedError.set(true);
+                  session
+                      .send(toErrorResponse(errorMapper, request, th))
+                      .contextWrite(context)
+                      .subscribe();
+                })
             .doOnTerminate(
                 () -> {
                   if (!receivedError.get()) {
