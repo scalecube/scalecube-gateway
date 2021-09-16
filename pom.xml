@@ -22,30 +22,6 @@
         <enabled>false</enabled>
       </snapshots>
     </repository>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>oss.jfrog</id>
-      <name>jfrog</name>
-      <url>https://oss.jfrog.org/libs-release</url>
-    </repository>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>bintray</id>
-      <name>bintray</name>
-      <url>https://jcenter.bintray.com</url>
-    </repository>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>central</id>
-      <name>central</name>
-      <url>https://repo1.maven.org</url>
-    </repository>
   </repositories>
 
   <scm>
@@ -234,25 +210,6 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>oss.jfrog</id>
-      <name>plugins-release</name>
-      <url>https://oss.jfrog.org/artifactory/plugins-release</url>
-    </pluginRepository>
-    <pluginRepository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>central</id>
-      <name>bintray-plugins</name>
-      <url>https://jcenter.bintray.com</url>
-    </pluginRepository>
-  </pluginRepositories>
 
   <profiles>
     <profile>
