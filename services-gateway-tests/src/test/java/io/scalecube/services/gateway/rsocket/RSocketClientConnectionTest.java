@@ -53,7 +53,6 @@ class RSocketClientConnectionTest extends BaseTest {
     gateway =
         Microservices.builder()
             .discovery(
-                "gateway",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -67,13 +66,11 @@ class RSocketClientConnectionTest extends BaseTest {
     service =
         Microservices.builder()
             .discovery(
-                "service",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(serviceEndpoint))
-                        .membership(
-                            opts -> opts.seedMembers(gateway.discovery("gateway").address())))
+                        .membership(opts -> opts.seedMembers(gateway.discovery().address())))
             .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl(onCloseCounter::incrementAndGet))
             .startAwait();

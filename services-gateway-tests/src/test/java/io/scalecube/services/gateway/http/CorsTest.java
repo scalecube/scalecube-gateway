@@ -34,7 +34,6 @@ public class CorsTest extends BaseTest {
   private final Microservices.Builder gatewayBuilder =
       Microservices.builder()
           .discovery(
-              "gateway",
               serviceEndpoint ->
                   new ScalecubeServiceDiscovery()
                       .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
