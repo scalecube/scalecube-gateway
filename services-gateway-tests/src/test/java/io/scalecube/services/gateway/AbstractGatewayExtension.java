@@ -49,7 +49,6 @@ public abstract class AbstractGatewayExtension
     gateway =
         Microservices.builder()
             .discovery(
-                "gateway",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -98,7 +97,7 @@ public abstract class AbstractGatewayExtension
   public void startServices() {
     services =
         Microservices.builder()
-            .discovery("services", this::serviceDiscovery)
+            .discovery(this::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(serviceInfo)
             .startAwait();
@@ -109,7 +108,7 @@ public abstract class AbstractGatewayExtension
     return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .options(opts -> opts.metadata(serviceEndpoint))
-        .membership(opts -> opts.seedMembers(gateway.discovery("gateway").address()));
+        .membership(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 
   public void shutdownServices() {
