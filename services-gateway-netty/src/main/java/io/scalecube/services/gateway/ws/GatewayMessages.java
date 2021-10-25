@@ -41,11 +41,15 @@ public final class GatewayMessages {
    */
   public static ServiceMessage toErrorResponse(
       ServiceProviderErrorMapper errorMapper, ServiceMessage request, Throwable th) {
-    ServiceMessage errorMessage = errorMapper.toMessage(request.qualifier(), th);
-    String sid = request.header(STREAM_ID_FIELD);
+
+    final String qualifier = request.qualifier() != null ? request.qualifier() : "scalecube/error";
+    final String sid = request.header(STREAM_ID_FIELD);
+    final ServiceMessage errorMessage = errorMapper.toMessage(qualifier, th);
+
     if (sid == null) {
       return ServiceMessage.from(errorMessage).header(SIGNAL_FIELD, Signal.ERROR.code()).build();
     }
+
     return ServiceMessage.from(errorMessage)
         .header(SIGNAL_FIELD, Signal.ERROR.code())
         .header(STREAM_ID_FIELD, sid)

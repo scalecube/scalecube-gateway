@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.ws;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import java.util.Optional;
 
 public class WebsocketContextException extends RuntimeException {
 
@@ -35,9 +34,9 @@ public class WebsocketContextException extends RuntimeException {
    * @return self
    */
   public WebsocketContextException releaseRequest() {
-    Optional.ofNullable(request)
-        .map(ServiceMessage::data)
-        .ifPresent(ReferenceCountUtil::safestRelease);
+    if (request != null) {
+      ReferenceCountUtil.safestRelease(request.data());
+    }
     return this;
   }
 }
