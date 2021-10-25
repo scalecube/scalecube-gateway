@@ -231,11 +231,16 @@ public class WebsocketGatewayAcceptor
     if (getSignal(message) != Signal.CANCEL) {
       return Mono.just(message);
     }
-    // release data if CANCEL contains data (it shouldn't normally), just in case
-    Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
-    long sid = getSid(message);
+
+    // release data if CANCEL contains data (it shouldn't normally)
+    if (message.data() != null) {
+      ReferenceCountUtil.safestRelease(message.data());
+    }
+
     // dispose by sid (if anything to dispose)
+    long sid = getSid(message);
     session.dispose(sid);
+
     // no need to subscribe here since flatMap will do
     return session.send(newCancelMessage(sid, message.qualifier()));
   }
