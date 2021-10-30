@@ -33,9 +33,9 @@
   </scm>
 
   <properties>
-    <scalecube-services.version>2.10.22</scalecube-services.version>
+    <scalecube-services.version>2.10.23</scalecube-services.version>
     <scalecube-commons.version>1.0.18</scalecube-commons.version>
-    <scalecube-cluster.version>2.6.11</scalecube-cluster.version>
+    <scalecube-cluster.version>2.6.12</scalecube-cluster.version>
 
     <reactor.version>2020.0.10</reactor.version>
     <rsocket.version>1.0.5</rsocket.version>
