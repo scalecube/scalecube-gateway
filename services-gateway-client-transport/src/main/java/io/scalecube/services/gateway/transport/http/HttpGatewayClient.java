@@ -29,18 +29,44 @@ public final class HttpGatewayClient implements GatewayClient {
   private final GatewayClientCodec<ByteBuf> codec;
   private final HttpClient httpClient;
   private final LoopResources loopResources;
+  private final boolean ownsLoopResources;
 
   private final Sinks.One<Void> close = Sinks.one();
   private final Sinks.One<Void> onClose = Sinks.one();
 
   /**
-   * Creates instance of http client transport.
+   * Constructor.
    *
-   * @param settings client settings
+   * @param settings settings
+   * @param codec codec
    */
   public HttpGatewayClient(GatewayClientSettings settings, GatewayClientCodec<ByteBuf> codec) {
+    this(settings, codec, LoopResources.create("http-gateway-client"), true);
+  }
+
+  /**
+   * Constructor.
+   *
+   * @param settings settings
+   * @param codec codec
+   * @param loopResources loopResources
+   */
+  public HttpGatewayClient(
+      GatewayClientSettings settings,
+      GatewayClientCodec<ByteBuf> codec,
+      LoopResources loopResources) {
+    this(settings, codec, loopResources, false);
+  }
+
+  private HttpGatewayClient(
+      GatewayClientSettings settings,
+      GatewayClientCodec<ByteBuf> codec,
+      LoopResources loopResources,
+      boolean ownsLoopResources) {
+
     this.codec = codec;
-    this.loopResources = LoopResources.create("http-gateway-client");
+    this.loopResources = loopResources;
+    this.ownsLoopResources = ownsLoopResources;
 
     HttpClient httpClient =
         HttpClient.create(ConnectionProvider.create("http-gateway-client"))
@@ -111,7 +137,7 @@ public final class HttpGatewayClient implements GatewayClient {
   }
 
   private Mono<Void> doClose() {
-    return Mono.defer(loopResources::disposeLater);
+    return ownsLoopResources ? Mono.defer(loopResources::disposeLater) : Mono.empty();
   }
 
   private ServiceMessage toMessage(HttpClientResponse httpResponse, ByteBuf content) {

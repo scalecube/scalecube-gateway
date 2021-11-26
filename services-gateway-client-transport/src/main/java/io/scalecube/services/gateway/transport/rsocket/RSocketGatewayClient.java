@@ -33,6 +33,7 @@ public final class RSocketGatewayClient implements GatewayClient {
   private final GatewayClientSettings settings;
   private final GatewayClientCodec<Payload> codec;
   private final LoopResources loopResources;
+  private final boolean ownsLoopResources;
 
   private final Sinks.One<Void> close = Sinks.one();
   private final Sinks.One<Void> onClose = Sinks.one();
@@ -41,15 +42,39 @@ public final class RSocketGatewayClient implements GatewayClient {
   private volatile Mono<?> rsocketMono;
 
   /**
-   * Constructor for gateway over rsocket client transport.
+   * Constructor.
    *
-   * @param settings client settings.
-   * @param codec client codec.
+   * @param settings settings
+   * @param codec codec
    */
   public RSocketGatewayClient(GatewayClientSettings settings, GatewayClientCodec<Payload> codec) {
+    this(settings, codec, LoopResources.create("rsocket-gateway-client"), true);
+  }
+
+  /**
+   * Constructor.
+   *
+   * @param settings settings
+   * @param codec codec
+   * @param loopResources loopResources
+   */
+  public RSocketGatewayClient(
+      GatewayClientSettings settings,
+      GatewayClientCodec<Payload> codec,
+      LoopResources loopResources) {
+    this(settings, codec, loopResources, false);
+  }
+
+  private RSocketGatewayClient(
+      GatewayClientSettings settings,
+      GatewayClientCodec<Payload> codec,
+      LoopResources loopResources,
+      boolean ownsLoopResources) {
+
     this.settings = settings;
     this.codec = codec;
-    this.loopResources = LoopResources.create("rsocket-gateway-client");
+    this.loopResources = loopResources;
+    this.ownsLoopResources = ownsLoopResources;
 
     // Setup cleanup
     close
@@ -106,7 +131,7 @@ public final class RSocketGatewayClient implements GatewayClient {
   }
 
   private Mono<Void> doClose() {
-    return Mono.defer(loopResources::disposeLater);
+    return ownsLoopResources ? Mono.defer(loopResources::disposeLater) : Mono.empty();
   }
 
   private Mono<RSocket> getOrConnect() {
