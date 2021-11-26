@@ -39,6 +39,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
   private final GatewayClientSettings settings;
   private final HttpClient httpClient;
   private final LoopResources loopResources;
+  private final boolean ownsLoopResources;
 
   private final Sinks.One<Void> close = Sinks.one();
   private final Sinks.One<Void> onClose = Sinks.one();
@@ -53,9 +54,33 @@ public final class WebsocketGatewayClient implements GatewayClient {
    * @param codec client codec.
    */
   public WebsocketGatewayClient(GatewayClientSettings settings, GatewayClientCodec<ByteBuf> codec) {
+    this(settings, codec, LoopResources.create("websocket-gateway-client"), true);
+  }
+
+  /**
+   * Creates instance of websocket client transport.
+   *
+   * @param settings client settings
+   * @param codec client codec.
+   * @param loopResources loopResources.
+   */
+  public WebsocketGatewayClient(
+      GatewayClientSettings settings,
+      GatewayClientCodec<ByteBuf> codec,
+      LoopResources loopResources) {
+    this(settings, codec, loopResources, false);
+  }
+
+  private WebsocketGatewayClient(
+      GatewayClientSettings settings,
+      GatewayClientCodec<ByteBuf> codec,
+      LoopResources loopResources,
+      boolean ownsLoopResources) {
+
     this.settings = settings;
     this.codec = codec;
-    this.loopResources = LoopResources.create("websocket-gateway-client");
+    this.loopResources = loopResources;
+    this.ownsLoopResources = ownsLoopResources;
 
     HttpClient httpClient =
         HttpClient.create(ConnectionProvider.newConnection())
@@ -131,7 +156,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
   }
 
   private Mono<Void> doClose() {
-    return Mono.defer(loopResources::disposeLater);
+    return ownsLoopResources ? Mono.defer(loopResources::disposeLater) : Mono.empty();
   }
 
   private Mono<WebsocketGatewayClientSession> getOrConnect() {
