@@ -24,7 +24,6 @@ import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map.Entry;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +99,9 @@ public final class WebsocketServiceMessageCodec {
       generator.writeEndObject();
     } catch (Throwable ex) {
       ReferenceCountUtil.safestRelease(byteBuf);
-      Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
+      if (message.data() != null) {
+        ReferenceCountUtil.safestRelease(message.data());
+      }
       LOGGER.error("Failed to encode gateway service message: {}", message, ex);
       throw new MessageCodecException("Failed to encode gateway service message", ex);
     }
