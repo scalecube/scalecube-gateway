@@ -26,7 +26,6 @@ import io.scalecube.services.gateway.ReferenceCountUtil;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
@@ -185,23 +184,22 @@ public class WebsocketGatewayAcceptor
     final long sid = getSid(request);
     final AtomicBoolean receivedError = new AtomicBoolean(false);
 
-    final Flux<ServiceMessage> serviceStream = serviceCall.requestMany(request);
+    Flux<ServiceMessage> serviceStream = serviceCall.requestMany(request);
+    final String limitRate = request.header(RATE_LIMIT_FIELD);
+    serviceStream =
+        limitRate != null ? serviceStream.limitRate(Integer.parseInt(limitRate)) : serviceStream;
 
     Disposable disposable =
         session
             .send(
-                Optional.ofNullable(request.header(RATE_LIMIT_FIELD))
-                    .map(Integer::valueOf)
-                    .map(serviceStream::limitRate)
-                    .orElse(serviceStream)
-                    .map(
-                        response -> {
-                          boolean isErrorResponse = response.isError();
-                          if (isErrorResponse) {
-                            receivedError.set(true);
-                          }
-                          return newResponseMessage(sid, response, isErrorResponse);
-                        }))
+                serviceStream.map(
+                    response -> {
+                      boolean isErrorResponse = response.isError();
+                      if (isErrorResponse) {
+                        receivedError.set(true);
+                      }
+                      return newResponseMessage(sid, response, isErrorResponse);
+                    }))
             .doOnError(
                 th -> {
                   ReferenceCountUtil.safestRelease(request.data());

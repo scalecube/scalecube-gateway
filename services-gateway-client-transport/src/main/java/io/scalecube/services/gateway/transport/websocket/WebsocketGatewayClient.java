@@ -108,36 +108,32 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
-    return Mono.defer(
-        () -> {
-          long sid = sidCounter.incrementAndGet();
-          return getOrConnect()
-              .flatMap(
-                  session ->
-                      session
-                          .send(encodeRequest(request, sid))
-                          .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
-                          .then(session.<ServiceMessage>newMonoProcessor(sid).asMono())
-                          .doOnCancel(() -> session.cancel(sid, request.qualifier()))
-                          .doFinally(s -> session.removeProcessor(sid)));
-        });
+    return getOrConnect()
+        .flatMap(
+            session -> {
+              long sid = sidCounter.incrementAndGet();
+              return session
+                  .send(encodeRequest(request, sid))
+                  .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
+                  .then(session.<ServiceMessage>newMonoProcessor(sid).asMono())
+                  .doOnCancel(() -> session.cancel(sid, request.qualifier()))
+                  .doFinally(s -> session.removeProcessor(sid));
+            });
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
-    return Flux.defer(
-        () -> {
-          long sid = sidCounter.incrementAndGet();
-          return getOrConnect()
-              .flatMapMany(
-                  session ->
-                      session
-                          .send(encodeRequest(request, sid))
-                          .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
-                          .thenMany(session.<ServiceMessage>newUnicastProcessor(sid).asFlux())
-                          .doOnCancel(() -> session.cancel(sid, request.qualifier()))
-                          .doFinally(s -> session.removeProcessor(sid)));
-        });
+    return getOrConnect()
+        .flatMapMany(
+            session -> {
+              long sid = sidCounter.incrementAndGet();
+              return session
+                  .send(encodeRequest(request, sid))
+                  .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
+                  .thenMany(session.<ServiceMessage>newUnicastProcessor(sid).asFlux())
+                  .doOnCancel(() -> session.cancel(sid, request.qualifier()))
+                  .doFinally(s -> session.removeProcessor(sid));
+            });
   }
 
   @Override
@@ -161,7 +157,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   private Mono<WebsocketGatewayClientSession> getOrConnect() {
     // noinspection unchecked
-    return Mono.defer(() -> websocketMonoUpdater.updateAndGet(this, this::getOrConnect0));
+    return websocketMonoUpdater.updateAndGet(this, this::getOrConnect0);
   }
 
   private Mono<WebsocketGatewayClientSession> getOrConnect0(

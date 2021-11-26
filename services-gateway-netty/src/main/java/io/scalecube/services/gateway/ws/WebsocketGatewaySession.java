@@ -8,6 +8,7 @@ import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,8 @@ import reactor.util.context.Context;
 public final class WebsocketGatewaySession implements GatewaySession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewaySession.class);
+
+  private static final Predicate<Object> SEND_PREDICATE = f -> true;
 
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
 
@@ -118,7 +121,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
                             this, frame.content(), response, (Context) context);
                         return frame;
                       }),
-                  f -> true)
+                  SEND_PREDICATE)
               .then()
               .doOnError(th -> gatewayHandler.onError(this, th, (Context) context));
         });
@@ -171,7 +174,9 @@ public final class WebsocketGatewaySession implements GatewaySession {
       Disposable disposable = subscriptions.remove(streamId);
       result = disposable != null;
       if (result) {
-        LOGGER.debug("Dispose subscription by sid={}, session={}", streamId, sessionId);
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("Dispose subscription by sid={}, session={}", streamId, sessionId);
+        }
         disposable.dispose();
       }
     }
@@ -188,24 +193,28 @@ public final class WebsocketGatewaySession implements GatewaySession {
    *
    * @param streamId stream id
    * @param disposable service subscription
-   * @return true if disposable subscription was stored
    */
-  public boolean register(Long streamId, Disposable disposable) {
+  public void register(Long streamId, Disposable disposable) {
     boolean result = false;
     if (!disposable.isDisposed()) {
       result = subscriptions.putIfAbsent(streamId, disposable) == null;
     }
     if (result) {
-      LOGGER.debug("Registered subscription with sid={}, session={}", streamId, sessionId);
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Registered subscription with sid={}, session={}", streamId, sessionId);
+      }
     }
-    return result;
   }
 
   private void clearSubscriptions() {
     if (subscriptions.size() > 1) {
-      LOGGER.debug("Clear all {} subscriptions on session={}", subscriptions.size(), sessionId);
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Clear all {} subscriptions on session={}", subscriptions.size(), sessionId);
+      }
     } else if (subscriptions.size() == 1) {
-      LOGGER.debug("Clear 1 subscription on session={}", sessionId);
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Clear 1 subscription on session={}", sessionId);
+      }
     }
     subscriptions.forEach((sid, disposable) -> disposable.dispose());
     subscriptions.clear();

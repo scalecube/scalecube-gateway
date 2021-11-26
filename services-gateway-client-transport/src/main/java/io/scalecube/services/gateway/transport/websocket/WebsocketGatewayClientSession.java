@@ -10,13 +10,14 @@ import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.nio.channels.ClosedChannelException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.StringJoiner;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.Many;
+import reactor.core.publisher.Sinks.One;
 import reactor.netty.Connection;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
@@ -59,14 +60,16 @@ public final class WebsocketGatewayClientSession {
               try {
                 message = codec.decode(byteBuf);
               } catch (Exception ex) {
-                LOGGER.error("Response decoder failed: " + ex);
+                LOGGER.error("Response decoder failed:", ex);
                 return;
               }
 
               // ignore messages w/o sid
               if (!message.headers().containsKey(STREAM_ID)) {
                 LOGGER.error("Ignore response: {} with null sid, session={}", message, id);
-                Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
+                if (message.data() != null) {
+                  ReferenceCountUtil.safestRelease(message.data());
+                }
                 return;
               }
 
@@ -74,7 +77,9 @@ public final class WebsocketGatewayClientSession {
               long sid = Long.parseLong(message.header(STREAM_ID));
               Object processor = inboundProcessors.get(sid);
               if (processor == null) {
-                Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
+                if (message.data() != null) {
+                  ReferenceCountUtil.safestRelease(message.data());
+                }
                 return;
               }
 
@@ -88,24 +93,22 @@ public final class WebsocketGatewayClientSession {
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   <T> Sinks.One<T> newMonoProcessor(long sid) {
-    return (Sinks.One)
-        inboundProcessors.computeIfAbsent(
-            sid,
-            key -> {
-              LOGGER.debug("Put sid={}, session={}", sid, id);
-              return Sinks.one();
-            });
+    return (Sinks.One) inboundProcessors.computeIfAbsent(sid, this::newMonoProcessor0);
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   <T> Sinks.Many<T> newUnicastProcessor(long sid) {
-    return (Sinks.Many)
-        inboundProcessors.computeIfAbsent(
-            sid,
-            key -> {
-              LOGGER.debug("Put sid={}, session={}", sid, id);
-              return Sinks.many().unicast().onBackpressureBuffer();
-            });
+    return (Sinks.Many) inboundProcessors.computeIfAbsent(sid, this::newUnicastProcessor0);
+  }
+
+  private One<Object> newMonoProcessor0(long sid) {
+    LOGGER.debug("Put sid={}, session={}", sid, id);
+    return Sinks.one();
+  }
+
+  private Many<Object> newUnicastProcessor0(long sid) {
+    LOGGER.debug("Put sid={}, session={}", sid, id);
+    return Sinks.many().unicast().onBackpressureBuffer();
   }
 
   void removeProcessor(long sid) {
@@ -115,14 +118,7 @@ public final class WebsocketGatewayClientSession {
   }
 
   Mono<Void> send(ByteBuf byteBuf) {
-    return Mono.defer(
-        () -> {
-          // send with publisher (defer buffer cleanup to netty)
-          return connection
-              .outbound()
-              .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new), f -> true)
-              .then();
-        });
+    return connection.outbound().sendObject(new TextWebSocketFrame(byteBuf)).then();
   }
 
   void cancel(long sid, String qualifier) {
@@ -158,25 +154,29 @@ public final class WebsocketGatewayClientSession {
   }
 
   private void handleResponse(ServiceMessage response, Object processor) {
-    LOGGER.debug("Handle response: {}, session={}", response, id);
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Handle response: {}, session={}", response, id);
+    }
 
     try {
-      Optional<Signal> signalOptional =
-          Optional.ofNullable(response.header(SIGNAL)).map(Signal::from);
+      Signal signal = null;
+      final String header = response.header(SIGNAL);
 
-      if (!signalOptional.isPresent()) {
+      if (header != null) {
+        signal = Signal.from(header);
+      }
+
+      if (signal == null) {
         // handle normal response
         emitNext(processor, response);
       } else {
         // handle completion signal
-        Signal signal = signalOptional.get();
         if (signal == Signal.COMPLETE) {
           emitComplete(processor);
         }
         if (signal == Signal.ERROR) {
           // decode error data to retrieve real error cause
-          ServiceMessage errorMessage = codec.decodeData(response, ErrorData.class);
-          emitNext(processor, errorMessage);
+          emitNext(processor, codec.decodeData(response, ErrorData.class));
         }
       }
     } catch (Exception e) {
