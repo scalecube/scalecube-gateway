@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MappingJsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
@@ -162,6 +163,8 @@ public final class WebsocketGatewayClientCodec implements GatewayClientCodec<Byt
     mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
     mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     mapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
+    mapper.registerModule(new JavaTimeModule());
+    mapper.findAndRegisterModules();
     return mapper;
   }
 }
