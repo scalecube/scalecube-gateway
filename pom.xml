@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -33,13 +35,13 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.13</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.21</scalecube-commons.version>
-    <scalecube-services.version>2.10.24</scalecube-services.version>
+    <scalecube-cluster.version>2.6.15</scalecube-cluster.version>
+    <scalecube-commons.version>1.0.22</scalecube-commons.version>
+    <scalecube-services.version>2.10.25</scalecube-services.version>
 
-    <reactor.version>2020.0.23</reactor.version>
+    <reactor.version>2022.0.7</reactor.version>
     <rsocket.version>1.1.3</rsocket.version>
-    <jackson.version>2.13.3</jackson.version>
+    <jackson.version>2.15.1</jackson.version>
     <slf4j.version>1.7.36</slf4j.version>
     <log4j.version>2.17.2</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
