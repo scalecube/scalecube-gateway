@@ -15,7 +15,12 @@ public abstract class GatewayTemplate implements Gateway {
   protected final GatewayOptions options;
 
   protected GatewayTemplate(GatewayOptions options) {
-    this.options = new GatewayOptions(options);
+    this.options =
+        new GatewayOptions()
+            .id(options.id())
+            .port(options.port())
+            .workerPool(options.workerPool())
+            .call(options.call());
   }
 
   @Override
