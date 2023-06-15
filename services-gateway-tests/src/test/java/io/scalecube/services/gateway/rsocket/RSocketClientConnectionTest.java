@@ -70,7 +70,7 @@ class RSocketClientConnectionTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(serviceEndpoint))
-                        .membership(opts -> opts.seedMembers(gateway.discovery().address())))
+                        .membership(opts -> opts.seedMembers(gateway.discoveryAddress())))
             .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl(onCloseCounter::incrementAndGet))
             .startAwait();
@@ -100,7 +100,7 @@ class RSocketClientConnectionTest extends BaseTest {
             .router(new StaticAddressRouter(gatewayAddress));
 
     StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
-        .thenAwait(Duration.ofSeconds(1))
+        .thenAwait(Duration.ofSeconds(5))
         .then(() -> client.close())
         .then(() -> client.onClose().block())
         .expectError(IOException.class)

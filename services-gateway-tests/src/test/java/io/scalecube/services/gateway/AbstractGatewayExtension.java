@@ -108,7 +108,7 @@ public abstract class AbstractGatewayExtension
     return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .options(opts -> opts.metadata(serviceEndpoint))
-        .membership(opts -> opts.seedMembers(gateway.discovery().address()));
+        .membership(opts -> opts.seedMembers(gateway.discoveryAddress()));
   }
 
   public void shutdownServices() {
