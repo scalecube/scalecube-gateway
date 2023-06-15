@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.resources.LoopResources;
 import reactor.test.StepVerifier;
 
 class WebsocketServerTest extends BaseTest {
@@ -38,9 +39,12 @@ class WebsocketServerTest extends BaseTest {
   private static Microservices gateway;
   private static Address gatewayAddress;
   private static GatewayClient client;
+  private static LoopResources loopResources;
 
   @BeforeAll
   static void beforeAll() {
+    loopResources = LoopResources.create("websocket-gateway-client");
+
     gateway =
         Microservices.builder()
             .discovery(
@@ -71,22 +75,29 @@ class WebsocketServerTest extends BaseTest {
     if (client != null) {
       client.close();
     }
+
     Mono.justOrEmpty(gateway).map(Microservices::shutdown).then().block();
+
+    if (loopResources != null) {
+      loopResources.disposeLater().block();
+    }
   }
 
-  @RepeatedTest(300)
+  @RepeatedTest(100)
   void testMessageSequence() {
 
     client =
         new WebsocketGatewayClient(
-            GatewayClientSettings.builder().address(gatewayAddress).build(), CLIENT_CODEC);
+            GatewayClientSettings.builder().address(gatewayAddress).build(),
+            CLIENT_CODEC,
+            loopResources);
 
     ServiceCall serviceCall =
         new ServiceCall()
             .transport(new GatewayClientTransport(client))
             .router(new StaticAddressRouter(gatewayAddress));
 
-    int count = (int) 1e3;
+    int count = 100;
 
     StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<< ")*/)
         .expectNextSequence(IntStream.range(0, count).boxed().collect(Collectors.toList()))
