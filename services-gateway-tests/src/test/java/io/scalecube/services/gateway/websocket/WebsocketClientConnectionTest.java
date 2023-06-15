@@ -80,7 +80,7 @@ class WebsocketClientConnectionTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(serviceEndpoint))
-                        .membership(opts -> opts.seedMembers(gateway.discovery().address())))
+                        .membership(opts -> opts.seedMembers(gateway.discoveryAddress())))
             .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl(onCloseCounter::incrementAndGet))
             .startAwait();
@@ -168,8 +168,11 @@ class WebsocketClientConnectionTest extends BaseTest {
 
   @Test
   void testKeepalive()
-      throws InterruptedException, NoSuchFieldException, IllegalAccessException,
-          NoSuchMethodException, InvocationTargetException {
+      throws InterruptedException,
+          NoSuchFieldException,
+          IllegalAccessException,
+          NoSuchMethodException,
+          InvocationTargetException {
 
     int expectedKeepalives = 3;
     Duration keepAliveInterval = Duration.ofSeconds(1);
