@@ -91,7 +91,7 @@ class HttpClientConnectionTest extends BaseTest {
             .router(new StaticAddressRouter(gatewayAddress));
 
     StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
-        .thenAwait(Duration.ofSeconds(1))
+        .thenAwait(Duration.ofSeconds(5))
         .then(() -> client.close())
         .then(() -> client.onClose().block())
         .expectError(IOException.class)
